@@ -272,6 +272,9 @@ The following wont work if ~/.profile exist, Then you need to manually add to .b
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion' >> ~/.bashrc
 
+^^^^^^
+For macos, add to ~/.bash_profile
+
 2) Make .bashrc take effect immediately by sourcing:
 - source ~/.bashrc
 
