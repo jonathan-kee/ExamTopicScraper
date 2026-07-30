@@ -1,0 +1,44 @@
+name: Setup Database
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-database:
+    name: Setup Database
+    runs-on: [self-hosted, Linux, ARM64]
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # https://docs.github.com/en/actions/tutorials/use-containerized-services/use-docker-service-containers#mapping-docker-host-and-service-container-ports
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432/tcp
+
+    # https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers#configuring-the-steps-for-jobs-directly-on-the-runner-machine
+    steps:
+        # Downloads a copy of the code in your repository before running CI tests
+      - name: Check out repository code
+        uses: actions/checkout@v6
+      
+      - name: SQL 1
+        run: docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_scraper.sql
+
+      - name: SQL 2
+        run: docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_scraper.sql
+
+      - name: SQL 3
+        run: docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_schema.sql
+    
+      - name: SQL 4
+        run: docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_schema.sql
