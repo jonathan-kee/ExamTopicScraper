@@ -42,6 +42,11 @@ The reason I was doing this is because I don't want to pay the expensive fee to 
 1) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgres.js
 2) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgresHardcode.js
 3) tsc && node ./build/commands/scrapeDataIntoPostgres.js
+^
+There is always a chance something will go wrong here:
+- Need to run docker_pg_findMissingAnswers.sql
+- tsc && node ./build/commands/rescrapeDataMissingAnswers.js 
+
 4) tsc && node ./build/commands/scrapeImages.js
 5) tsc && node ./build/commands/markdown.js
 
