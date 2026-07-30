@@ -16,10 +16,17 @@ function randomDelay(min: number, max: number) {
 // 3) Run scrapeWebsiteLinksIntoPostgres()
 
 let scrapeWebsiteLinksIntoPostgres = async () => {
-    console.log("Starting test");
+    console.log("Start Scraping");
+    
+    // Need to restart sequence for docker_pg_seq_scraper for new exam
+    // ALTER SEQUENCE seq_questionsLink RESTART WITH 1;
+    // Label the generic data
+    let genericSearch:string = process.argv[2]; // 'examtopics 1z0-"071" Exam question '
+    let genericExam:string =  process.argv[3]; // '1z0-071'
+    let genericNumberOfQuestions:number = Number(process.argv[4]); //272
 
     const scrapeDataLambda = async (page: Page, i: number) => {
-        let googleSearch = 'examtopics 1z0-"071" Exam question ' + i;
+        let googleSearch = genericSearch + i;
         await page.locator('.gLFyf').wait();
         console.log("Google search input detected");
         await page.locator('.gLFyf').fill(googleSearch);
@@ -34,7 +41,7 @@ let scrapeWebsiteLinksIntoPostgres = async () => {
         console.log(link);
 
         const insertResult = await db.DatabaseManager.executeQuery(`INSERT INTO questionsLink (number, exam, link) 
-VALUES ((SELECT last_value FROM seq_questionsLink), '1z0-071', '${link}');`);
+VALUES ((SELECT last_value FROM seq_questionsLink), '${genericExam}', '${link}');`);
         console.log(insertResult);
     }
 
@@ -42,7 +49,7 @@ VALUES ((SELECT last_value FROM seq_questionsLink), '1z0-071', '${link}');`);
     const result = await db.DatabaseManager.executeQuery("SELECT last_value FROM seq_questionsLink;");
     let sequenceLastValue: number = result.rows[0].last_value;
 
-    for (let i = sequenceLastValue; i <= 272;) {
+    for (let i = sequenceLastValue; i <= genericNumberOfQuestions;) {
         // I will open and close the browser which is not what I wanted
         await browser.BrowserManager.manageBrowserAndPageOverload("http://127.0.0.1:9222", 'https://www.google.com/', i, scrapeDataLambda);
 
