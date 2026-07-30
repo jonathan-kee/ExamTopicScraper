@@ -33,35 +33,55 @@ the answers to the question but even they may be wrong, please do research caref
 2) What happens if transformation fail, how to recover?
 3) What happens if presentation fail, how to recover?
 
-# Browserless Pipeline commands
+# Browserless Test Pipeline commands
 1) npm run unitTest -- build/test/extractAllRawDocument.test.js
 2) java -jar /Users/jonathankee/examTopicScraper/static_page/build/libs/static_page-1.0-SNAPSHOT-all.jar
 3) Run markdown code
 
+# Browserless Production Pipeline commands
+- tsc --build --clean 
+- tsc --build  
+1) ALTER SEQUENCE seq_questionsLink RESTART WITH 1;
+2) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgres.js 'examtopics Scrum PSM I Exam question ' 'PSM I' 258
+3) The below command will download the documents and scrape data into database
+- java -jar /Users/jonathankee/examTopicScraper/static_page/build/libs/static_page-1.0-SNAPSHOT-all.jar
+^
+There is always a chance something will go wrong here:
+- docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_findMissingAnswers.sql
+- tsc && node ./build/commands/rescrapeDataMissingAnswers.js
+
+4) Run the following before scrapeImages:
+- docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_scrapeImage.sql
+- docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_scrapeImage.sql
+- tsc && node ./build/commands/scrapeImages.js
+
+5) Run the following before scrapeImages:
+- docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_cleanImages.sql
+- docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_format_markdown.sql
+- tsc && node ./build/commands/markdown.js
+
 # Browser Pipeline commands
 - tsc --build --clean 
 - tsc --build  
-0) ALTER SEQUENCE seq_questionsLink RESTART WITH 1;
-1) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgres.js 'examtopics Scrum PSM I Exam question ' 'PSM I' 258
-2) (Optional) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgresHardcode.js
-3) ALTER SEQUENCE seq_questions RESTART WITH 1;
-4) tsc && node ./build/commands/scrapeDataIntoPostgres.js 'PSM I'
+1) ALTER SEQUENCE seq_questionsLink RESTART WITH 1;
+2) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgres.js 'examtopics Scrum PSM I Exam question ' 'PSM I' 258
+3) (Optional) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgresHardcode.js
+4) ALTER SEQUENCE seq_questions RESTART WITH 1;
+5) tsc && node ./build/commands/scrapeDataIntoPostgres.js 'PSM I'
 ^
 There is always a chance something will go wrong here:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_findMissingAnswers.sql
 - tsc && node ./build/commands/rescrapeDataMissingAnswers.js 
 
-Run the following before scrapeImages:
+6) Run the following before scrapeImages:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_scrapeImage.sql
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_scrapeImage.sql
+- tsc && node ./build/commands/scrapeImages.js
 
-5) tsc && node ./build/commands/scrapeImages.js
-
-Run the following before scrapeImages:
+7) Run the following before scrapeImages:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_cleanImages.sql
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_format_markdown.sql
-
-6) tsc && node ./build/commands/markdown.js
+- tsc && node ./build/commands/markdown.js
 
 # Postgres docker installation
 Youtube link:
