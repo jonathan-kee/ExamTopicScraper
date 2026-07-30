@@ -46,10 +46,19 @@ The reason I was doing this is because I don't want to pay the expensive fee to 
 4) tsc && node ./build/commands/scrapeDataIntoPostgres.js 'PSM I'
 ^
 There is always a chance something will go wrong here:
-- Need to run docker_pg_findMissingAnswers.sql
+- docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_findMissingAnswers.sql
 - tsc && node ./build/commands/rescrapeDataMissingAnswers.js 
 
+Run the following before scrapeImages:
+- docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_scrapeImage.sql
+- docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_scrapeImage.sql
+
 5) tsc && node ./build/commands/scrapeImages.js
+
+Run the following before scrapeImages:
+- docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_cleanImages.sql
+- docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_format_markdown.sql
+
 6) tsc && node ./build/commands/markdown.js
 
 # Postgres docker installation
@@ -74,6 +83,8 @@ Feed sql file to postgres container:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_scraper.sql
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_schema.sql
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_schema.sql
+
+
 
 Use datagrip and connect and see if the SQL files are ran
 
