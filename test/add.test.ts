@@ -1,4 +1,5 @@
-import t from 'tap'
+import { throws, equal } from "assert";
+import test from 'node:test';
 
 function add(arg1: any, arg2: any) {
   if (!Number.isInteger(arg1)) throw Error('inputs must be numbers');
@@ -6,14 +7,14 @@ function add(arg1: any, arg2: any) {
   return arg1 + arg2;
 }
 
-t.test('throw when inputs are not numbers', async t => {
-  t.throws(() => add('5', '5'), Error('inputs must be numbers'))
-  t.throws(() => add(5, '5'), Error('inputs must be numbers'))
-  t.throws(() => add('5', 5), Error('inputs must be numbers'))
-  t.throws(() => add({}, null), Error('inputs must be numbers'))
+test('throw when inputs are not numbers', async t => {
+  throws(() => add('5', '5'), Error('inputs must be numbers'))
+  throws(() => add(5, '5'), Error('inputs must be numbers'))
+  throws(() => add('5', 5), Error('inputs must be numbers'))
+  throws(() => add({}, null), Error('inputs must be numbers'))
 })
 
-t.test('adds two numbers', async t => {
-  t.equal(add(5, 5), 10)
-  t.equal(add(-5, 5), 0)
+test('adds two numbers', async t => {
+  equal(add(5, 5), 10)
+  equal(add(-5, 5), 0)
 })
