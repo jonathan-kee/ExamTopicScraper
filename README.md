@@ -1,5 +1,7 @@
 # EXAMTOPICSCRAPER
-The reason I was doing this is because I don't want to pay the expensive fee to see the certification dumps lol. 
+## Project Description
+This project contains certifications dumps from exam topic website. Do note that the dicussions contains
+the answers to the question but even they may be wrong, please do research carefully!
 
 # Project Highlights
 [Postgres container working](./screenshots/datagripConnectPostgres.png)
