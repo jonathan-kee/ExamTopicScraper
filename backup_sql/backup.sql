@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ekj3v93oDc6czprvw4gYylgtZmepp9tUaxSaQenScso5hG4pNhUHyv3hrMmzU24
+\restrict YGffdq0nxWmguLB4ETC2yWrLb9OedbL6JN1lHS3sBGG641pnl9PfAyKuWPbIdLQ
 
 -- Dumped from database version 18.4 (Debian 18.4-1.pgdg13+1)
 -- Dumped by pg_dump version 18.4 (Debian 18.4-1.pgdg13+1)
@@ -19,9 +19,30 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+--
+-- Name: staging; Type: SCHEMA; Schema: -; Owner: postgres
+--
+
+CREATE SCHEMA staging;
+
+
+ALTER SCHEMA staging OWNER TO postgres;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: all_images_url; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.all_images_url (
+    number bigint,
+    url text
+);
+
+
+ALTER TABLE public.all_images_url OWNER TO postgres;
 
 --
 -- Name: answers; Type: TABLE; Schema: public; Owner: postgres
@@ -37,6 +58,73 @@ CREATE TABLE public.answers (
 
 
 ALTER TABLE public.answers OWNER TO postgres;
+
+--
+-- Name: browserless_answers; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.browserless_answers (
+    number integer NOT NULL,
+    question_number integer NOT NULL,
+    question_exam text NOT NULL,
+    text text,
+    is_correct boolean
+);
+
+
+ALTER TABLE public.browserless_answers OWNER TO postgres;
+
+--
+-- Name: browserless_companies; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.browserless_companies (
+    name text NOT NULL
+);
+
+
+ALTER TABLE public.browserless_companies OWNER TO postgres;
+
+--
+-- Name: browserless_discussions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.browserless_discussions (
+    number integer NOT NULL,
+    question_number integer NOT NULL,
+    question_exam text NOT NULL,
+    selected_answer text,
+    text text,
+    upvote integer
+);
+
+
+ALTER TABLE public.browserless_discussions OWNER TO postgres;
+
+--
+-- Name: browserless_exams; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.browserless_exams (
+    name text NOT NULL,
+    company text NOT NULL
+);
+
+
+ALTER TABLE public.browserless_exams OWNER TO postgres;
+
+--
+-- Name: browserless_questions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.browserless_questions (
+    number integer NOT NULL,
+    exam text NOT NULL,
+    text text
+);
+
+
+ALTER TABLE public.browserless_questions OWNER TO postgres;
 
 --
 -- Name: companies; Type: TABLE; Schema: public; Owner: postgres
@@ -78,17 +166,65 @@ CREATE TABLE public.exams (
 ALTER TABLE public.exams OWNER TO postgres;
 
 --
--- Name: questions; Type: TABLE; Schema: public; Owner: postgres
+-- Name: market_depth_raw; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.questions (
-    number integer NOT NULL,
-    exam text NOT NULL,
-    text text
+CREATE TABLE public.market_depth_raw (
+    "Ticker" character varying(10) NOT NULL,
+    "MMBuy" numeric(15,2),
+    "MMSell" numeric(15,2),
+    "AI1-Average" numeric(15,2),
+    "AI1-Previous" numeric(15,2),
+    "AI1-AskAmt" numeric(15,4),
+    "AI1-AskPrice" numeric(15,2),
+    "AI1-AskAvail" integer,
+    "AI1-BidAmt" numeric(15,4),
+    "AI1-BidPrice" numeric(15,2),
+    "AI1-BidAvail" integer,
+    "CI1-Average" numeric(15,2),
+    "CI1-Previous" numeric(15,2),
+    "CI1-AskAmt" numeric(15,4),
+    "CI1-AskPrice" numeric(15,2),
+    "CI1-AskAvail" integer,
+    "CI1-BidAmt" numeric(15,4),
+    "CI1-BidPrice" numeric(15,2),
+    "CI1-BidAvail" integer,
+    "CI2-Average" numeric(15,2),
+    "CI2-Previous" numeric(15,2),
+    "CI2-AskAmt" numeric(15,4),
+    "CI2-AskPrice" numeric(15,2),
+    "CI2-AskAvail" integer,
+    "CI2-BidAmt" numeric(15,4),
+    "CI2-BidPrice" numeric(15,2),
+    "CI2-BidAvail" integer,
+    "NC1-Average" numeric(15,2),
+    "NC1-Previous" numeric(15,2),
+    "NC1-AskAmt" numeric(15,4),
+    "NC1-AskPrice" numeric(15,2),
+    "NC1-AskAvail" integer,
+    "NC1-BidAmt" numeric(15,4),
+    "NC1-BidPrice" numeric(15,2),
+    "NC1-BidAvail" integer,
+    "NC2-Average" numeric(15,2),
+    "NC21-Previous" numeric(15,2),
+    "NC2-AskAmt" numeric(15,4),
+    "NC2-AskPrice" numeric(15,2),
+    "NC2-AskAvail" integer,
+    "NC2-BidAmt" numeric(15,4),
+    "NC2-BidPrice" numeric(15,2),
+    "NC2-BidAvail" integer,
+    "IC1-Average" numeric(15,2),
+    "IC1-Previous" numeric(15,2),
+    "IC1-AskAmt" numeric(15,4),
+    "IC1-AskPrice" numeric(15,2),
+    "IC1-AskAvail" integer,
+    "IC1-BidAmt" numeric(15,4),
+    "IC1-BidPrice" numeric(15,2),
+    "IC1-BidAvail" integer
 );
 
 
-ALTER TABLE public.questions OWNER TO postgres;
+ALTER TABLE public.market_depth_raw OWNER TO postgres;
 
 --
 -- Name: questionslink; Type: TABLE; Schema: public; Owner: postgres
@@ -102,6 +238,114 @@ CREATE TABLE public.questionslink (
 
 
 ALTER TABLE public.questionslink OWNER TO postgres;
+
+--
+-- Name: missing_answers_link; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.missing_answers_link AS
+ WITH missing_answers AS (
+         SELECT DISTINCT browserless_answers.question_number
+           FROM public.browserless_answers
+          WHERE ((length(browserless_answers.text) = 2) OR (browserless_answers.number = 99))
+        ), missing_answers_link AS (
+         SELECT questionslink.number,
+            questionslink.exam,
+            questionslink.link
+           FROM public.questionslink
+          WHERE (questionslink.number IN ( SELECT missing_answers.question_number
+                   FROM missing_answers))
+        )
+ SELECT number,
+    exam,
+    link
+   FROM missing_answers_link
+  ORDER BY number;
+
+
+ALTER VIEW public.missing_answers_link OWNER TO postgres;
+
+--
+-- Name: questions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.questions (
+    number integer NOT NULL,
+    exam text NOT NULL,
+    text text
+);
+
+
+ALTER TABLE public.questions OWNER TO postgres;
+
+--
+-- Name: recipe_inputs_raw; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.recipe_inputs_raw (
+    "Key" character varying(100) NOT NULL,
+    "Material" character varying(20),
+    "Amount" integer NOT NULL
+);
+
+
+ALTER TABLE public.recipe_inputs_raw OWNER TO postgres;
+
+--
+-- Name: relative_path_answers; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.relative_path_answers (
+    number integer,
+    question_number integer,
+    question_exam text,
+    text text,
+    is_correct boolean
+);
+
+
+ALTER TABLE public.relative_path_answers OWNER TO postgres;
+
+--
+-- Name: relative_path_questions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.relative_path_questions (
+    number integer,
+    exam text,
+    text text
+);
+
+
+ALTER TABLE public.relative_path_questions OWNER TO postgres;
+
+--
+-- Name: seq_imageslink; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.seq_imageslink
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.seq_imageslink OWNER TO postgres;
+
+--
+-- Name: seq_markdown; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.seq_markdown
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.seq_markdown OWNER TO postgres;
 
 --
 -- Name: seq_questions; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -130,6 +374,299 @@ CREATE SEQUENCE public.seq_questionslink
 
 
 ALTER SEQUENCE public.seq_questionslink OWNER TO postgres;
+
+--
+-- Name: view_all_images_url; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.view_all_images_url AS
+ WITH image_url_questions AS (
+         SELECT regexp_matches(questions.text, 'https?://[^/\s'']+/[^\s'']+\.[^\s'']+'::text, 'g'::text) AS url
+           FROM public.questions
+        ), image_url_answers AS (
+         SELECT regexp_matches(answers.text, 'https?://[^/\s'']+/[^\s'']+\.[^\s'']+'::text, 'g'::text) AS url
+           FROM public.answers
+        ), all_image_url AS (
+         SELECT unnest(image_url_questions.url) AS unnest
+           FROM image_url_questions
+        UNION
+         SELECT unnest(image_url_answers.url) AS unnest
+           FROM image_url_answers
+  ORDER BY 1
+        )
+ SELECT dense_rank() OVER (ORDER BY unnest) AS number,
+    unnest AS url
+   FROM all_image_url
+  ORDER BY unnest;
+
+
+ALTER VIEW public.view_all_images_url OWNER TO postgres;
+
+--
+-- Name: my_first_dbt_model; Type: TABLE; Schema: staging; Owner: postgres
+--
+
+CREATE TABLE staging.my_first_dbt_model (
+    id integer
+);
+
+
+ALTER TABLE staging.my_first_dbt_model OWNER TO postgres;
+
+--
+-- Name: my_second_dbt_model; Type: VIEW; Schema: staging; Owner: postgres
+--
+
+CREATE VIEW staging.my_second_dbt_model AS
+ SELECT id
+   FROM staging.my_first_dbt_model
+  WHERE (id = 1);
+
+
+ALTER VIEW staging.my_second_dbt_model OWNER TO postgres;
+
+--
+-- Data for Name: all_images_url; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.all_images_url (number, url) FROM stdin;
+1	https://img.examtopics.com/1z0-071/image100.png
+2	https://img.examtopics.com/1z0-071/image101.png
+3	https://img.examtopics.com/1z0-071/image102.png
+4	https://img.examtopics.com/1z0-071/image103.png
+5	https://img.examtopics.com/1z0-071/image104.png
+6	https://img.examtopics.com/1z0-071/image105.png
+7	https://img.examtopics.com/1z0-071/image106.png
+8	https://img.examtopics.com/1z0-071/image107.png
+9	https://img.examtopics.com/1z0-071/image108.png
+10	https://img.examtopics.com/1z0-071/image109.png
+11	https://img.examtopics.com/1z0-071/image10.png
+12	https://img.examtopics.com/1z0-071/image110.png
+13	https://img.examtopics.com/1z0-071/image111.png
+14	https://img.examtopics.com/1z0-071/image112.png
+15	https://img.examtopics.com/1z0-071/image113.png
+17	https://img.examtopics.com/1z0-071/image115.png
+19	https://img.examtopics.com/1z0-071/image117.png
+20	https://img.examtopics.com/1z0-071/image118.png
+21	https://img.examtopics.com/1z0-071/image119.png
+22	https://img.examtopics.com/1z0-071/image11.png
+23	https://img.examtopics.com/1z0-071/image120.png
+24	https://img.examtopics.com/1z0-071/image121.png
+25	https://img.examtopics.com/1z0-071/image122.png
+26	https://img.examtopics.com/1z0-071/image123.png
+27	https://img.examtopics.com/1z0-071/image124.png
+29	https://img.examtopics.com/1z0-071/image126.png
+30	https://img.examtopics.com/1z0-071/image127.png
+31	https://img.examtopics.com/1z0-071/image128.png
+32	https://img.examtopics.com/1z0-071/image129.png
+33	https://img.examtopics.com/1z0-071/image12.png
+34	https://img.examtopics.com/1z0-071/image130.png
+35	https://img.examtopics.com/1z0-071/image131.png
+36	https://img.examtopics.com/1z0-071/image132.png
+38	https://img.examtopics.com/1z0-071/image134.png
+39	https://img.examtopics.com/1z0-071/image135.png
+40	https://img.examtopics.com/1z0-071/image136.png
+41	https://img.examtopics.com/1z0-071/image137.png
+42	https://img.examtopics.com/1z0-071/image138.png
+43	https://img.examtopics.com/1z0-071/image139.png
+45	https://img.examtopics.com/1z0-071/image140.png
+46	https://img.examtopics.com/1z0-071/image141.png
+47	https://img.examtopics.com/1z0-071/image142.png
+48	https://img.examtopics.com/1z0-071/image143.png
+49	https://img.examtopics.com/1z0-071/image144.png
+50	https://img.examtopics.com/1z0-071/image145.png
+51	https://img.examtopics.com/1z0-071/image146.png
+52	https://img.examtopics.com/1z0-071/image147.png
+53	https://img.examtopics.com/1z0-071/image148.png
+54	https://img.examtopics.com/1z0-071/image149.png
+55	https://img.examtopics.com/1z0-071/image14.png
+56	https://img.examtopics.com/1z0-071/image150.png
+57	https://img.examtopics.com/1z0-071/image15.png
+58	https://img.examtopics.com/1z0-071/image16.png
+59	https://img.examtopics.com/1z0-071/image17.png
+60	https://img.examtopics.com/1z0-071/image18.png
+61	https://img.examtopics.com/1z0-071/image19.png
+62	https://img.examtopics.com/1z0-071/image1.png
+63	https://img.examtopics.com/1z0-071/image20.png
+64	https://img.examtopics.com/1z0-071/image21.png
+65	https://img.examtopics.com/1z0-071/image22.png
+67	https://img.examtopics.com/1z0-071/image24.png
+68	https://img.examtopics.com/1z0-071/image25.png
+69	https://img.examtopics.com/1z0-071/image26.png
+70	https://img.examtopics.com/1z0-071/image27.png
+71	https://img.examtopics.com/1z0-071/image28.png
+73	https://img.examtopics.com/1z0-071/image2.png
+75	https://img.examtopics.com/1z0-071/image31.png
+76	https://img.examtopics.com/1z0-071/image32.png
+77	https://img.examtopics.com/1z0-071/image33.png
+78	https://img.examtopics.com/1z0-071/image34.png
+79	https://img.examtopics.com/1z0-071/image35.png
+80	https://img.examtopics.com/1z0-071/image36.png
+81	https://img.examtopics.com/1z0-071/image37.png
+82	https://img.examtopics.com/1z0-071/image38.png
+83	https://img.examtopics.com/1z0-071/image39.png
+84	https://img.examtopics.com/1z0-071/image3.png
+85	https://img.examtopics.com/1z0-071/image40.png
+86	https://img.examtopics.com/1z0-071/image41.png
+89	https://img.examtopics.com/1z0-071/image44.png
+90	https://img.examtopics.com/1z0-071/image45.png
+93	https://img.examtopics.com/1z0-071/image48.png
+94	https://img.examtopics.com/1z0-071/image49.png
+95	https://img.examtopics.com/1z0-071/image4.png
+96	https://img.examtopics.com/1z0-071/image50.png
+97	https://img.examtopics.com/1z0-071/image51.png
+98	https://img.examtopics.com/1z0-071/image52.png
+99	https://img.examtopics.com/1z0-071/image53.png
+102	https://img.examtopics.com/1z0-071/image56.png
+103	https://img.examtopics.com/1z0-071/image57.png
+104	https://img.examtopics.com/1z0-071/image58.png
+105	https://img.examtopics.com/1z0-071/image59.png
+106	https://img.examtopics.com/1z0-071/image5.png
+108	https://img.examtopics.com/1z0-071/image61.png
+109	https://img.examtopics.com/1z0-071/image62.png
+110	https://img.examtopics.com/1z0-071/image63.png
+111	https://img.examtopics.com/1z0-071/image64.png
+112	https://img.examtopics.com/1z0-071/image65.png
+114	https://img.examtopics.com/1z0-071/image67.png
+116	https://img.examtopics.com/1z0-071/image69.png
+117	https://img.examtopics.com/1z0-071/image6.png
+118	https://img.examtopics.com/1z0-071/image70.png
+119	https://img.examtopics.com/1z0-071/image71.png
+120	https://img.examtopics.com/1z0-071/image72.png
+121	https://img.examtopics.com/1z0-071/image73.png
+122	https://img.examtopics.com/1z0-071/image74.png
+123	https://img.examtopics.com/1z0-071/image75.png
+125	https://img.examtopics.com/1z0-071/image77.png
+126	https://img.examtopics.com/1z0-071/image78.png
+127	https://img.examtopics.com/1z0-071/image79.png
+128	https://img.examtopics.com/1z0-071/image7.png
+129	https://img.examtopics.com/1z0-071/image80.png
+130	https://img.examtopics.com/1z0-071/image81.png
+131	https://img.examtopics.com/1z0-071/image82.png
+132	https://img.examtopics.com/1z0-071/image83.png
+133	https://img.examtopics.com/1z0-071/image84.png
+134	https://img.examtopics.com/1z0-071/image85.png
+135	https://img.examtopics.com/1z0-071/image86.png
+136	https://img.examtopics.com/1z0-071/image87.png
+137	https://img.examtopics.com/1z0-071/image88.png
+138	https://img.examtopics.com/1z0-071/image89.png
+139	https://img.examtopics.com/1z0-071/image8.png
+140	https://img.examtopics.com/1z0-071/image90.png
+141	https://img.examtopics.com/1z0-071/image91.png
+142	https://img.examtopics.com/1z0-071/image92.png
+143	https://img.examtopics.com/1z0-071/image93.png
+144	https://img.examtopics.com/1z0-071/image94.png
+145	https://img.examtopics.com/1z0-071/image95.png
+146	https://img.examtopics.com/1z0-071/image96.png
+147	https://img.examtopics.com/1z0-071/image97.png
+148	https://img.examtopics.com/1z0-071/image98.png
+149	https://img.examtopics.com/1z0-071/image99.png
+150	https://img.examtopics.com/1z0-071/image9.png
+151	https://www.examtopics.com/assets/media/exam-media/04351/0000200001.png
+152	https://www.examtopics.com/assets/media/exam-media/04351/0000300001.png
+153	https://www.examtopics.com/assets/media/exam-media/04351/0000600001.png
+154	https://www.examtopics.com/assets/media/exam-media/04351/0000700001.png
+155	https://www.examtopics.com/assets/media/exam-media/04351/0000900001.png
+156	https://www.examtopics.com/assets/media/exam-media/04351/0001200001.png
+157	https://www.examtopics.com/assets/media/exam-media/04351/0001300001.png
+158	https://www.examtopics.com/assets/media/exam-media/04351/0001600001.png
+159	https://www.examtopics.com/assets/media/exam-media/04351/0001600002.png
+160	https://www.examtopics.com/assets/media/exam-media/04351/0001600003.png
+161	https://www.examtopics.com/assets/media/exam-media/04351/0001600004.png
+162	https://www.examtopics.com/assets/media/exam-media/04351/0001600005.png
+163	https://www.examtopics.com/assets/media/exam-media/04351/0001700001.png
+164	https://www.examtopics.com/assets/media/exam-media/04351/0002200001.png
+165	https://www.examtopics.com/assets/media/exam-media/04351/0002400001.png
+166	https://www.examtopics.com/assets/media/exam-media/04351/0002400002.jpg
+167	https://www.examtopics.com/assets/media/exam-media/04351/0002500001.png
+168	https://www.examtopics.com/assets/media/exam-media/04351/0002600001.png
+169	https://www.examtopics.com/assets/media/exam-media/04351/0002600002.png
+170	https://www.examtopics.com/assets/media/exam-media/04351/0002600003.png
+171	https://www.examtopics.com/assets/media/exam-media/04351/0002700001.png
+172	https://www.examtopics.com/assets/media/exam-media/04351/0002700002.png
+173	https://www.examtopics.com/assets/media/exam-media/04351/0002900001.png
+174	https://www.examtopics.com/assets/media/exam-media/04351/0002900002.png
+175	https://www.examtopics.com/assets/media/exam-media/04351/0003100001.png
+176	https://www.examtopics.com/assets/media/exam-media/04351/0003100002.png
+177	https://www.examtopics.com/assets/media/exam-media/04351/0003100003.png
+178	https://www.examtopics.com/assets/media/exam-media/04351/0003100004.png
+179	https://www.examtopics.com/assets/media/exam-media/04351/0003200001.png
+180	https://www.examtopics.com/assets/media/exam-media/04351/0003200002.png
+181	https://www.examtopics.com/assets/media/exam-media/04351/0003200003.png
+182	https://www.examtopics.com/assets/media/exam-media/04351/0003300001.png
+183	https://www.examtopics.com/assets/media/exam-media/04351/0003300002.png
+184	https://www.examtopics.com/assets/media/exam-media/04351/0003300003.png
+185	https://www.examtopics.com/assets/media/exam-media/04351/0003300004.png
+186	https://www.examtopics.com/assets/media/exam-media/04351/0003400001.png
+187	https://www.examtopics.com/assets/media/exam-media/04351/0003400002.png
+188	https://www.examtopics.com/assets/media/exam-media/04351/0003400003.png
+189	https://www.examtopics.com/assets/media/exam-media/04351/0003400004.png
+190	https://www.examtopics.com/assets/media/exam-media/04351/0003500001.png
+191	https://www.examtopics.com/assets/media/exam-media/04351/0003500002.png
+192	https://www.examtopics.com/assets/media/exam-media/04351/0003600001.png
+193	https://www.examtopics.com/assets/media/exam-media/04351/0003600002.png
+194	https://www.examtopics.com/assets/media/exam-media/04351/0003600003.png
+195	https://www.examtopics.com/assets/media/exam-media/04351/0003600004.png
+196	https://www.examtopics.com/assets/media/exam-media/04351/0003600005.png
+197	https://www.examtopics.com/assets/media/exam-media/04351/0003700001.png
+198	https://www.examtopics.com/assets/media/exam-media/04351/0003700002.png
+199	https://www.examtopics.com/assets/media/exam-media/04351/0003900001.png
+200	https://www.examtopics.com/assets/media/exam-media/04351/0003900002.png
+201	https://www.examtopics.com/assets/media/exam-media/04351/0003900003.png
+202	https://www.examtopics.com/assets/media/exam-media/04351/0003900004.png
+203	https://www.examtopics.com/assets/media/exam-media/04351/0003900005.png
+204	https://www.examtopics.com/assets/media/exam-media/04351/0004200001.png
+205	https://www.examtopics.com/assets/media/exam-media/04351/0004300001.png
+206	https://www.examtopics.com/assets/media/exam-media/04351/0004300002.png
+207	https://www.examtopics.com/assets/media/exam-media/04351/0004300003.png
+208	https://www.examtopics.com/assets/media/exam-media/04351/0004300004.png
+209	https://www.examtopics.com/assets/media/exam-media/04351/0004400001.png
+210	https://www.examtopics.com/assets/media/exam-media/04351/0004400002.png
+211	https://www.examtopics.com/assets/media/exam-media/04351/0004400003.png
+212	https://www.examtopics.com/assets/media/exam-media/04351/0004400004.png
+213	https://www.examtopics.com/assets/media/exam-media/04351/0004400005.png
+214	https://www.examtopics.com/assets/media/exam-media/04351/0004600001.png
+215	https://www.examtopics.com/assets/media/exam-media/04351/0004600002.png
+216	https://www.examtopics.com/assets/media/exam-media/04351/0004700001.png
+217	https://www.examtopics.com/assets/media/exam-media/04351/0004700002.png
+218	https://www.examtopics.com/assets/media/exam-media/04351/0004700003.png
+219	https://www.examtopics.com/assets/media/exam-media/04351/0004700004.png
+220	https://www.examtopics.com/assets/media/exam-media/04351/0004700005.png
+221	https://www.examtopics.com/assets/media/exam-media/04351/0004900001.png
+222	https://www.examtopics.com/assets/media/exam-media/04351/0005000001.jpg
+223	https://www.examtopics.com/assets/media/exam-media/04351/0005000002.png
+224	https://www.examtopics.com/assets/media/exam-media/04351/0005100001.png
+225	https://www.examtopics.com/assets/media/exam-media/04351/0005200001.png
+226	https://www.examtopics.com/assets/media/exam-media/04351/0005200002.png
+227	https://www.examtopics.com/assets/media/exam-media/04351/0005200003.png
+228	https://www.examtopics.com/assets/media/exam-media/04351/0005200004.png
+229	https://www.examtopics.com/assets/media/exam-media/04351/0005200005.png
+230	https://www.examtopics.com/assets/media/exam-media/04351/0005300001.png
+231	https://www.examtopics.com/assets/media/exam-media/04351/0005300002.png
+232	https://www.examtopics.com/assets/media/exam-media/04351/0005300003.png
+233	https://www.examtopics.com/assets/media/exam-media/04351/0005400001.png
+234	https://www.examtopics.com/assets/media/exam-media/04351/0005500001.png
+235	https://www.examtopics.com/assets/media/exam-media/04351/0005500002.png
+16	https://img.examtopics.com/1z0-071/image114.png
+18	https://img.examtopics.com/1z0-071/image116.png
+28	https://img.examtopics.com/1z0-071/image125.png
+37	https://img.examtopics.com/1z0-071/image133.png
+44	https://img.examtopics.com/1z0-071/image13.png
+66	https://img.examtopics.com/1z0-071/image23.png
+72	https://img.examtopics.com/1z0-071/image29.png
+74	https://img.examtopics.com/1z0-071/image30.png
+87	https://img.examtopics.com/1z0-071/image42.png
+88	https://img.examtopics.com/1z0-071/image43.png
+91	https://img.examtopics.com/1z0-071/image46.png
+92	https://img.examtopics.com/1z0-071/image47.png
+100	https://img.examtopics.com/1z0-071/image54.png
+101	https://img.examtopics.com/1z0-071/image55.png
+107	https://img.examtopics.com/1z0-071/image60.png
+113	https://img.examtopics.com/1z0-071/image66.png
+115	https://img.examtopics.com/1z0-071/image68.png
+124	https://img.examtopics.com/1z0-071/image76.png
+\.
+
 
 --
 -- Data for Name: answers; Type: TABLE DATA; Schema: public; Owner: postgres
@@ -1528,6 +2065,3423 @@ COPY public.answers (number, question_number, question_exam, text, is_correct) F
 3	272	1z0-071	C.You must have the CREATE ANY INDEX privilege.	f
 4	272	1z0-071	D.You have the UNLIMITED TABLESPACE privilege or sufficient quota for the tablespace to contain the index.Most Voted	t
 5	272	1z0-071	E.You have either the INDEX privilege on the table or the CREATE ANY INDEX privilege.Most Voted	t
+\.
+
+
+--
+-- Data for Name: browserless_answers; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.browserless_answers (number, question_number, question_exam, text, is_correct) FROM stdin;
+1	1	1z0-071	A. SELECT DISTINCT promo_category || ' has ' || promo_cost AS COSTS FROM promotions ORDER BY 1;	t
+2	1	1z0-071	B. SELECT DISTINCT promo_cost || ' in ' || DISTINCT promo_category FROM promotions ORDER BY 1;	f
+3	1	1z0-071	C. SELECT DISTINCT promo_category, promo_cost FROM promotions ORDER BY 1;	t
+4	1	1z0-071	D. SELECT promo_category DISTINCT promo_cost, FROM promotions ORDER BY 2;	f
+5	1	1z0-071	E. SELECT promo_cost, promo_category FROM promotions ORDER BY 1;	f
+1	2	1z0-071	A. SELECT product_id, unit_price, S "Discount", unit_price + surcharge - discount FROM products;	f
+2	2	1z0-071	B. SELECT product_id, (unit_price * 0.15 / (4.75 + 552.25)) FROM products;	t
+3	2	1z0-071	C. SELECT product_id, (expiry_date - delivery_date) * 2 FROM products;	t
+4	2	1z0-071	D. SELECT product_id, unit_price || 5 "Discount", unit_price + surcharge - discount FROM products;	f
+5	2	1z0-071	E. SELECT product_id, expiry_date * 2 FROM products;	f
+6	2	1z0-071	F. SELECT product_id, unit_price, unit_price + surcharge FROM products;	t
+1	3	1z0-071	A. The BETWEEN condition always performs less well than using the >= and <= conditions.	f
+2	3	1z0-071	B. The BETWEEN condition always performs better than using the >= and <= conditions.	f
+3	3	1z0-071	C. The Oracle join syntax performs better than the SQL:1999 compliant ANSI join syntax.	f
+4	3	1z0-071	D. Table aliases can improve performance.	t
+5	3	1z0-071	E. The join syntax used makes no difference to performance.	t
+1	4	1z0-071	A. ADD_MONTHS adds a number of calendar months to a date.	t
+2	4	1z0-071	B. CEIL requires an argument which is a numeric data type.	f
+3	4	1z0-071	C. CEIL returns the largest integer less than or equal to a specified number.	f
+4	4	1z0-071	D. LAST_DAY returns the date of the last day of the current month only.	f
+5	4	1z0-071	E. LAST_DAY returns the date of the last day of the month for the date argument passed to the function.	t
+6	4	1z0-071	F. LAST_DAY returns the date of the last day of the previous month only.	f
+1	5	1z0-071	A synonym cannot be created for a PL/SQL package. A.	f
+2	5	1z0-071	A synonym can be available to all users. B.	t
+3	5	1z0-071	A SEQUENCE can have a synonym. C.	t
+4	5	1z0-071	Any user can drop a PUBLIC synonym. D.	f
+5	5	1z0-071	A synonym created by one user can refer to an object belonging to another user. E.	t
+1	6	1z0-071	A. CONCAT joins two character strings together.	t
+2	6	1z0-071	B. CONCAT joins two or more character strings together.	f
+3	6	1z0-071	C. FLOOR returns the largest positive integer less than or equal to a specified number.	f
+4	6	1z0-071	D. INSTR finds the offset within a character string, starting from position 0.	f
+5	6	1z0-071	E. INSTR finds the offset within a string of a single character only.	f
+6	6	1z0-071	F. FLOOR returns the largest integer less than or equal to a specified number.	t
+1	7	1z0-071	A. The primary key constraint will be enabled and IMMEDIATE.	t
+2	7	1z0-071	B. The foreign key constraint will be enabled and DEFERRED.	f
+3	7	1z0-071	C. The primary key constraint will be enabled and DEFERRED.	f
+4	7	1z0-071	D. The foreign key constraint will be disabled.	t
+5	7	1z0-071	E. The foreign key constraint will be enabled and IMMEDIATE.	f
+1	8	1z0-071	A. All existing rows in the ORDERS table are updated.	t
+2	8	1z0-071	B. The subquery is executed before the UPDATE statement is executed.	f
+3	8	1z0-071	C. The subquery is not a correlated subquery.	f
+4	8	1z0-071	D. The subquery is executed for every updated row in the ORDERS table.	t
+5	8	1z0-071	E. The UPDATE statement executes successfully even if the subquery selects multiple rows.	f
+1	9	1z0-071	A. DELETE can use a WHERE clause to determine which row(s) should be removed.	t
+2	9	1z0-071	B. TRUNCATE can use a WHERE clause to determine which row(s) should be removed.	f
+3	9	1z0-071	C. TRUNCATE leaves any indexes on the table in an UNUSABLE state.	f
+4	9	1z0-071	D. The result of a TRUNCATE can be undone by issuing a ROLLBACK.	f
+5	9	1z0-071	E. The result of a DELETE can be undone by issuing a ROLLBACK.	t
+1	10	1z0-071	A. WHERE TO_NUMBER(start_date - SYSDATE) <= 25	f
+2	10	1z0-071	B. WHERE MONTHS_BETWEEN(start_date, SYSDATE) <= 25	f
+3	10	1z0-071	C. WHERE MONTHS_BETWEEN(SYSDATE, start_date) <= 25	t
+4	10	1z0-071	D. WHERE ADD_MONTHS(start_date, 25) <= SYSDATE	f
+1	11	1z0-071	A. They can be nested.	t
+2	11	1z0-071	B. They cannot be used in the VALUES clause of an INSERT statement.	f
+3	11	1z0-071	A scalar subquery expression that returns zero rows evaluates to zero. C.	f
+4	11	1z0-071	D. They can be used as default values for columns in a CREATE TABLE statement.	f
+5	11	1z0-071	A scalar subquery expression that returns zero rows evaluates to NULL. E.	t
+6	11	1z0-071	F. They cannot be used in GROUP BY clauses.	t
+1	12	1z0-071	A. Use the DEFINE command before executing the query.	t
+2	12	1z0-071	B. Replace '&1' with '&&1' in the query.	f
+3	12	1z0-071	C. Use the UNDEFINE command before executing the query.	f
+4	12	1z0-071	D. Execute the SET VERIFY OFF command before executing the query.	f
+5	12	1z0-071	E. Execute the SET VERIFY ON command before executing the query.	f
+6	12	1z0-071	F. Store the query in a script and pass the substitution value to the script when executing it.	t
+1	13	1z0-071	A. GRANT UPDATE ON customers.title, customers.address TO andrew;	f
+2	13	1z0-071	B. GRANT UPDATE (title, address) ON customers TO andrew;	f
+3	13	1z0-071	C. GRANT UPDATE (title, address) ON customers TO andrew WITH GRANT OPTION;	t
+4	13	1z0-071	D. GRANT UPDATE ON customers.title, customers.address TO andrew WITH ADMIN OPTION;	f
+5	13	1z0-071	E. GRANT UPDATE ON customers.title, customers.address TO andrew WITH GRANT OPTION;	f
+6	13	1z0-071	F. GRANT UPDATE (title, address) ON customers TO andrew WITH ADMIN OPTION;	f
+1	14	1z0-071	A. It will remove the DEPARTMENTS table from the database.	t
+2	14	1z0-071	B. It will drop all indexes on the DEPARTMENTS table.	t
+3	14	1z0-071	C. It will remove all views that are based on the DEPARTMENTS table.	f
+4	14	1z0-071	D. It will remove all synonyms for the DEPARTMENTS table.	f
+5	14	1z0-071	E. Neither can it be rolled back nor can the DEPARTMENTS table be recovered.	t
+6	14	1z0-071	F. It will delete all rows from the DEPARTMENTS table, but retain the empty table.	f
+1	15	1z0-071	A. It requires that data be contained in hierarchical data storage.	f
+2	15	1z0-071	B. It best supports relational databases.	t
+3	15	1z0-071	C. It provides independence for logical data structures being manipulated from the underlying physical data storage.	t
+4	15	1z0-071	D. It is the only language that can be used for both relational and object-oriented databases.	f
+5	15	1z0-071	E. It guarantees atomicity, consistency, isolation, and durability (ACID) features.	t
+6	15	1z0-071	F. It is used to define encapsulation and polymorphism for a relational table.	f
+1	16	1z0-071	A. Any user can create a PUBLIC synonym.	f
+2	16	1z0-071	A synonym has an object number. B.	t
+3	16	1z0-071	All private synonym names must be unique in the database. C.	f
+4	16	1z0-071	A synonym can be created on an object in a package. D.	f
+5	16	1z0-071	A synonym can have a synonym. E.	t
+1	17	1z0-071	A. TRUNC(MOD(25,3),-1) is invalid.	f
+2	17	1z0-071	B. ROUND(MOD(25,3),-1) is invalid.	f
+3	17	1z0-071	C. ROUND(MOD(25,3),-1) and TRUNC(MOD(25,3),-1) are both valid and give the same result.	t
+4	17	1z0-071	D. ROUND(MOD(25,3),-1) and TRUNC(MOD(25,3),-1) are both valid but give different results.	f
+1	18	1z0-071	A. DML statements always start new transactions.	f
+2	18	1z0-071	B. DDL statements automatically commit only data dictionary updates caused by executing the DDL.	f
+3	18	1z0-071	A session can see uncommitted updates made by the same user in a different session. C.	f
+4	18	1z0-071	A DDL statement issued by a session with an uncommitted transaction automatically commits that transaction. D.	t
+5	18	1z0-071	An uncommitted transaction is automatically committed when the user exits SQL*Plus. E.	t
+1	19	1z0-071	A. ORDER BY 1, 2	f
+2	19	1z0-071	B. ORDER BY 1, lname DESC	t
+3	19	1z0-071	C. WHERE city IN ('%AN%')	f
+4	19	1z0-071	D. WHERE city = '%AN%'	f
+5	19	1z0-071	E. WHERE city LIKE '%AN%'	t
+6	19	1z0-071	F. ORDER BY last_name DESC, city ASC	f
+1	20	1z0-071	A. the access driver TYPE clause	f
+2	20	1z0-071	B. the DEFAULT DIRECTORY clause	t
+3	20	1z0-071	C. the REJECT LIMIT clause	f
+4	20	1z0-071	D. the LOCATION clause	t
+5	20	1z0-071	E. the ACCESS PARAMETERS clause	f
+1	21	1z0-071	A query can return data from unused columns, but no DML is possible on those columns. A.	f
+2	21	1z0-071	B. Unused columns retain their data until they are dropped.	t
+3	21	1z0-071	C. Once a column has been set to unused, a new column with the same name can be added to the table.	t
+4	21	1z0-071	D. The DESCRIBE command displays unused columns.	f
+5	21	1z0-071	A primary key column cannot be set to unused. E.	f
+6	21	1z0-071	A foreign key column cannot be set to unused. F.	f
+1	22	1z0-071	A. || has a higher order of precedence than + (addition).	f
+2	22	1z0-071	+ (addition) has a higher order of precedence than * (multiplication). B.	f
+3	22	1z0-071	C. NOT has a higher order of precedence than AND and OR in a condition.	t
+4	22	1z0-071	AND and OR have the same order of precedence in a condition. D.	f
+5	22	1z0-071	E. Operators are evaluated before conditions.	t
+1	23	1z0-071	A. SELECT TO_CHAR(TO_DATE('29-10-2019') + INTERVAL '2' MONTH + INTERVAL '4' DAY - INTERVAL '120' SECOND, 'DD-MON-YYYY') AS "date" FROM DUAL;	f
+2	23	1z0-071	B. SELECT TO_CHAR(TO_DATE('29-10-2019') + INTERVAL '3' MONTH + INTERVAL '7' DAY - INTERVAL '360' SECOND, 'DD-MON-YYYY') AS "date" FROM DUAL;	f
+3	23	1z0-071	C. SELECT TO_CHAR(TO_DATE('29-10-2019') + INTERVAL '2' MONTH + INTERVAL '5' DAY - INTERVAL '120' SECOND, 'DD-MON-YYYY') AS "date" FROM DUAL;	t
+4	23	1z0-071	D. SELECT TO_CHAR(TO_DATE('29-10-2019') + INTERVAL '2' MONTH + INTERVAL '5' DAY - INTERVAL '86410' SECOND, 'DD-MON- YYYY') AS "date" FROM DUAL;	f
+5	23	1z0-071	E. SELECT TO_CHAR(TO_DATE('29-10-2019') + INTERVAL '2' MONTH + INTERVAL '6' DAY - INTERVAL '120' SECOND, 'DD-MON-YYYY') AS "date" FROM DUAL;	f
+99	24	1z0-071		f
+1	25	1z0-071	A. SELECT prod_id FROM sales WHERE quantity_sold > 55000 AND COUNT(*) > 10 GROUP BY COUNT(*) > 10;	f
+2	25	1z0-071	B. SELECT prod_id FROM sales WHERE quantity_sold > 55000 GROUP BY prod_id HAVING COUNT(*) > 10;	t
+3	25	1z0-071	C. SELECT COUNT(prod_id) FROM sales GROUP BY prod_id WHERE quantity_sold > 55000;	f
+4	25	1z0-071	D. SELECT prod_id FROM sales WHERE quantity_sold > 55000 AND COUNT(*) > 10 GROUP BY prod_id HAVING COUNT(*) > 10;	f
+5	25	1z0-071	E. SELECT COUNT(prod_id) FROM sales WHERE quantity_sold > 55000 GROUP BY prod_id;	t
+1	26	1z0-071	A. They return a single result row per table.	f
+2	26	1z0-071	B. They can be nested to any level.	t
+3	26	1z0-071	C. They can accept only one argument.	f
+4	26	1z0-071	D. The argument can be a column name, variable, literal or an expression.	t
+5	26	1z0-071	E. They can be used only in the WHERE clause of a SELECT statement.	f
+6	26	1z0-071	F. The data type returned can be different from the data type of the argument.	t
+1	27	1z0-071	A. USER_TABLES displays all tables owned by the current user.	t
+2	27	1z0-071	B. You must have ANY TABLE system privileges, or be granted object privileges on the table, to view a table in USER_TABLES.	f
+3	27	1z0-071	All users can query DBA_TABLES successfully. C.	f
+4	27	1z0-071	D. You must have ANY TABLE system privileges, or be granted object privileges on the table, to view a table in DBA_TABLES.	f
+5	120	1z0-071	 E.	f
+5	27	1z0-071	ALL_TABLES displays all tables owned by the current user. E.	f
+6	27	1z0-071	F. You must have ANY TABLE system privileges, or be granted object privileges on the table, to view a table in ALL_TABLES.	t
+1	28	1z0-071	A. Each row returned by the subquery can be inserted into only a single target table.	f
+2	28	1z0-071	A single WHEN condition can be used for multiple INTO clauses. B.	t
+3	28	1z0-071	C. Each WHEN condition is tested for each row returned by the subquery.	t
+4	28	1z0-071	D. It cannot have an ELSE clause.	f
+5	28	1z0-071	E. The total number of rows inserted is always equal to the number of rows returned by the subquery.	f
+1	29	1z0-071	A. COUNT(*) returns the number of rows in a table including duplicate rows and rows containing NULLs in any column.	t
+2	29	1z0-071	B. It can only be used for NUMBER data types.	f
+3	29	1z0-071	C. COUNT(DISTINCT inv_amt) returns the number of rows excluding rows containing duplicates and NULLs in the INV_AMT column.	t
+4	29	1z0-071	COUNT(inv_amt) returns the number of rows in a table including rows with NULL in the INV_AMT column D.	f
+5	29	1z0-071	A SELECT statement using the COUNT function with a DISTINCT keyword cannot have a WHERE clause. E.	f
+1	30	1z0-071	A. SELECT emp_id, ADD_MONTHS(hire_date, 6), NEXT_DAY('MONDAY') FROM employees;	f
+2	30	1z0-071	B. SELECT emp_id, NEXT_DAY(ADD_MONTHS(hire_date, 6), 1) FROM employees;	f
+3	30	1z0-071	C. SELECT emp_id, NEXT_DAY(MONTHS_BETWEEN(hire_date, SYSDATE), 6) FROM employees;	f
+4	30	1z0-071	D. SELECT emp_id, NEXT_DAY(ADD_MONTHS(hire_date, 6), 'MONDAY') FROM employees;	t
+1	31	1z0-071	A. GLOBAL TEMPORARY TABLE space allocation occurs at session start.	f
+2	31	1z0-071	B. GLOBAL TEMPORARY TABLE rows inserted by a session are available to any other session whose user has been granted select on the table.	f
+3	31	1z0-071	A TRUNCATE command issued in a session causes all rows in a GLOBAL TEMPORARY TABLE for the issuing session to be deleted. C.	t
+4	31	1z0-071	Any GLOBAL TEMPORARY TABLE rows existing at session termination will be deleted. D.	t
+5	31	1z0-071	A DELETE command on a GLOBAL TEMPORARY TABLE cannot be rolled back. E.	f
+6	31	1z0-071	A GLOBAL TEMPORARY TABLE'S definition is available to multiple sessions. F.	t
+1	32	1z0-071	A. It displays values for variables used only in the WHERE clause of a query.	f
+2	32	1z0-071	B. It displays values for variables created by the DEFINE command.	t
+3	32	1z0-071	C. It can be used only in SQL*Plus.	f
+4	32	1z0-071	D. It displays values for variables prefixed with &&.	f
+5	32	1z0-071	E. It can be used in SQL Developer and SQL*Plus.	t
+1	33	1z0-071	A. CREATE SEQUENCE emp_seq START WITH 1 INCREMENT BY 1 CYCLE;	f
+2	33	1z0-071	B. CREATE SEQUENCE emp_seq START WITH 1 INCREMENT BY 1 CACHE;	f
+3	33	1z0-071	C. CREATE SEQUENCE emp_seq;	f
+4	33	1z0-071	CREATE SEQUENCE emp_seq START WITH 1 INCREMENT BY 1 NOCACHE; D.	t
+5	33	1z0-071	CREATE SEQUENCE emp_seq NOCACHE; E.	t
+6	33	1z0-071	CREATE SEQUENCE emp_seq START WITH 1 CACHE; F.	f
+1	34	1z0-071	A. SELECT 1 - SYSDATE - DATE '2019-01-01' FROM DUAL;	f
+2	34	1z0-071	B. SELECT SYSDATE - DATE '2019-01-01' - 1 FROM DUAL;	t
+3	34	1z0-071	C. SELECT SYSDATE / DATE '2019-01-01' - 1 FROM DUAL;	f
+4	34	1z0-071	D. SELECT SYSDATE - 1 - DATE '2019-01-01' FROM DUAL;	t
+5	34	1z0-071	E. SELECT (SYSDATE - DATE '2019-01-01') / 1 FROM DUAL;	t
+6	34	1z0-071	F. SELECT 1 / SYSDATE - DATE '2019-01-01' FROM DUAL;	f
+1	35	1z0-071	A. INSERT can be granted only on tables and sequences.	f
+2	35	1z0-071	B. DELETE can be granted on tables, views, and sequences.	f
+3	35	1z0-071	C. SELECT can be granted on tables, views, and sequences.	t
+4	35	1z0-071	ALTER can be granted only on tables and sequences. D.	t
+5	35	1z0-071	E. REFERENCES can be granted only on tables.	f
+1	36	1z0-071	A. The second ROLLBACK command replays the delete.	f
+2	36	1z0-071	B. The first ROLLBACK command restores the 101 rows that were deleted and commits the inserted row.	f
+3	36	1z0-071	C. The first ROLLBACK command restores the 101 rows that were deleted, leaving the inserted row still to be committed.	t
+4	36	1z0-071	D. The second ROLLBACK command undoes the insert.	t
+5	36	1z0-071	E. The second ROLLBACK command does nothing.	f
+1	37	1z0-071	A table can have multiple primary keys. A.	f
+2	37	1z0-071	A column definition can specify multiple data types. B.	f
+3	37	1z0-071	A table can have multiple foreign keys. C.	t
+4	37	1z0-071	A VARCHAR2 column without data has a NULL value. D.	t
+5	37	1z0-071	A NUMBER column without data has a zero value. E.	f
+1	38	1z0-071	A. An alias name must not contain space characters.	f
+2	38	1z0-071	An alias name must always be specified in quotes. B.	f
+3	38	1z0-071	An alias name must not be used in an ORDER BY clause. C.	f
+4	38	1z0-071	An alias name must not be used in a GROUP BY clause. D.	t
+1	39	1z0-071	A. Create roles.	f
+2	39	1z0-071	B. Create FOREIGN KEY constraints that reference tables in other schemas.	t
+3	39	1z0-071	C. Delete rows from tables in any schema except SYS.	f
+4	39	1z0-071	D. Set default and temporary tablespaces for a user.	f
+5	39	1z0-071	E. Execute a procedure or function in another schema.	t
+1	40	1z0-071	A. ROLLBACK without the TO SAVEPOINT clause undoes all the transaction's changes, releases its locks, and erases all its savepoints.	t
+2	40	1z0-071	B. ROLLBACK without the TO SAVEPOINT clause undoes all the transaction's changes but does not release its locks.	f
+3	40	1z0-071	C. ROLLBACK without the TO SAVEPOINT clause undoes all the transaction's changes but does not erase its savepoints.	f
+4	40	1z0-071	D. ROLLBACK TO SAVEPOINT undoes the transaction's changes made since the named savepoint and then ends the transaction.	f
+5	40	1z0-071	COMMIT ends the transaction and makes all its changes permanent. E.	t
+6	40	1z0-071	COMMIT erases all the transaction's savepoints and releases its locks. F.	t
+99	41	1z0-071		f
+1	42	1z0-071	A column must be set as unused before it is dropped from a table. A.	f
+2	42	1z0-071	A primary key column cannot be dropped. B.	f
+3	42	1z0-071	C. Multiple columns can be dropped simultaneously using the ALTER TABLE command.	t
+4	42	1z0-071	A column can be removed only if it contains no data. D.	f
+5	42	1z0-071	A column that is referenced by another column in any other table cannot be dropped. E.	f
+6	42	1z0-071	A column drop is implicitly committed. F.	t
+1	43	1z0-071	A SELECT statement cannot contain a WHERE clause when querying a view containing a WHERE clause in its defining query. A.	f
+2	43	1z0-071	B. Views have no segment.	t
+3	43	1z0-071	C. Views have no object number.	f
+4	43	1z0-071	D. Views can join tables only if they belong to the same schema.	f
+5	43	1z0-071	A view can be created that refers to a non-existent table in its defining query. E.	t
+6	43	1z0-071	F. Rows inserted into a table using a view are retained in the table if the view is dropped.	t
+1	44	1z0-071	A. To drop the table in this session, you must first truncate it.	t
+2	44	1z0-071	B. Other sessions can view the committed row.	f
+3	44	1z0-071	C. You can add a column to the table in this session.	f
+4	44	1z0-071	D. You can add a foreign key to the table.	f
+5	44	1z0-071	E. When you terminate your session, the row will be deleted.	t
+1	45	1z0-071	A. The names of employees earning the maximum salary will appear first in an unspecified order.	f
+2	45	1z0-071	All remaining employee names will appear in descending order. B.	f
+3	45	1z0-071	All remaining employee names will appear in an unspecified order. C.	f
+4	45	1z0-071	All remaining employee names will appear in ascending order. D.	t
+5	45	1z0-071	E. The names of employees earning the maximum salary will appear first in ascending order.	f
+6	45	1z0-071	F. The names of employees earning the maximum salary will appear first in descending order.	t
+1	46	1z0-071	A. When creating an external table, data can be selected only from a table whose rows are stored in database blocks.	f
+2	46	1z0-071	B. Creating an external table creates a directory object.	f
+3	46	1z0-071	C. When creating an external table, data can be selected from another external table or from a table whose rows are stored in database blocks.	t
+4	46	1z0-071	Creating an external table creates a dump file that can be used by an external table in the same or a different database. D.	t
+5	46	1z0-071	Creating an external table creates a dump file that can be used only by an external table in the same database. E.	f
+99	47	1z0-071		f
+99	48	1z0-071		f
+99	49	1z0-071		f
+1	50	1z0-071	A. EXPIRY_DATE contains the SYSDATE by default if no date is assigned to it.	f
+2	50	1z0-071	B. PRODUCT_PRICE can be used in an arithmetic expression even if it has no value stored in it.	t
+3	50	1z0-071	C. PRODUCT_NAME cannot contain duplicate values.	f
+4	50	1z0-071	D. EXPIRY_DATE cannot be used in arithmetic expressions.	f
+5	50	1z0-071	E. PRODUCT_PRICE contains the value zero by default if no value is assigned to it.	f
+6	50	1z0-071	F. PRODUCT_ID can be assigned the PRIMARY KEY constraint.	t
+99	51	1z0-071		f
+1	52	1z0-071	A. SELECT * FROM TABLE(123);	f
+2	52	1z0-071	B. SELECT * FROM "123";	t
+3	52	1z0-071	C. SELECT * FROM \\'123\\';	f
+4	52	1z0-071	D. SELECT * FROM '123';	f
+1	53	1z0-071	A. An update to a table can result in updates to any or all of the table's indexes.	t
+2	53	1z0-071	An update to a table can result in no updates to any of the table's indexes. B.	t
+3	53	1z0-071	A UNIQUE index can be altered to be non-unique. C.	f
+4	53	1z0-071	D. When a table is dropped and is moved to the RECYCLE BIN, all indexes built on that table are permanently dropped.	f
+5	53	1z0-071	A table belonging to one user cannot have an index that belongs to a different user. E.	f
+1	54	1z0-071	A. The name of each column in the first SELECT list must match the name of the corresponding column in each subsequent SELECT list.	f
+2	54	1z0-071	B. None of the set operators can be used when selecting CLOB columns.	f
+3	54	1z0-071	C. There must be an equal number of columns in each SELECT list.	t
+4	54	1z0-071	D. Each SELECT statement in the query can have an ORDER BY clause.	f
+5	54	1z0-071	E. The FOR UPDATE clause cannot be specified.	t
+99	55	1z0-071		f
+1	56	1z0-071	A. Two or more values are always returned from the subquery.	f
+2	56	1z0-071	B. They can contain HAVING clauses.	t
+3	56	1z0-071	C. They can contain GROUP BY clauses.	t
+4	56	1z0-071	D. They can return multiple columns.	t
+5	56	1z0-071	E. They cannot contain a subquery.	f
+1	57	1z0-071	A. Increase the width of a numeric column.	t
+2	57	1z0-071	Add a new column as the table's first column. B.	f
+3	57	1z0-071	C. Define a default value that is automatically inserted into a column containing nulls.	f
+4	57	1z0-071	Change a DATE column containing data to a NUMBER data type. D.	f
+5	57	1z0-071	Change the default value of a column. E.	t
+6	57	1z0-071	Add a new NOT NULL column with a DEFAULT value. F.	t
+1	58	1z0-071	A. Rows from unrelated tables cannot be joined.	f
+2	58	1z0-071	B. Relating data from a table with data from the same table is implemented with a self join.	t
+3	58	1z0-071	C. Implementing a relationship between two tables might require joining additional tables.	t
+4	58	1z0-071	D. Every relationship between the two tables must be implemented in a join condition.	f
+5	58	1z0-071	An inner join relates rows within the same table. E.	f
+1	59	1z0-071	A. Roles are assigned to users using the ALTER USER statement.	f
+2	59	1z0-071	B. Privileges are assigned to a role using the GRANT statement.	t
+3	59	1z0-071	A role is a named group of related privileges that can only be assigned to a user. C.	f
+4	59	1z0-071	A single user can be assigned multiple roles. D.	t
+5	59	1z0-071	E. Privileges are assigned to a role using the ALTER ROLE statement.	f
+6	59	1z0-071	F. Roles are assigned to roles using the ALTER ROLE statement.	f
+7	59	1z0-071	A single role can be assigned to multiple users. G.	t
+1	60	1z0-071	A. invoice_date = '15-march-2019' : uses implicit conversion	t
+2	60	1z0-071	B. qty_sold BETWEEN '101' AND '110' : uses implicit conversion	t
+3	60	1z0-071	C. invoice_date > '01-02-2019' : uses implicit conversion	f
+4	60	1z0-071	D. qty_sold = '0554982' : requires explicit conversion	f
+5	60	1z0-071	CONCAT (qty_sold, invoice_date) : requires explicit conversion E.	f
+1	61	1z0-071	A full outer join returns matched and unmatched rows. A.	t
+2	61	1z0-071	B. Outer joins can be used when there are multiple join conditions on two tables.	t
+3	61	1z0-071	A full outer join must use Oracle syntax. C.	f
+4	61	1z0-071	D. Outer joins can only be used between two tables per query.	f
+5	61	1z0-071	A left or right outer join returns only unmatched rows. E.	f
+6	61	1z0-071	An inner join returns matched rows. F.	t
+99	62	1z0-071		f
+99	63	1z0-071		f
+1	64	1z0-071	A. The Oracle join syntax supports creation of a Cartesian product of two tables.	t
+2	64	1z0-071	B. The Oracle join syntax only supports right outer joins.	f
+3	64	1z0-071	C. The SQL:1999 compliant ANSI join syntax supports creation of a Cartesian product of two tables.	t
+4	64	1z0-071	D. The Oracle join syntax performs less well than the SQL:1999 compliant ANSI join syntax.	f
+5	64	1z0-071	E. The Oracle join syntax supports natural joins.	f
+6	64	1z0-071	F. The Oracle join syntax performs better than the SQL:1999 compliant ANSI join syntax.	f
+7	64	1z0-071	G. The SQL:1999 compliant ANSI join syntax supports natural joins.	t
+1	65	1z0-071	A. NVL must have expressions of the same data type.	f
+2	65	1z0-071	B. NVL can have any number of expressions in the list.	f
+3	65	1z0-071	C. NVL2 can have any number of expressions in the list.	f
+4	65	1z0-071	COALESCE stops evaluating the list of expressions when it finds the first non-null value. D.	t
+5	65	1z0-071	E. The first expression in NVL2 is never returned.	t
+6	65	1z0-071	COALESCE stops evaluating the list of expressions when it finds the first null value. F.	f
+1	66	1z0-071	A. an error	f
+2	66	1z0-071	2 rows B.	f
+3	66	1z0-071	0 rows C.	f
+4	66	1z0-071	1 row D.	t
+1	67	1z0-071	A. an error	f
+2	67	1z0-071	2 rows B.	f
+3	67	1z0-071	0 rows C.	f
+4	67	1z0-071	1 row D.	t
+99	68	1z0-071		f
+1	69	1z0-071	A. when a CREATE TABLE AS SELECT statement is issued in the same session but fails with a syntax error	f
+2	69	1z0-071	B. when a DBA issues a successful SHUTDOWN TRANSACTIONAL statement and the user then issues a COMMIT	t
+3	69	1z0-071	C. when the session logs out successfully	t
+4	69	1z0-071	D. when a CREATE INDEX statement is executed successfully in the same session	t
+5	69	1z0-071	E. when a DBA issues a successful SHUTDOWN IMMEDIATE statement and the user then issues a COMMIT	f
+6	69	1z0-071	F. when a COMMIT statement is issued by the same user from another session in the same database instance	f
+1	70	1z0-071	A. NOT NULL can be specified at the column and at the table level.	f
+2	70	1z0-071	A table can have only one PRIMARY KEY and one FOREIGN KEY constraint. B.	f
+3	70	1z0-071	A FOREIGN KEY column in a child table and the referenced PRIMARY KEY column in the parent table must have the same names. C.	f
+4	70	1z0-071	D. PRIMARY KEY and FOREIGN KEY constraints can be specified at the column and at the table level.	t
+5	70	1z0-071	A table can have multiple PRIMARY KEY and multiple FOREIGN KEY constraints. E.	f
+6	70	1z0-071	A table can have only one PRIMARY KEY but may have multiple FOREIGN KEY constraints. F.	t
+1	71	1z0-071	A. ORDER_ID	t
+2	71	1z0-071	B. ORDER_TOTAL	f
+3	71	1z0-071	C. ORDER_DATE	f
+4	71	1z0-071	D. PRODUCT_ID	f
+5	71	1z0-071	E. STATUS	f
+6	71	1z0-071	F. SERIAL_NO	t
+1	72	1z0-071	A. GROUP BY ch.channel_type, ROLLUP(t.month, co.country_code);	t
+2	72	1z0-071	B. GROUP BY ch.channel_type, t.month, ROLLUP(co.country_code);	f
+3	72	1z0-071	C. GROUP BY CUBE(ch.channel_type, t.month, co.country_code);	f
+4	72	1z0-071	D. GROUP BY ch.channel_type, t.month, co.country_code;	f
+1	73	1z0-071	A. SELECT first_name, DISTINCT last_name FROM employees WHERE first_name <> NULL;	f
+2	73	1z0-071	B. SELECT first_name, DISTINCT last_name FROM employees WHERE first_name IS NOT NULL;	f
+3	73	1z0-071	C. SELECT DISTINCT * FROM employees WHERE first_name IS NOT NULL;	t
+4	73	1z0-071	D. SELECT DISTINCT * FROM employees WHERE first_name <> NULL;	f
+99	74	1z0-071		f
+1	75	1z0-071	A. Employees 100 and 200 will have the same SALARY as before the update command.	f
+2	75	1z0-071	B. Employee 100 will have JOB_ID set to the same value as the JOB_ID of employee 200.	t
+3	75	1z0-071	C. Employee 200 will have JOB_ID set to the same value as the JOB_ID of employee 100.	f
+4	75	1z0-071	D. Employees 100 and 200 will have the same JOB_ID as before the update command.	f
+5	75	1z0-071	E. Employee 100 will have SALARY set to the same value as the SALARY of employee 200.	t
+6	75	1z0-071	Employee 200 will have SALARY set to the same value as the SALARY of employee 100. F.	f
+1	76	1z0-071	64 A.	f
+2	76	1z0-071	6 B.	t
+3	76	1z0-071	3 C.	f
+4	76	1z0-071	12 D.	f
+1	77	1z0-071	A. SYSDATE	f
+2	77	1z0-071	B. CURRENT_TIMESTAMP	t
+3	77	1z0-071	C. LOCALTIMESTAMP	f
+4	77	1z0-071	CURRENT_DATE D.	f
+1	78	1z0-071	A. INTERVAL YEAR TO MONTH	f
+2	78	1z0-071	B. TIMESTAMP WITH TIMEZONE	f
+3	78	1z0-071	C. INTERVAL DAY TO SECOND	t
+4	78	1z0-071	D. TIMESTAMP WITH LOCAL TIMEZONE	f
+5	78	1z0-071	E. TIMESTAMP	f
+1	79	1z0-071	A. The data type group of each column returned by the second query must match the data type group of the corresponding column returned by the first query.	t
+2	79	1z0-071	B. The names and number of columns must be identical for all select statements in the query.	f
+3	79	1z0-071	C. The data type of each column returned by the second query must be implicitly convertible to the data type of the corresponding column returned by the first query.	f
+4	79	1z0-071	D. The data type of each column returned by the second query must exactly match the data type of the corresponding column returned by the first query.	f
+5	79	1z0-071	E. The number, but not names, of columns must be identical for all select statements in the query.	t
+1	80	1z0-071	A. In a query containing multiple set operators, INTERSECT always takes precedence over UNION and UNION ALL.	f
+2	80	1z0-071	An expression in the first SELECT list must have a column alias for the expression. B.	f
+3	80	1z0-071	All set operators are valid on columns of all data types. C.	f
+4	80	1z0-071	CHAR columns of different lengths used with a set operator return a VARCHAR2 whose length equals the longest char value. D.	t
+5	80	1z0-071	E. Queries using set operators do not perform implicit conversion across data type groups (e.g. character, numeric).	t
+1	81	1z0-071	A. PROJECT_ID must be the primary key in the PROJECTS entity and foreign key in the STUDENTS entity.	f
+2	81	1z0-071	B. STUDENT_ID must be the primary key in the STUDENTS entity and foreign key in the projects entity.	f
+3	81	1z0-071	An associative table must be created with a composite key of STUDENT_ID and PROJECT_ID, which is the foreign key linked to the students and projects entities. C.	t
+4	81	1z0-071	D. The ER must have a many-to-many relationship between the STUDENTS and PROJECTS entities that must be resolved into one-to-many relationships.	t
+5	81	1z0-071	E. The ER must have a one-to-many relationship between the STUDENTS and PROJECTS entities.	f
+1	82	1z0-071	A. an activity	f
+2	82	1z0-071	B. a table	f
+3	82	1z0-071	C. a relationship	t
+4	82	1z0-071	D. an attribute	t
+5	82	1z0-071	E. a unique identifier	f
+6	82	1z0-071	F. an entity	t
+1	83	1z0-071	2 A.	f
+2	83	1z0-071	1 B.	t
+3	83	1z0-071	3 C.	f
+4	83	1z0-071	5 01-MAR-2019 D.	f
+5	83	1z0-071	3 01-JAN-2015 E.	f
+6	83	1z0-071	4 01-FEB-2015 F.	t
+1	84	1z0-071	A. SELECT COALESCE(0, SYSDATE) FROM DUAL;	f
+2	84	1z0-071	B. SELECT NVL('DATE', SYSDATZ) FROM DUAL;	t
+3	84	1z0-071	C. SELECT COALESCE('DATE', SYSDATE) FROM DUAL;	f
+4	84	1z0-071	D. SELECT NVL('DATE', 200) FROM (SELECT NULL AS "DATE" FROM DUAL);	t
+5	84	1z0-071	E. SELECT COALESCE('DATE', SYSDATE) FRCM (SELECT NULL AS "DATE" FROM DUAL);	f
+1	85	1z0-071	A. It must be an equijoin.	f
+2	85	1z0-071	B. The ON clause must be used.	f
+3	85	1z0-071	C. It must be an inner join.	f
+4	85	1z0-071	D. It can be an outer join.	t
+5	85	1z0-071	E. The ON clause can be used.	t
+6	85	1z0-071	F. The query must use two different aliases for the table.	t
+1	86	1z0-071	A. It executes successfully but does not return any result.	f
+2	86	1z0-071	B. It returns the date for the first Monday of the next month.	t
+3	86	1z0-071	C. It returns the date for the last Monday of the current month.	f
+4	86	1z0-071	D. It generates an error.	f
+1	87	1z0-071	A. WHERE and HAVING clauses can be used in the same statement only if applied to different table columns.	f
+2	87	1z0-071	B. The WHERE clause can be used to exclude rows after dividing them into groups.	f
+3	87	1z0-071	C. The HAVING clause can be used with aggregating functions in subqueries.	t
+4	87	1z0-071	D. The WHERE clause can be used to exclude rows before dividing them into groups.	t
+5	87	1z0-071	Aggregating functions and columns used in HAVING clauses must be specified in the SELECT list of a query. E.	f
+1	88	1z0-071	A. Indexes can be created on them.	t
+2	88	1z0-071	B. Backup and recovery operations are available for these tables.	f
+3	88	1z0-071	C. Their data is always stored in the default temporary tablespace of the user who created them.	f
+4	88	1z0-071	D. If the ON COMMIT clause is transaction-specific, all rows in the table are deleted after each COMMIT OR ROLLBACK.	t
+5	88	1z0-071	E. They can be created only by a user with the DBA role, but can be accessed by all users who can create a session.	f
+6	88	1z0-071	F. If the ON COMMIT clause is session-specific, the table is dropped when the session is terminated.	f
+1	89	1z0-071	A combination of object and system privileges can be granted to a role. A.	t
+2	89	1z0-071	All types of schema objects have associated object privileges. B.	f
+3	89	1z0-071	C. Schema owners can grant object privileges on objects in their schema to any other user or role.	t
+4	89	1z0-071	D. Only users with the DBA role can create roles.	f
+5	89	1z0-071	E. Only users with the GRANT ANY PRIVILEGE privilege can grant and revoke system privileges from other users.	f
+6	89	1z0-071	F. Object privileges granted on a table automatically apply to all synonyms for that table.	t
+1	90	1z0-071	A. INSERT INTO employees VALUES (101, 'John', 'Smith', 12000, SYSDATE);	f
+2	90	1z0-071	B. INSERT INTO employees VALUES (101, 'John', 'Smith', 10, 12000, SYSDATE);	f
+3	90	1z0-071	C. INSERT INTO employees (employee_id, salary, first_name, hiredate, last_name) VALUES (101, 12100, 'John', SYSDATE, 'Smith');	t
+4	90	1z0-071	D. INSERT INTO employees (employee_id, first_name, last_name, salary, hiresate)	f
+5	90	1z0-071	 INSERT INTO employees (employee_id, first_name, last_name, salary, hiresate)\nVALUES ( (SELECT 101, 'John', 'Smith'. 12000, SYSDATE FROM dual) );	f
+6	90	1z0-071	E. INSERT INTO employees SELECT 101, 'John', 'Smith', 12000, (SELECT SYSDATE FROM dual), 10 FROM dual;	t
+7	90	1z0-071	 VALUES ( (SELECT 101, 'John', 'Smith'. 12000, SYSDATE FROM dual) );	f
+8	90	1z0-071	F. INSERT INTO employees VALUES (101, 'John', ' ', 12000, SYSDATE, 10);	f
+1	91	1z0-071	A. The structure of the TEST table is removed.	f
+2	91	1z0-071	All the indexes on the TEST table are dropped. B.	f
+3	91	1z0-071	All the constraints on the TEST table are dropped. C.	f
+4	91	1z0-071	D. Removed rows can not be recovered using the ROLLBACK command.	t
+5	91	1z0-071	All the rows in the TEST table are removed. E.	t
+1	92	1z0-071	A. Sequences used to populate columns in the HR.EMPLOYEES table are dropped.	f
+2	92	1z0-071	B. Synonyms for HR.EMPLOYEES are dropped.	f
+3	92	1z0-071	C. Views referencing HR.EMPLOYEES are dropped.	f
+4	92	1z0-071	All constraints defined on HR.EMPLOYEES are dropped. D.	t
+5	92	1z0-071	E. The HR.EMPLOYEES table may be moved to the recycle bin.	t
+6	92	1z0-071	All indexes defined on HR.EMPLOYEES are dropped F.	t
+1	93	1z0-071	A. ORDER BY CUST_NO	f
+2	93	1z0-071	B. ORDER BY 2, cust_id	t
+3	93	1z0-071	C. ORDER BY 2, 1	t
+4	93	1z0-071	D. ORDER BY "Last Name"	t
+5	93	1z0-071	E. ORDER BY "CUST_NO"	f
+1	94	1z0-071	A. The WITH CHECK clause prevents certain rows from being updated or inserted in the underlying table through the view.	t
+2	94	1z0-071	B. The WITH CHECK clause prevents certain rows from being displayed when querying the view.	f
+3	94	1z0-071	C. Views can be indexed.	f
+4	94	1z0-071	D. Views can be updated without the need to re-grant privileges on the view.	t
+5	94	1z0-071	E. Tables in the defining query of a view must always exist in order to create the view.	f
+1	95	1z0-071	A. SELECT ‘The first_name is ‘‘ || first_name || ‘‘ FROM employees;	f
+2	95	1z0-071	B. SELECT ‘The first_name is ‘‘‘ || first_name || ‘‘‘‘ FROM employees;	t
+3	95	1z0-071	C. SELECT ‘The first_name is ‘‘‘ || first_name || ‘‘‘ FROM employees;	f
+4	95	1z0-071	D. SELECT ‘The first_name is ‘ || first_name || ‘‘ FROM employees;	t
+5	95	1z0-071	E. SELECT ‘The first_name is \\‘‘ || first_name || ‘\\‘‘ FROM employees;	f
+1	96	1z0-071	A. Setting an indexed column to unused results in an error.	f
+2	96	1z0-071	B. You can query the data dictionary to see the names of unused columns.	f
+3	96	1z0-071	C. You can specify multiple column names in an ALTER TABLE...SET UNUSED statement.	t
+4	96	1z0-071	D. If you set all the columns of a table to unused, the table is automatically dropped.	f
+5	96	1z0-071	CASCADE CONSTRAINTS must be specified when setting a column to unused if that column is referenced in a constraint on another column. E.	t
+1	97	1z0-071	A. WHERE INITCAP(SUBSTR(cust_name, INSTR(cust_name, ' ') + 1)) LIKE 'Mc%'	t
+2	97	1z0-071	B. WHERE SUBSTR(cust_name, INSTR(cust_name, ' ') + 1) LIKE 'Mc%'	f
+3	97	1z0-071	C. WHERE SUBSTR(cust_name, INSTR(cust_name, ' ') + 1 ) LIKE 'Mc%' OR 'MC%'	f
+4	97	1z0-071	D. WHERE UPPER(SUBSTR(cust_name, INSTR(cust_name, ' ') + 1)) LIKE UPPER('MC%')	t
+5	97	1z0-071	E. WHERE INITCAP(SUBSTR(cust_name, INSTR(cust_name, ' ’) + 1)) IN ('MC%', 'Mc%)	f
+1	98	1z0-071	A. the first VARCHAR2 column in the first SELECT of the compound query	f
+2	98	1z0-071	B. the first column in the first SELECT of the compound query	t
+3	98	1z0-071	C. the first NUMBER column in the first SELECT of the compound query	f
+4	98	1z0-071	D. the first NUMBER or VARCHAR2 column in the last SELECT of the compound query	f
+5	98	1z0-071	E. the first column in the last SELECT of the compound query	f
+1	99	1z0-071	A. In a character sort, the values are case-sensitive.	t
+2	99	1z0-071	B. NULLS are not included in the sort operation.	f
+3	99	1z0-071	C. Numeric values are displayed in descending order if they have decimal positions.	f
+4	99	1z0-071	Column aliases can be used in the ORDER BY clause. D.	t
+5	99	1z0-071	E. Only columns that are specified in the SELECT list can be used in the ORDER BY clause.	f
+1	100	1z0-071	4 A.	f
+2	100	1z0-071	6 B.	t
+3	100	1z0-071	16 C.	f
+4	100	1z0-071	0 D.	f
+5	100	1z0-071	1 E.	f
+6	100	1z0-071	10 F.	f
+1	101	1z0-071	A. an error	f
+2	101	1z0-071	+100 ----------	f
+3	101	1z0-071	 B.	f
+4	101	1z0-071	+08 ----------	f
+5	101	1z0-071	 C.	f
+6	101	1z0-071	+08-04 ----------	t
+7	101	1z0-071	 D.	f
+1	102	1z0-071	150 A.	f
+2	102	1z0-071	200 B.	t
+3	102	1z0-071	160 C.	f
+4	102	1z0-071	100 D.	f
+5	102	1z0-071	16 E.	f
+1	103	1z0-071	 A.	f
+2	103	1z0-071	 B.	f
+3	103	1z0-071	 C.	f
+4	103	1z0-071	 D.	t
+5	103	1z0-071	 E.	f
+1	104	1z0-071	A. The same table column can be part of a unique and non-unique index.	t
+2	104	1z0-071	A descending index is a type of function-based index. B.	t
+3	104	1z0-071	An INVINSIBLE index is not maintained when DML is performed on its underlying table. C.	f
+4	104	1z0-071	D. If a query filters on an indexed column then it will always be used during execution of the query.	f
+5	104	1z0-071	An index can be created as part of a CREATE TABLE statement. E.	t
+6	104	1z0-071	An UNUSABLE index is maintained when DML is performed on its underlying table. F.	f
+1	105	1z0-071	A. only departments where the total salary is greater than 3000, returned in no particular order	f
+2	105	1z0-071	B. only departments where the total salary is greater than 3000, ordered by department	f
+3	105	1z0-071	C. all departments and a sum of the salaries of employees with a salary greater than 3000	f
+4	105	1z0-071	D. an error	t
+1	106	1z0-071	A. They can be indexed.	t
+2	106	1z0-071	B. They can be referenced in the column expression of another virtual column.	f
+3	106	1z0-071	C. They cannot have a data type explicitly specified.	f
+4	106	1z0-071	D. They can be referenced in the set clause of an update statement as the name of the column to be updated.	f
+5	106	1z0-071	E. They can be referenced in the where clause of an update or delete statement.	t
+1	107	1z0-071	A. SELECT TO_DATE('2019-01-01') FROM DUAL;	f
+2	107	1z0-071	B. SELECT DATE '2019-01-01' FROM DUAL;	t
+3	107	1z0-071	C. SELECT '2019-01-01' FROM DUAL;	f
+4	107	1z0-071	D. SELECT TO_DATE('2019-01-01', 'YYYY-MM-DD') FROM DUAL;	t
+5	107	1z0-071	E. SELECT TO_CHAR('2019-01-01') FROM DUAL;	f
+1	108	1z0-071	A. The DELETE statement executes successfully even if the subquery selects multiple rows.	t
+2	108	1z0-071	B. The subquery is executed before the DELETE statement is executed.	f
+3	108	1z0-071	C. The subquery is not a correlated subquery.	f
+4	108	1z0-071	All existing rows in the EMPLOYEES table are deleted. D.	f
+5	108	1z0-071	E. The subquery is executed for every row in the EMPLOYEES table.	t
+1	109	1z0-071	A. The SALARY column must have a value.	f
+2	109	1z0-071	B. The DEPTNO column in the EMP table can contain NULLS.	t
+3	109	1z0-071	C. The COMMISION column can contain negative values.	t
+4	109	1z0-071	D. The DEPTNO column in the EMP table can contain the value 1.	f
+5	109	1z0-071	E. The MANAGER column is a foreign key referencing the EMPNO column.	t
+6	109	1z0-071	F. The DNAME column has a unique constraint.	f
+7	109	1z0-071	An index is created automatically in the MANAGER column. G.	f
+1	110	1z0-071	A. Creating an external table will automatically create a file using the specified directory and file name.	f
+2	110	1z0-071	A system privilege is required. B.	t
+3	110	1z0-071	C. The same table name can be used for tables in different schemas.	t
+4	110	1z0-071	A primary key constraint is mandatory. D.	f
+5	110	1z0-071	A CREATE TABLE statement can specify the maximum number of rows the table will contain. E.	f
+1	111	1z0-071	A. ORDER BY comm DESC NULLS LAST, ename	t
+2	111	1z0-071	B. ORDER BY NVL(coram, 0) ASC NULLS FIRST, ename	f
+3	111	1z0-071	C. ORDER BY NVL(coram, 0) ASC NULLS LAST, ename	f
+4	111	1z0-071	D. ORDER BY NVL(ccmm, 0) DESC, ename	f
+1	112	1z0-071	A. SELECT customer_name FROM customers WHERE UPPER(customer_name) LIKE ‘MA*’;	f
+2	112	1z0-071	B. SELECT customer_name FROM customers WHERE customer_name = ‘*Ma*’;	f
+3	112	1z0-071	C. SELECT customer_name FROM customers WHERE customer_name LIKE ‘Ma*’;	f
+4	112	1z0-071	D. SELECT customer_name FROM customers WHERE UPPER(customer_name) LIKE ‘MA%’;	f
+5	112	1z0-071	E. SELECT customer_name FROM customers WHERE customer_name LIKE ‘%a%’;	t
+6	112	1z0-071	F. SELECT customer_name FROM customers WHERE customer_name LIKE ‘Ma%’;	t
+7	112	1z0-071	G. SELECT customer_name FROM customers WHERE customer_name LIKE ‘*Ma*’;	f
+1	113	1z0-071	A row whose UNIT_PRICE column contains the value 10235.95 will be displayed as $1,0236. A.	f
+2	113	1z0-071	A row whose UNIT_PRICE column contains the value 1023.95 will be displayed as $1,024. B.	t
+3	113	1z0-071	A row whose UNIT_PRICE column contains the value 10235.95 will be displayed as $1,023. C.	f
+4	113	1z0-071	A row whose UNIT_PRICE column contains the value 10235.95 will be displayed as #######. D.	t
+5	113	1z0-071	A row whose UNIT_PRICE column contains the value 1023.99 will be displayed as $1,023. E.	f
+1	114	1z0-071	A. Updates performed by a database user can be rolled back by another user by using the ROLLBACK command.	f
+2	114	1z0-071	A query can access only tables within the same schema. B.	f
+3	114	1z0-071	C. The database guarantees read consistency at select level on user-created tables.	t
+4	114	1z0-071	A user can be the owner of multiple schemas in the same database. D.	f
+5	114	1z0-071	E. When you execute an update statement, the database instance locks each updated row.	t
+1	115	1z0-071	A. For tables with multiple indexes and triggers, DELETE is faster than TRUNCATE.	f
+2	115	1z0-071	B. You can never TRUNCATE a table if foreign key constraints would be violated.	t
+3	115	1z0-071	C. You can DELETE rows from a table with referential integrity constraints.	f
+4	115	1z0-071	D. For large tables, DELETE is faster than TRUNCATE.	f
+1	116	1z0-071	A. CASE is a function and DECODE is not.	f
+2	116	1z0-071	B. Neither CASE nor DECODE is a function.	f
+3	116	1z0-071	All conditions evaluated using CASE can also be evaluated using DECODE. C.	f
+4	116	1z0-071	All conditions evaluated using DECODE can also be evaluated using CASE. D.	t
+5	116	1z0-071	DECODE is a function and CASE is not. E.	t
+6	116	1z0-071	Both CASE and DECODE are functions. F.	f
+1	117	1z0-071	A. The code for pen is 10.	t
+2	117	1z0-071	B. There is no row containing fountain pen.	f
+3	117	1z0-071	C. There is no row containing pen.	f
+4	117	1z0-071	D. There is no row containing pencil.	t
+5	117	1z0-071	E. The code for fountain pen is 3.	t
+6	117	1z0-071	F. The code for pen is 1.	f
+1	118	1z0-071	A. Both & and && can prefix a substitution variable name in queries and DML statements.	t
+2	118	1z0-071	An & prefix to an undefined substitution variable, which is referenced twice in the same query, will prompt for a value twice. B.	t
+3	118	1z0-071	& can prefix a substitution variable name only in queries. C.	f
+4	118	1z0-071	An && prefix to an undefined substitution variable, which is referenced multiple times in multiple queries, will prompt for a value once per query. D.	f
+5	118	1z0-071	E. The && prefix will not prompt for a value even if the substitution variable is not previously defined in the session.	f
+1	119	1z0-071	 A.	t
+2	119	1z0-071	 B.	f
+3	119	1z0-071	 C.	f
+4	119	1z0-071	 D.	f
+1	120	1z0-071	 A.	t
+2	120	1z0-071	 B.	t
+3	120	1z0-071	 C.	f
+4	120	1z0-071	 D.	f
+1	121	1z0-071	A. SELECT INTERVAL '1' DAY - INTERVAL '1' MINUTE FROM DUAL	t
+2	121	1z0-071	B. SELECT SYSTIMESTAMP + INTERVAL '1' DAY FROM DUAL;	t
+3	121	1z0-071	C. SELECT INTERVAL '1' DAY - SYSDATE FROM DUAL;	f
+4	121	1z0-071	D. SELECT INTERVAL '1' DAY + INTERVAL '1' MONTH FROM DUAL;	f
+5	121	1z0-071	E. SELECT SYSDATE * INTERVAL '1' DAY FROM DUAL;	f
+1	122	1z0-071	11-JUL-2019 6.00.00.00000000 AM -05:00 A.	f
+2	122	1z0-071	11-JUL-2019 11.00.00.00000000 AM B.	f
+3	122	1z0-071	11-JUL-2019 6.00.00.00000000 AM C.	t
+4	122	1z0-071	11-JUL-2019 11.00.00.00000000 AM -05:00 D.	f
+1	123	1z0-071	A. User FIN_CLERK can grant SELECT on SCOTT.EMP to user FIN_MANAGER.	f
+2	123	1z0-071	B. Dropping user FINANCE will automatically revoke SELECT on SCOTT.EMP from user FIN_CLERK.	t
+3	123	1z0-071	C. User FINANCE can grant CREATE SESSION to user FIN_MANAGER.	f
+4	123	1z0-071	D. Revoking SELECT on SCOTT.EMP from user FINANCE will also revoke the privilege from user FIN_CLERK.	t
+5	123	1z0-071	E. User FINANCE is unable to grant all on SCOTT.EMP to FIN_MANAGER.	f
+1	124	1z0-071	A. An object privilege can be granted to other users only by the owner of that object.	f
+2	124	1z0-071	B. The owner of an object acquires all object privileges on that object by default.	t
+3	124	1z0-071	C. The WITH GRANT OPTION clause can be used only by DBA users.	f
+4	124	1z0-071	An object privilege can be granted to a role only by the owner of that object. D.	f
+5	124	1z0-071	A table owner must grant the REFERENCES privilege to allow other users to create FOREIGN KEY constraints using that table. E.	t
+1	125	1z0-071	A. SELECT dept_id, AVG(MAX(salary)) FROM employees GROUP BY dept_id HAVING hire_date > '01-JAN-19';	f
+2	125	1z0-071	B. SELECT dept_id, SUM(salary) FROM employees WHERE hire_date > '01-JAN-19' GROUP BY dept_id;	t
+3	125	1z0-071	C. SELECT dept_id, MAX(SUM(salary)) FROM employees GROUP BY dept_id;	f
+4	125	1z0-071	D. SELECT dept_id, AVG(MAX(salary)) FROM employees GROUP BY dept_id, salary;	f
+5	125	1z0-071	E. SELECT AVG(MAX(salary)) FROM employees GROUP BY salary;	t
+1	126	1z0-071	A. The + binary operator has the highest precedence in an expression in a SQL statement.	f
+2	126	1z0-071	B. The concatenation operator || is always evaluated before addition and subtraction in an expression.	f
+3	126	1z0-071	C. Multiple parentheses can be used to override the default precedence of operators in an expression.	t
+4	126	1z0-071	D. NULLS influence the precedence of operators in an expression.	f
+5	126	1z0-071	Arithmetic operators with equal precedence are evaluated from left to right within an expression. E.	t
+1	127	1z0-071	 A.	f
+2	127	1z0-071	 B.	f
+3	127	1z0-071	 C.	t
+4	127	1z0-071	 D.	t
+5	127	1z0-071	 E.	f
+1	128	1z0-071	 A.	f
+2	128	1z0-071	 B.	t
+3	128	1z0-071	 C.	t
+4	128	1z0-071	 D.	f
+5	128	1z0-071	 E.	f
+1	129	1z0-071	A. It will return rows from both SELECT statements including duplicate rows.	t
+2	129	1z0-071	B. It will return rows from both SELECT statements after eliminating duplicate rows.	f
+3	129	1z0-071	C. It will return rows that are not common to both SELECT statements.	f
+4	129	1z0-071	D. It will return rows common to both SELECT statements.	f
+1	130	1z0-071	A sequence’s unallocated cached values are lost if the instance shuts down. A.	t
+2	130	1z0-071	A sequence number that was allocated can be rolled back if a transaction fails. B.	f
+3	130	1z0-071	A sequence can only be dropped by a DBA. C.	f
+4	130	1z0-071	A sequence can issue duplicate values. D.	t
+5	130	1z0-071	E. Sequences can always have gaps.	t
+6	130	1z0-071	F. Two or more tables cannot have keys generated from the same sequence.	f
+1	131	1z0-071	 A.	f
+2	131	1z0-071	 B.	f
+3	131	1z0-071	 C.	t
+4	131	1z0-071	 D.	t
+1	132	1z0-071	A. SELECT NVL2(cust_credit_limit * .15, 'Not Available') FROM customers;	f
+2	132	1z0-071	B. SELECT NVL2(cust_credit_limit, TO_CHAR(cust_credit_limit * .15), 'Not Available') FROM customers	t
+3	132	1z0-071	C. SELECT NVL(cust_credit_limit * .15, 'Not Available') FROM customers;	f
+4	132	1z0-071	D. SELECT NVL(TO_CHAR(cust_credit_limit * .15), 'Not Available') FROM customers;	t
+5	132	1z0-071	E. SELECT TO_CHAR(NVL(cust_credit_iimit * .15, 'Not Available')) FROM customers;	f
+1	133	1z0-071	 A.	f
+2	133	1z0-071	 B.	f
+3	133	1z0-071	 C.	f
+4	133	1z0-071	 D.	t
+1	134	1z0-071	A. The ROLLBACK statement does not release locks resulting from table updates.	f
+2	134	1z0-071	B. Data consistency is not guaranteed after a rollback.	f
+3	134	1z0-071	A transaction interrupted by a system failure is automatically rolled back. C.	t
+4	134	1z0-071	D. If the ROLLBACK statement is used without TO SAVEPOINT, then all savepoints in the transaction are deleted.	t
+5	134	1z0-071	Data Control Language (DCL) statements, such as GRANT and REVOKE, can be rolled back. E.	f
+1	135	1z0-071	A. An UNUSED column's space is reclaimed automatically when the row containing that column is next queried.	f
+2	135	1z0-071	A column that is set to UNUSED still counts towards the limit of 1000 columns per table. B.	t
+3	135	1z0-071	A DROP COLUMN command can be rolled back. C.	f
+4	135	1z0-071	A primary key column referenced by another column as a foreign key can be dropped if using the CASCADE option. D.	t
+5	135	1z0-071	An UNUSED column's space is reclaimed automatically when the block containing that column is next queried. E.	f
+6	135	1z0-071	F. Partition key columns cannot be dropped.	t
+1	136	1z0-071	A. Create a directory object for a flat file.	f
+2	136	1z0-071	B. Create a directory object for an external table.	f
+3	136	1z0-071	C. Read data from an external table and load it into a table in the database.	t
+4	136	1z0-071	D. Execute DML statements on an external table.	f
+5	136	1z0-071	E. Read data from a table in the database and insert it into an external table.	t
+6	136	1z0-071	F. Query data from an external table.	t
+1	137	1z0-071	A. Aggregate functions can be nested to any number of levels.	f
+2	137	1z0-071	B. The AVG function implicitly converts NULLS to zero.	f
+3	137	1z0-071	C. The MAX and MIN functions can be used on columns with character data types.	t
+4	137	1z0-071	Aggregate functions can be used in any clause of a SELECT statement. D.	f
+1	138	1z0-071	A. They can insert each computed row into more than one table.	t
+2	138	1z0-071	B. They can be performed on remote tables.	f
+3	138	1z0-071	C. They can be performed on external tables using SQL*Loader.	f
+4	138	1z0-071	D. They can be performed on views.	f
+5	138	1z0-071	E. They can be performed only by using a subquery.	t
+6	138	1z0-071	F. They can be performed on relational tables.	t
+1	139	1z0-071	A. They must be placed on the left side of the comparison operator or condition.	f
+2	139	1z0-071	B. They must be placed on the right side of the comparison operator or condition.	f
+3	139	1z0-071	C. They must return a row to prevent errors in the SQL statement.	f
+4	139	1z0-071	A SQL statement may have multiple single row subquery blocks. D.	t
+5	139	1z0-071	E. They can be used in the HAVING clause.	t
+6	139	1z0-071	F. They can be used in the WHERE clause.	t
+1	140	1z0-071	A. SELECT TO_DATE(SYSDATE, 'RRRR-MM-DD') FROM DUAL;	f
+2	140	1z0-071	B. SELECT TO_CHAR(SYSDATE, MM/DD/YYYY) FROM DUAL;	t
+3	140	1z0-071	C. SELECT TO_DATE(ADD_MONTHS(SYSDATE, 6), 'dd-non-yyyy') FROM DUAL;	f
+4	140	1z0-071	D. SELECT TO_CHAR(ADD_MONTHS(SYSDATE, 6)) FROM DUAL;	f
+5	140	1z0-071	E. SELECT TO_CHAR(ADD_MONTHS(SYSDATE, 6), 'dd-mon-yyyy') FROM DUAL;	t
+6	140	1z0-071	F. SELECT TO_DATE(TO_CHAR(SYSDATE, 'MM/DD/YYYY'), 'MM/DD/YYYY') FROM DUAL;	f
+1	141	1z0-071	A. After issuing a savepoint, you can roll back to the savepoint name within the current transaction.	t
+2	141	1z0-071	B. They make uncommitted updates visible to sessions owned by other users.	f
+3	141	1z0-071	C. You can commit updates done between two savepoints without committing other updates in the current transaction.	f
+4	141	1z0-071	A ROLLBACK TO SAVEPOINT command issued before the start of a transaction results in an error. D.	t
+5	141	1z0-071	E. They make uncommitted updates visible to other sessions owned by the same user.	f
+6	141	1z0-071	After issuing a savepoint, you cannot roll back the complete transaction. F.	f
+1	142	1z0-071	A. There is no row containing pencil.	t
+2	142	1z0-071	B. The code for pen is 10.	t
+3	142	1z0-071	C. There is no row containing fountain pen.	f
+4	142	1z0-071	D. The code for pen is 1.	f
+5	142	1z0-071	E. There is no row containing pen.	f
+6	142	1z0-071	F. The code for fountain pen is 3.	t
+1	143	1z0-071	A. WHERE order_date > TO_DATE(‘JUL 10 2018’, ‘ MON DD YYYY’)	t
+2	143	1z0-071	B. WHERE order_date > TO_DATE(ADD_MONTH(SYSDATE, 6), ‘MON DD YYYY’)	f
+3	143	1z0-071	C. WHERE order_date IN (TO_DATE(‘Oct 21 2018’, ‘Mon DD YYYY’), TO_CHAR(‘Nov 21 2018’, ‘Mon DD YYYY’))	f
+4	143	1z0-071	D. WHERE order_date > TO_CHAR(ADD_MONTHS(SYSDATE, 6), ‘MON DD YYYY’)	f
+5	143	1z0-071	E. WHERE TO_CHAR(order_date. ‘MON DD YYYY’) = ‘JAN 20 2019’	t
+1	144	1z0-071	A. an error	f
+2	144	1z0-071	B. no rows	t
+3	144	1z0-071	1 row C.	f
+4	144	1z0-071	3 rows D.	f
+5	144	1z0-071	6 rows E.	f
+6	144	1z0-071	8 rows F.	f
+1	145	1z0-071	A. INDEX	f
+2	145	1z0-071	ALTER B.	f
+3	145	1z0-071	C. UPDATE	t
+4	145	1z0-071	D. INSERT	t
+5	145	1z0-071	DELETE E.	f
+1	146	1z0-071	 A.	f
+2	146	1z0-071	 B.	f
+3	146	1z0-071	 C.	t
+4	146	1z0-071	 D.	f
+5	146	1z0-071	 E.	t
+1	147	1z0-071	A. The statement will execute successfully and a new row will be inserted into the SALES table.	t
+2	147	1z0-071	A product can have a different unit price at different times. B.	t
+3	147	1z0-071	C. The statement will fail if a row already exists in the SALES table for product 23.	f
+4	147	1z0-071	D. The statement will fail because a subquery may not be contained in a VALUES clause.	f
+5	147	1z0-071	A customer can exist in many countries. E.	f
+6	147	1z0-071	F. The SALES table has five foreign keys.	t
+1	148	1z0-071	A. By default an ORDER BY clause sorts rows in descending order	f
+2	148	1z0-071	An ORDER BY clause will always precede a HAVING clause if both are used in the same top-level query. B.	f
+3	148	1z0-071	An ORDER BY clause always sorts NULL values last. C.	f
+4	148	1z0-071	By default an ORDER BY clause sorts rows in ascending order. D.	t
+5	148	1z0-071	An ORDER BY clause can perform a binary sort. E.	t
+6	148	1z0-071	An ORDER BY clause can perform a linguistic sort. F.	t
+1	149	1z0-071	A. SELECT * FROM employees WHERE NVL2(salary + commission, salary + commission, salary) >= 20000;	t
+2	149	1z0-071	B. SELECT * FROM employees WHERE salary + NVL2(commission, commission, 0) >= 20000	t
+3	149	1z0-071	C. SELECT * FROM employees WHERE NVL(salary + commission, 0) >= 20000;	f
+4	149	1z0-071	D. SELECT * FROM employees WHERE salary + NULLIF(commission, 0) >= 20000;	f
+5	149	1z0-071	E. SELECT * FROM employees WHERE COALESCE(salary, commission) >= 20000;	f
+6	149	1z0-071	F. SELECT * FROM employees WHERE salary + NVL(commission, 0) >= 20000;	t
+1	150	1z0-071	A. SELECT employee_name FROM employees WHERE (SYSDATE - hire_date) / 12 > 5;	f
+2	150	1z0-071	B. SELECT employee_name FROM employees WHERE (SYSTIMSSTAMF - hire_date) / 12 > INTERVAL '5' YEAR;	f
+3	150	1z0-071	C. SELECT employee_name FROM employees WHERE (CURRENT_DATE - hire_date) / 12 > 5	f
+4	204	1z0-071	D. SELECT COALESCE (100, NULL, 200) FROM DUAL;	t
+4	150	1z0-071	D. SELECT employee_name FROM employees WHERE (CURRENT_DATE - hire_date) / 365 >	t
+5	150	1z0-071	E. SELECT employee_name FROM employees WHERE (SYSDATE - hire_date) / 365 > 5;	t
+6	150	1z0-071	F. SELECT employee_name FROM employees WHERE (SYSTIMESTAMP - hire_date) / 365 > INTERVAL '1825' DAY;	f
+1	151	1z0-071	A. SELECT "Hello! We're ready" FROM DUAL;	f
+2	151	1z0-071	B. SELECT 'Hello! We're ready' FROM DUAL;	f
+3	151	1z0-071	C. SELECT q'!Hello! We're ready!' FROM DUAL;	t
+4	151	1z0-071	D. SELECT q'[Hello! We're ready]' FROM DUAL;	t
+5	151	1z0-071	E. SELECT 'Hello! We\\'re ready’ ESCAPE '\\' FROM DUAL;	f
+1	152	1z0-071	A. It can be used from SQL Developer.	t
+2	152	1z0-071	B. It displays the PRIMARY KEY constraint for any column or columns that have that constraint.	f
+3	152	1z0-071	C. It displays all constraints that are defined for each column.	f
+4	152	1z0-071	D. It displays the NOT NULL constraint for any columns that have that constraint.	t
+5	152	1z0-071	E. It can be used only from SQL* Plus.	f
+6	152	1z0-071	F. It can be used to display the structure of an existing view.	t
+1	153	1z0-071	A. The creator of a view to be dropped must have the DROP ANY VIEW privilege.	f
+2	153	1z0-071	B. Data selected by a view’s defining query is deleted from its underlying tables when the view is dropped.	f
+3	153	1z0-071	C. Views referencing a dropped view become invalid.	t
+4	153	1z0-071	D. Read only views cannot be dropped.	f
+5	153	1z0-071	CASCADE CONSTRAINTS must be specified when referential integrity constraints on other objects refer to primary or unique keys in the view to be dropped. E.	t
+1	154	1z0-071	A. The WHEN NOT MATCHED clause can be used to specify the deletions to be performed.	f
+2	154	1z0-071	B. The WHEN NOT MATCHED clause can be used to specify the updates to be performed.	f
+3	154	1z0-071	C. The WHEN NOT MATCHED clause can be used to specify the inserts to be performed.	t
+4	154	1z0-071	D. The WHEN WATCHED clause can be used to specify the inserts to be performed.	f
+5	154	1z0-071	E. The WHEN WATCHED clause can be used to specify the updates to be performed.	t
+1	155	1z0-071	A. Table aliases must be used.	f
+2	155	1z0-071	B. The SQL:1999 compliant ANSI join syntax must be used.	f
+3	155	1z0-071	C. The USING clause can be used.	f
+4	155	1z0-071	D. The Oracle join syntax can be used.	t
+5	155	1z0-071	E. The ON clause can be used.	t
+1	156	1z0-071	A. The PROD_NAME column cannot have a DEFAULT clause added to it.	f
+2	156	1z0-071	B. The EXPIRY_DATE column cannot be dropped.	f
+3	156	1z0-071	C. The EXPIRY_DATE column data type can be changed to TIMESTAMP.	t
+4	156	1z0-071	D. The PROD_ID column can be renamed.	t
+5	156	1z0-071	E. The PROD_ID column data type can be changed to VARCHAR2(2).	f
+1	157	1z0-071	A. It fails unless the expression is modified to SUBSTR(TO_CHAR(SYSDATE), 1, 5).	f
+2	157	1z0-071	B. It fails unless the expression is modified to SUBSTR(TO_CHAR(TRUNC(SYSDATE), 1, 5).	f
+3	157	1z0-071	C. It fails unless the expression is modified to TO_CHAR(SUBSTR(SYSDATE), 1, 5)).	f
+4	157	1z0-071	D. It executes successfully with an implicit data type conversion.	t
+1	158	1z0-071	A. It processes NULLs in the selected columns.	t
+2	158	1z0-071	B. It ignores NULLs.	f
+3	158	1z0-071	C. INTERSECT is of lower precedence than UNION or UNION ALL.	f
+4	158	1z0-071	D. Multiple INTERSECT operators are not possible in the same SQL statement.	f
+1	159	1z0-071	A. after successfully executing a CREATE TABLE statement followed by a CREATE INDEX statement	f
+2	159	1z0-071	B. after successfully executing a TRUNCATE statement followed by a DML statement	t
+3	159	1z0-071	C. after successfully executing a DML statement following a failed DML statement	f
+4	159	1z0-071	D. after successfully executing a CREATE TABLE AS SELECT statement followed by a SELECT FOR UPDATE statement	t
+5	159	1z0-071	E. after successfully executing a COMMIT or ROLLBACK followed by a DML statement	t
+6	159	1z0-071	F. after successfully executing a COMMIT or ROLLBACK followed by a SELECT statement	f
+1	160	1z0-071	A. It returns matched and unmatched rows from both tables being joined.	t
+2	160	1z0-071	B. The Oracle join operator (+) must be used on both sides of the join condition in the WHERE clause.	f
+3	160	1z0-071	C. It returns only unmatched rows from both tables being joined.	f
+4	160	1z0-071	D. It includes rows that are returned by an inner join.	t
+5	160	1z0-071	E. It includes rows that are returned by a Cartesian product.	f
+1	161	1z0-071	A. It can be a left outer join.	t
+2	161	1z0-071	B. It must be an equijoin.	f
+3	161	1z0-071	C. It must be a full outer join.	f
+4	161	1z0-071	D. The join key column must have an index.	f
+5	161	1z0-071	E. It can be an inner join.	t
+1	162	1z0-071	A. SELECT * FROM customers WHERE customer_id - '0001';	t
+2	162	1z0-071	B. SELECT * FROM customers WHERE customer_id - 0001;	f
+3	162	1z0-071	C. SELECT * FROM customers WHERE insert_date - DATE '2019-01-01';	f
+4	162	1z0-071	D. SELECT * FROM customers WHERE insert_date - '01-JAN-19';	t
+5	162	1z0-071	E. SELECT * FROM customers WHERE TO_CHAR(customer_id) - '0001';	f
+1	163	1z0-071	A. The value varies depending on the setting of SESSIONTIMEZONE.	t
+2	163	1z0-071	B. It returns a value of data type TIMESTAMP.	t
+3	163	1z0-071	C. The date is in the time zone of DBTIMEZONE.	f
+4	163	1z0-071	D. It returns the same date as CURRENT_TIME.	f
+5	163	1z0-071	E. The time is in the time zone of DBTIMEZONE.	f
+6	163	1z0-071	F. It always returns the same value as SYSTEMTIMESTAMP.	f
+1	164	1z0-071	A. SELECT * FROM customers WHERE city LIKE ‘D__%’;	t
+2	164	1z0-071	B. SELECT * FROM customers WHERE city = ‘%D__’;	f
+3	164	1z0-071	C. SELECT * FROM customers WHERE city = ‘D__%’;	f
+4	164	1z0-071	D. SELECT * FROM customers WHERE city LIKE ‘D__’;	f
+5	249	1z0-071	E. subquery	t
+1	165	1z0-071	A. It can be used with SET operators (UNION, INTERSECT etc.).	f
+2	165	1z0-071	B. It cannot be used with the DISTINCT keyword.	t
+3	165	1z0-071	C. If the NOWAIT clause is added, the statement will automatically acquire locks from their owning transactions and not wait.	f
+4	165	1z0-071	D. The statement skips rows locked by other transactions.	f
+5	165	1z0-071	E. It can be used with joins.	t
+1	166	1z0-071	 A.	t
+2	166	1z0-071	 B.	f
+3	166	1z0-071	 C.	f
+4	166	1z0-071	 D.	f
+1	167	1z0-071	A. CROSS	f
+2	167	1z0-071	B. RIGHT OUTER	f
+3	167	1z0-071	C. LEFT OUTER	t
+4	167	1z0-071	D. FULL OUTER	f
+1	168	1z0-071	A column with a FOREIGN KEY constraint can never contain a NULL value. A.	f
+2	168	1z0-071	A constraint can be disabled even if the constrained column contains data. B.	t
+3	168	1z0-071	C. Constraints are enforced only during INSERT operations.	f
+4	168	1z0-071	All constraints can be defined at the table or column level. D.	f
+5	168	1z0-071	A column with a UNIQUE constraint can contain a NULL value. E.	f
+1	169	1z0-071	A. SELECT * FROM order_items WHERE quantity / 10 - TRUNC(quantity	f
+2	169	1z0-071	B. SELECT * FROM order_items WHERE MOD(quantity, 10) - 0;	t
+3	169	1z0-071	C. SELECT * FROM  order_items WHERE FLOOR(quantity / 10) = TRUNC(quantity / 10);	f
+4	169	1z0-071	D. SELECT * FROM  order_items WHERE quantity = TRUNC(quantity,  -1);	t
+5	169	1z0-071	E. SELECT * FROM  order_items WHERE quantity = ROUND(quantity,  1);	f
+1	170	1z0-071	A new index can be created or an existing one reused when a primary key constraint is created. A.	t
+2	170	1z0-071	An INVINSIBLE index is maintained by DML operations on the underlying table. B.	t
+3	170	1z0-071	C. If a query filters on an indexed column, the index will always be accessed during execution of the query.	f
+4	170	1z0-071	A DROP INDEX statement always prevents updates to the table during the drop operation. D.	f
+5	170	1z0-071	E. The same table column cannot be part of a unique and non-unique index.	f
+1	171	1z0-071	A. INTERVAL '0.5' DAY	f
+2	171	1z0-071	B. INTERVAL '720' MINUTE	t
+3	171	1z0-071	C. INTERVAL '11:60' HOUR TO MINUTE	f
+4	171	1z0-071	D. INTERVAL '12:00' HOUR TO SECOND	f
+5	171	1z0-071	E. INTERVAL '0 12' DAY TO HOUR	t
+6	171	1z0-071	F. INTERVAL '12' HOUR	t
+1	172	1z0-071	A. The data dictionary is constantly updated to reflect changes to database objects, permissions, and data.	t
+2	172	1z0-071	All user actions are recorded in the data dictionary. B.	f
+3	172	1z0-071	All users have permissions to access all information in the data dictionary by default. C.	f
+4	172	1z0-071	D. The SYS user owns all base tables and user-accessible views in the data dictionary.	t
+5	172	1z0-071	Base tables in the data dictionary have the prefix DBA_. E.	f
+1	173	1z0-071	A. It can display multiple rows but only a single column.	f
+2	173	1z0-071	B. It can be accessed only by the SYS user.	f
+3	173	1z0-071	C. It can be accessed by any user who has the SELECT privilege in any schema.	t
+4	173	1z0-071	D. It can display multiple rows and columns.	f
+5	173	1z0-071	E. It consists of a single row and single column of VARCHAR2 data type.	t
+6	173	1z0-071	F. It can be used to display only constants or pseudo columns.	f
+1	174	1z0-071	A. For tables with multiple indexes and triggers DELETE is faster than TRUNCATE.	f
+2	174	1z0-071	B. For large tables TRUNCATE is faster than DELETE.	t
+3	174	1z0-071	C. You can never TRUNCATE a table if foreign key constraints will be violated.	f
+4	174	1z0-071	D. You can never DELETE rows from a table if foreign key constraints will be violated.	f
+1	175	1z0-071	A. NOCACHE	f
+2	175	1z0-071	B. INCREMENT BY 10	t
+3	175	1z0-071	C. START WITH 11	f
+4	175	1z0-071	D. MINVALUE 11	f
+5	175	1z0-071	CYCLE 11 E.	f
+1	176	1z0-071	A. quantity * unit_price	t
+2	176	1z0-071	B. quantity	f
+3	176	1z0-071	C. total_paid	t
+4	176	1z0-071	D. product_id	f
+5	176	1z0-071	E. quantity, unit_price	f
+1	177	1z0-071	A. PROMPT Enter table name &x -	f
+2	177	1z0-071	 PROMPT Enter table name &x -\nSELECT employee_id FROM &x WHERE last_name = ‘King’;	f
+3	177	1z0-071	B. DEFINE x = ‘employees’	f
+4	177	1z0-071	 DEFINE x = ‘employees’\n\nPROMPT Enter table name &x -\nSELECT employee_id FROM &x WHERE last_name = ‘King’;	f
+5	177	1z0-071	C. PROMPT Enter table name &x -	f
+6	177	1z0-071	 PROMPT Enter table name &x -	f
+7	177	1z0-071	D. PROMPT Enter table name &&x -	t
+8	177	1z0-071	 PROMPT Enter table name &&x -\nSELECT employee_id FROM &x WHERE last_name = ‘King’;	f
+1	178	1z0-071	A. SELECT REPLACE(REPLACE(cust_last_name, ‘son’, ‘’), ‘An’, ‘O’) FROM customers;	t
+2	178	1z0-071	B. SELECT REPLACE(TRIM(TRAILING ‘son’ FROM cust_last_name), ‘An’, ‘O’) FROM customers;	f
+3	178	1z0-071	C. SELECT REPLACE(SUBSTR(cust_last_name, -3), ‘An’, ‘O’) FROM customers;	f
+4	178	1z0-071	D. SELECT INITCAP(REPLACE(TRIM(‘son’ FROM cust_last_name), ‘An’, ‘O’)) FROM customers;	f
+1	179	1z0-071	A. SELECT prod_id || q”’s not available” FROM product_status WHERE status = ‘OUT OF STOCK’;	f
+2	179	1z0-071	B. SELECT prod_id || q’(‘s not available)’ ‘CURRENT AVAILABILITY’ FROM product_status WHERE status = ‘OUT OF STOCK’;	f
+3	179	1z0-071	C. SELECT prod_id q’s not available” FROM product_status WHERE status = ‘OUT OF STOCK’;	f
+4	179	1z0-071	D. SELECT prod_id “CURRENT AVAILABILITY” || q’(‘s not available)’ FROM product_status WHERE status = ‘OUT OF STOCK’;	f
+5	179	1z0-071	E. SELECT prod_id || q’(‘s not available)’ FROM product_status WHERE status = ‘OUT OF STOCK’;	t
+3	191	1z0-071	C. SELECT dept_id, LENGTH(last_name), SUM(salary) FROM employees GROUP BY dept_id;	f
+6	179	1z0-071	F. SELECT prod_id || q’(‘s not available)’ “CURRENT AVAILABILITY” FROM product status WHERE status = ‘OUT OF STOCK’;	t
+1	180	1z0-071	A. INTERVAL YEAR TO MONTH columns only support monthly intervals within a single year.	f
+2	180	1z0-071	B. INTERVAL DAY TO SECOND columns support fractions of seconds.	t
+3	180	1z0-071	C. INTERVAL YEAR TO MONTH columns support yearly intervals.	t
+4	180	1z0-071	D. The YEAR field in an INTERVAL YEAR TO MONTH column must be a positive value.	f
+5	180	1z0-071	E. INTERVAL YEAR TO MONTH columns only support monthly intervals within a range of years.	f
+6	180	1z0-071	F. The value in an INTERVAL DAY TO SECOND column can be copied into an INTERVAL YEAR TO MONTH column.	f
+1	181	1z0-071	A. The data dictionary is accessible when the database is closed.	f
+2	181	1z0-071	B. The data dictionary does not store metadata in tables.	f
+3	181	1z0-071	C. Views with the prefix ALL_, DBA_ and USER_ are not all available for every type of metadata.	t
+4	181	1z0-071	D. Views with the prefix DBA_ display only metadata for objects in the SYS schema.	f
+5	181	1z0-071	E. Views with the prefix ALL_ display metadata for objects to which the current user has access.	t
+1	182	1z0-071	A. AND cust_credit_limit < 1000;	f
+2	182	1z0-071	 WHERE UPPER(cust_last_name) IN (‘AX’, ‘B%’)	f
+3	182	1z0-071	AND ROUND(cust_credit_limit) < 1000; B.	t
+4	182	1z0-071	 WHERE (UPPER(cust_last_name) LIKE ‘A%’ OR UPPER(cust_last_name) LIKE ‘B%’)	f
+5	182	1z0-071	AND ROUND(cust_credit_limit) < 1000; C.	f
+6	182	1z0-071	 WHERE (UPPER(cust_last_name) LIKE ‘A%’ OR UPPER(cust_last_name) LIKE ‘B%’)\nAND ROUND(cust_credit_limit) < 1000;	f
+7	182	1z0-071	AND cust_credit_limit < 1000; D.	t
+8	182	1z0-071	 WHERE (INITCAP(cust_last_name) LIKE ‘A%’ OR INITCAP(cust_last_name) LIKE ‘B%’)	f
+9	182	1z0-071	AND ROUND(cust_credit_limit) < ROUND(1000); E.	f
+10	182	1z0-071	 WHERE (INITCAP(cust_last_name) LIKE ‘A%’ OR INITCAP(cust_last_name) LIKE ‘B%’)\nAND cust_credit_limit < 1000;	f
+1	183	1z0-071	A substitution variable can be used only in a SELECT statement. A.	f
+2	183	1z0-071	A substitution variable used to prompt for a column name must be enclosed in double quotation marks. B.	f
+3	183	1z0-071	A substitution variable can be used with any clause in a SELECT statement. C.	t
+4	183	1z0-071	A substation variable prefixed with && prompts only once for a value in a session unless it is set to undefined in the session. D.	t
+5	183	1z0-071	A substitution variable prefixed with & always prompts only once for a value in a session. E.	f
+6	183	1z0-071	A substitution variable used to prompt for a column name must be enclosed in single quotation marks. F.	f
+1	184	1z0-071	A. They can return at most one row.	t
+2	184	1z0-071	B. You must enclose them in parentheses.	t
+3	184	1z0-071	C. You cannot correlate them with a table in the parent statement.	f
+4	184	1z0-071	D. They can return two columns.	f
+5	184	1z0-071	E. You can use them as a default value for a column.	f
+1	185	1z0-071	A. SELECT prod_id FROM products -	f
+2	185	1z0-071	 SELECT prod_id FROM products -\n\nUNION ALL -\nSELECT prod_id, prod_name FROM new_products;	f
+3	185	1z0-071	B. SELECT prod_id, NULL FROM new_products;	t
+4	185	1z0-071	 SELECT prod_id, exp_date FROM products	f
+5	185	1z0-071	C. MINUS -	f
+6	185	1z0-071	 SELECT * FROM products -	f
+7	185	1z0-071	D. INTERSECT -	f
+8	185	1z0-071	 SELECT * FROM products -\n\nMINUS -\nSELECT prod_id, FROM new_products;	f
+9	185	1z0-071	E. SELECT * FROM new_products;	t
+10	185	1z0-071	 SELECT * FROM products -	f
+1	186	1z0-071	A. UPDATE statements can have different subqueries to specify the values for each updated column.	t
+2	186	1z0-071	B. INSERT INTO…SELECT…FROM statements automatically commit.	f
+3	186	1z0-071	C. DML statements require a primary key be defined on a table.	f
+4	186	1z0-071	D. DELETE statements can remove multiple rows based on multiple conditions.	t
+5	186	1z0-071	E. INSERT statements can insert NULLs explicitly into a column.	t
+1	187	1z0-071	A. The conditional INSERT FIRST statement always inserts a row into a single table.	f
+2	187	1z0-071	B. The unconditional INSERT ALL statement must have the same number of columns in both the source and target tables.	f
+3	187	1z0-071	C. They can transform a row from a source table into multiple rows in a target table.	t
+4	187	1z0-071	D. The conditional INSERT ALL statement inserts rows into a singe table by aggregating source rows.	f
+5	187	1z0-071	E. They always use subqueries.	t
+1	188	1z0-071	A. Using aggregate functions in the WHERE clause requires a subquery.	t
+2	188	1z0-071	B. Using aggregate functions in the HAVING clause requires a subquery.	f
+3	188	1z0-071	C. Using single-row functions in the WHERE clause requires a subquery.	f
+4	188	1z0-071	D. Using single-row functions in the HAVING clause requires a subquery.	f
+1	189	1z0-071	A. ROLLBACK;	f
+2	189	1z0-071	B. ROLLBACK TO SAVEPOINT post_insert;	t
+3	189	1z0-071	C. ROLLBACK TO post_insert;	t
+4	189	1z0-071	COMMIT; D.	f
+5	189	1z0-071	COMMIT TO SAVEPOINT post_insert; E.	f
+1	190	1z0-071	A. FROM employees -	f
+2	190	1z0-071	 GROUP By department_id -	f
+3	190	1z0-071	B. FROM employees -	f
+4	190	1z0-071	 GROUP By department_id;	f
+5	190	1z0-071	C. FROM employees -	f
+6	190	1z0-071	 GROUP By department_id;	f
+7	190	1z0-071	D. FROM employees;	t
+8	190	1z0-071	 HAVING MAX(salary) = MAX(MAX(salary));	f
+9	190	1z0-071	E. FROM employees -	t
+10	190	1z0-071	 GROUP By department_id;	f
+1	191	1z0-071	A. SELECT dept_id, INSTR(last_name, ‘A’), SUM(salary) FROM employees GROUP BY dept_id;	f
+2	191	1z0-071	B. SELECT dept_id, STDDEV(last_name), SUM(salary) FROM employees GROUP BY dept_id;	f
+4	191	1z0-071	D. SELECT dept_id, MAX(last_name), SUM(salary) FROM employees GROUP BY dept_id;	t
+1	192	1z0-071	A. SELECT join_date FROM employees WHERE join_datee > ’10-02-2018’;	t
+2	192	1z0-071	B. SELECT join_date || ‘ ‘ || salary FROM employees;	f
+3	192	1z0-071	C. SELECT salary + ’120.50’ FROM employees;	f
+4	192	1z0-071	D. SELECT join_date + ‘20’ FROM employees;	f
+5	192	1z0-071	E. SELECT SUBSTR(join_date, 1, 2) -1’	f
+1	193	1z0-071	A. They can be temporary tables.	f
+2	193	1z0-071	B. DML statements can modify them.	f
+3	193	1z0-071	C. They can be used in queries containing joins.	t
+4	193	1z0-071	D. They can be used in queries containing sorts.	t
+5	193	1z0-071	E. They can be indexed.	f
+6	193	1z0-071	F. Their metadata is stored in the database.	t
+1	194	1z0-071	A. The DELETE command will wait for HR’s transaction to end then return an error.	f
+2	194	1z0-071	B. The DELETE command will immediately delete the row.	f
+3	194	1z0-071	C. The DELETE command will wait for HR’s transaction to end then delete the row.	f
+4	194	1z0-071	D. The DELETE command will immediately return an error.	t
+1	195	1z0-071	A. Views cannot be used to query rows from an underlying table if the table has a PRIMARY KEY and the PRIMARY KEY columns are not referenced in the defining query of the view.	f
+2	195	1z0-071	B. Delete statements can always be done on a table through a view.	t
+3	195	1z0-071	C. The WITH CHECK clause has no effect when deleting rows from the underlying table through the view.	f
+4	195	1z0-071	D. Views cannot be used to add rows to an underlying table if the table has columns with NOT NULL constraints lacking default values which are not referenced in the defining query of the view.	t
+5	195	1z0-071	E. Views cannot be used to add or modify rows in an underlying table if the defining query of the view contains the DISTINCT keyword,	f
+6	195	1z0-071	F. Insert statements can always be done on a table through a view.	t
+1	196	1z0-071	A. TO_NUMBER(PROMO_BEGIN_DATE) – 5 will return a number.	f
+2	196	1z0-071	B. PROMO_BEGIN_DATE – SYSDATE will return a number.	t
+3	196	1z0-071	C. PROMO_BEGIN_DATE – SYSDATE will return an error.	f
+4	196	1z0-071	D. PROMO_BEGIN_DATE – 5 will return a date.	t
+5	196	1z0-071	E. TO_DATE(PROMO_BEGIN_DATE * 5) will return a date.	f
+1	197	1z0-071	A. CREATE PUBLIC SYNONYM emp FOR hcm.employee_records;	t
+2	197	1z0-071	B. CREATE GLOBAL SYNONYM emp FOR hcm.employee_records;	f
+3	197	1z0-071	C. CREATE SYNONYM emp FOR hcm.employee_records:	f
+4	197	1z0-071	CREATE SYNONYM SYS.emp FOR hcm.employee_records; D.	f
+5	197	1z0-071	CREATE SYNONYM PUBLIC.emp FOR hcm.employee_records; E.	f
+1	198	1z0-071	A. Column positions must be used in the ORDER BY clause.	f
+2	198	1z0-071	B. Only column names from the first SELECT statement in the compound query are recognized.	t
+3	198	1z0-071	C. Each SELECT statement in the compound query must have its own ORDER BY clause.	f
+4	198	1z0-071	D. The first column in the first SELECT of the compound query with the UNION operator is used by default to sort output in the absence of an ORDER BY clause.	t
+5	198	1z0-071	E. Each SELECT statement in the compound query can have its own ORDER BY clause.	f
+1	199	1z0-071	A. The number of columns in each SELECT in the compound query can be different.	f
+2	199	1z0-071	B. INTERSECT returns rows common to both sides of the compound query.	t
+3	199	1z0-071	C. INTERSECT ignores NULLs.	f
+4	199	1z0-071	Columns named in each SELECT in the compound query can be different. D.	t
+5	199	1z0-071	E. Reversing the order of the intersected tables can sometimes affect the output.	f
+1	200	1z0-071	A. c1 can be changed to NUMBER(10) and c2 can be changed to VARCHAR2(10).	f
+2	200	1z0-071	B. c1 can be changed to NUMBER(10) and c2 cannot be changed to VARCHAR2(10).	f
+3	200	1z0-071	C. c2 can be changed to NUMBER(5) but c1 cannot be changed to VARCHAR2(5).	f
+4	200	1z0-071	D. c1 can be changed to VARCHAR2(10) but c1 cannot be changed to NUMBER(10).	f
+5	200	1z0-071	E. c1 can be changed to VARCHAR2(5) but c2 can be changed to NUMBER(12,2).	t
+1	201	1z0-071	A. Andrew will be unable to see the changes you have made.	t
+2	201	1z0-071	Andrew will be unable to perform any INSERTs, UPDATEs, or DELETEs on the table. B.	f
+3	201	1z0-071	Andrew will be able to SELECT from the table, but be unable to modify any existing rows. C.	f
+4	201	1z0-071	Andrew will be able to see the changes you have made. D.	f
+5	201	1z0-071	Andrew will be able to modify any rows in the table that have not been modified by your transaction. E.	t
+1	202	1z0-071	A. DELETE FROM scott.emp;	f
+2	202	1z0-071	ALTER SESSION SET NLS_DATE_FORMAT = ‘DD/MM/YYYY’; B.	f
+3	202	1z0-071	C. GRANT UPDATE ON scott.emp TO fin manager;	t
+4	202	1z0-071	D. SELECT * FROM user_tab_prive;	f
+5	202	1z0-071	E. TRUNCATE TABLE emp;	t
+1	203	1z0-071	A. INTERSECT -	f
+2	203	1z0-071	 SELECT * FROM invoices ORDER BY invoice_id;	f
+3	203	1z0-071	(SELECT * FROM orders (SELECT * FROM orders\n\nUNION ALL -\nSELECT * FROM invoices) ORDER BY order_id;	f
+4	203	1z0-071	 B.	f
+5	203	1z0-071	C. SELECT * FROM invoices) ORDER BY order_id;	t
+6	203	1z0-071	 SELECT * FROM orders ORDER BY order_id	f
+7	203	1z0-071	D. MINUS -	t
+8	203	1z0-071	 SELECT * FROM invoices ORDER BY 1;	f
+9	203	1z0-071	E. MINUS -	t
+10	203	1z0-071	 SELECT * FROM orders -	f
+11	203	1z0-071	F. SELECT * FROM invoices;	f
+12	203	1z0-071	 SELECT * FROM orders -\n\nMINUS -\nSELECT * FROM invoices ORDER BY 1;	f
+13	203	1z0-071	G. INTERSECT -	f
+14	203	1z0-071	 SELECT * FROM orders ORDER BY order_id	f
+1	204	1z0-071	A. SELECT NULLIF (NULL, 100) FROM DUAL;	f
+2	204	1z0-071	B. SELECT NULLIF (100, ‘A’) FROM DUAL;	f
+3	204	1z0-071	C. SELECT NULLIF (100, 100) FROM DUAL;	t
+5	204	1z0-071	E. SELECT COALESCE (100, ‘A’) FROM DUAL;	f
+1	205	1z0-071	A. SELECT COUNT(NVL(list_price, 0)) FROM product_information WHERE list_price is NULL;	t
+2	205	1z0-071	B. SELECT COUNT(list_price) FROM product_information WHERE list_price = NULL;	f
+3	205	1z0-071	C. SELECT COUNT(list_price) FROM product_information WHERE list_price IS NULL;	f
+4	205	1z0-071	D. SELECT COUNT(DISTINCT list_price) FROM product_information WHERE list_price IS NULL;	f
+1	206	1z0-071	A. Both the query and the subquery can select only zero rows or one row.	f
+2	206	1z0-071	B. Both the query and the subquery can select any number of rows.	f
+3	206	1z0-071	C. The query can select only zero rows or one row, but the subquery can select any number of rows.	f
+4	206	1z0-071	D. The query can select any number of rows, but the subquery can select only zero rows or one row.	t
+1	207	1z0-071	A. DELETE order_id FROM orders WHERE order_total < 1000;	f
+2	207	1z0-071	B. DELETE orders WHERE order_total < 1000	t
+3	207	1z0-071	C. DELETE * FROM orders WHERE order_total < 1000;	f
+4	207	1z0-071	D. DELETE FROM orders;	t
+5	207	1z0-071	DELETE FROM orders WHERE order_total < 1000; E.	t
+1	208	1z0-071	A. AND cust_credit_limit IS NOT NULL	t
+2	208	1z0-071	 FROM customers -	f
+3	208	1z0-071	AND due_amount <> NULL; B.	f
+4	208	1z0-071	 FROM customers -	f
+5	208	1z0-071	AND cust_credit_level != NULL; C.	f
+6	208	1z0-071	 FROM customers -	f
+7	208	1z0-071	AND due_amount != NULL; D.	f
+8	208	1z0-071	 FROM customers -	f
+9	208	1z0-071	AND due_amount IS NOT NULL; E.	f
+10	208	1z0-071	 FROM customers -	f
+1	209	1z0-071	A. The foreign key constraint on DEPT_ID must be defined at the table level instead of the column level.	f
+2	209	1z0-071	B. The NOT NULL constraint on ENAME must be defined at the column level instead of the table level.	t
+3	209	1z0-071	C. The primary key constraint on EMP_ID must have a name.	f
+4	209	1z0-071	D. One of the LONG columns must be changed to a VARCHAR2 or CLOB.	t
+5	209	1z0-071	E. The word CONSTRAINT in the foreign key constraint on DEPT_ID must be changed to FOREIGN KEY.	f
+1	210	1z0-071	A. SELECT TO_NUMBER(INTERVAL ‘800’ SECOND, ‘HH24:MM’) FROM DUAL;	f
+2	210	1z0-071	B. SELECT TO_CHAR(INTERVAL ‘800’ SECOND, ‘HH24:MM’) FROM DUAL;	t
+3	210	1z0-071	C. SELECT TO_NUMBER(TO_DATE(INTERVAL ‘800’ SECOND)) FROM DUAL;	f
+4	210	1z0-071	D. SELECT TO_DATE(TO_NUMBER(INTERVAL ‘800’ SECOND)) FROM DUAL;	f
+5	210	1z0-071	E. SELECT TO_DATE(INTERVAL ‘800’ SECOND, ‘HH24:MM’) FROM DUAL;	f
+1	211	1z0-071	A. SELECT TO_DATE(SYSDATE, 'FMDAY, DD MONTH, YYYY') FROM DUAL;	f
+2	211	1z0-071	B. SELECT TO_CHAR(SYSDATE, 'FMDD, DAY MONTH, YYYY') FROM DUAL;	f
+3	211	1z0-071	C. SELECT TO_CHAR(SYSDATE, 'FMDAY, DD MONTH, YYYY') FROM DUAL;	t
+4	211	1z0-071	D. SELECT TO_CHAR(SYSDATE, 'FMDAY, DDTH MONTH, YYYY') EROM DUAL;	f
+1	212	1z0-071	A. Using <> ANY will display all the product names except the product named Fork.	t
+2	212	1z0-071	B. Using IN will display all the product names.	f
+3	212	1z0-071	C. Using NOT IN or <> ANY will give the same result.	f
+4	212	1z0-071	D. Using <> ANY will display all the product names.	f
+5	212	1z0-071	E. Using NOT IN or <> ANY will give the same result.	f
+1	213	1z0-071	A. Only if the salary is 20000 or less and the employee id is 125 or higher, insert EMPLOYEE_ID, MANAGER_ID, and SALARY into the MGR_HISTORY table.	f
+2	213	1z0-071	B. Regardless of salary and employee id, insert EMPLOYEE_ID, MANAGER_ID, and SALARY into the MGR_HISTORY table.	f
+3	213	1z0-071	C. Regardless of salary, only if the employee id is less than 125, insert EMPLOYEE_ID, MANAGER_ID, and SALARY into the MGR_HISTORY table.	f
+4	213	1z0-071	D. Only if the salary is 20000 or less and the employee id is less than 125, insert EMPLOYEE_ID, MANAGER_ID, and SALARY into the MGR_HISTORY table.	t
+1	214	1z0-071	A GLOBAL TEMPORARY TABLE can have only one index. A.	f
+2	214	1z0-071	A GLOBAL TEMPORARY TABLE can be referenced in the defining query of a view B.	t
+3	214	1z0-071	C. DML on GLOBAL TEMPORARY TABLES generates no REDO.	f
+4	214	1z0-071	A GLOBAL TEMPORARY TABLE cannot have a PUBLIC SYNONYM. D.	f
+5	214	1z0-071	A GLOBAL TEMPORARY TABLE can have multiple indexes. E.	t
+6	214	1z0-071	A trigger can be created on a GLOBAL TEMPORARY TABLE. F.	t
+1	215	1z0-071	A. WHERE borrowed_date = SYSDATE AND (transaction_type = 'RM' AND member_id = 'A101' OR member_id = 'A102');	f
+2	215	1z0-071	B. WHERE borrowed_date = SYSDATE AND (transaction_type = 'RM' AND (member_id = 'A101' OR member_id = 'A102'));	f
+3	215	1z0-071	C. WHERE borrowed_date = SYSDATE AND transaction_type = 'RM' OR member_id IN ('A101', 'A102');	t
+4	215	1z0-071	D. WHERE borrowed_date = SYSDATE AND (transaction_type = 'RM' OR member_id IN ('A101', 'A102');	f
+5	215	1z0-071	E. WHERE (borrowed_date = SYSDATE AND transaction_type = 'RM') OR member_id IN ('A101', 'A102');	t
+1	216	1z0-071	A. SELECT TO_CHAR(SYSDATE, 'DD-MON-YYYY') - '01-JAN-2019' FROM	f
+2	216	1z0-071	B. SELECT ROUND(SYSDATE - '01-JAN-2019') FROM DUAL;	f
+3	216	1z0-071	C. SELECT ROUND(SYSDATE – TO_DATE('01/JANUARY/2019')) FROM DUAL;	t
+4	216	1z0-071	D. SELECT TO_DATE(SYSDATE, 'DD/MONTH/YYYY') - '01/JANUARY/2019' FROM DUAL;	f
+5	216	1z0-071	E. SELECT SYSDATE - TO_DATE('01-JANUARY-2019') FROM DUAL;	t
+1	217	1z0-071	A. CREATE INDEX price_idx ON products (price);	t
+2	217	1z0-071	ALTER TABLE products SET UNUSED (expiry_date); B.	f
+3	217	1z0-071	C. DROP TABLE products;	t
+4	217	1z0-071	ALTER TABLE products DROP COLUMN expiry_date; D.	f
+5	217	1z0-071	E. TRUNCATE TABLE products;	f
+6	217	1z0-071	ALTER TABLE products DROP UNUSED COLUMNS; F.	t
+1	218	1z0-071	A. Users must have the required privileges on the underlying objects to use public synonyms.	t
+2	218	1z0-071	B. Synonyms can be created for roles.	f
+3	218	1z0-071	C. Synonyms cannot be created for sequences.	f
+4	218	1z0-071	D. Synonyms cannot be created for synonyms.	f
+5	218	1z0-071	E. Synonyms can be created for packages.	t
+6	218	1z0-071	F. Users must have the DBA role to create public synonyms.	f
+1	219	1z0-071	A. SELECT	f
+2	219	1z0-071	B. GROUP BY	t
+3	219	1z0-071	C. WHERE	f
+4	219	1z0-071	D. ORDER BY	f
+1	220	1z0-071	A. Sequence ORD_SEQ is guaranteed not to generate duplicate numbers.	f
+2	220	1z0-071	B. Sequence ORD_SEQ cycles back to 1 after every 5000 numbers and can cycle 20 times.	f
+3	220	1z0-071	C. Column ORD_NO gets the next number from sequence and ORD_SEQ whenever a row is inserted into ORD_ITEMS and no explicit value is given for ORD_NO.	t
+4	220	1z0-071	D. If sequence ORD_SEQ is dropped then the default value for column ORD_NO will be NULL for rows inserted into ORD_ITEMS.	f
+5	220	1z0-071	Any user inserting rows into table ORD_ITEMS must have been granted access to sequence ORD_SEQ. E.	t
+1	221	1z0-071	A TIMESTAMP WITH LOCAL TIMEZONE data type column is stored in the database using the time zone of the session that inserted the row. A.	f
+2	221	1z0-071	B. The SESSIONTIMEZONE function can return an offset from Universal Coordinated Time (UTC).	t
+3	221	1z0-071	C. The DBTIMEZONE function can return an offset from Universal Coordinated Time (UTC).	t
+4	221	1z0-071	D. The CURRENT_TIMESTAMP function returns data without time zone information.	f
+5	221	1z0-071	A TIMESTAMP data type column contains information about year, month, and day. E.	t
+1	222	1z0-071	A. You use ALTER INDEX to make an INVISIBLE index VISIBLE.	t
+2	222	1z0-071	An INVISIBLE index consumes no storage. B.	f
+3	222	1z0-071	C. The query optimizer never considers INVISIBLE indexes when determining execution plans.	f
+4	222	1z0-071	D. You can only create one INVISIBLE index on the same column list.	f
+5	222	1z0-071	All INSERT, UPDATE, and DELETE statements maintain entries in the index. E.	t
+1	223	1z0-071	A subquery cannot be used in the select list. A.	f
+2	223	1z0-071	< ANY returns true if the argument is less than the highest value returned by the subquery. B.	t
+3	223	1z0-071	< ANY returns true if the argument is less than the lowest value returned by the subquery. C.	f
+4	223	1z0-071	A subquery can be used in a HAVING clause. D.	t
+5	223	1z0-071	A subquery cannot be used in a FROM clause. E.	f
+6	223	1z0-071	A subquery can be used in a WHERE clause. F.	t
+7	223	1z0-071	= ANY can only evaluate the argument against a subquery if it returns two or more values. G.	f
+1	224	1z0-071	A one-to-one relationship is always a self-referencing relationship. A.	f
+2	224	1z0-071	A relationship can be mandatory for both entities. B.	t
+3	224	1z0-071	A many-to-many relationship can be implemented only by using foreign keys. C.	f
+4	224	1z0-071	A one-to-many relationship in one direction is a one-to-one relationship in the other direction. D.	t
+5	224	1z0-071	A table name can be specified just once when selecting data from a table having a self-referencing relationship. E.	f
+1	225	1z0-071	A. They can use INNER JOIN and LEFT JOIN.	t
+2	225	1z0-071	B. They require the EXISTS operator in the join condition.	f
+3	225	1z0-071	C. They require the NOT EXISTS operator in the join condition.	f
+4	225	1z0-071	D. They require table aliases.	t
+5	225	1z0-071	E. They have no join condition.	f
+6	225	1z0-071	F. They are always equijoins.	f
+1	226	1z0-071	42 A.	f
+2	226	1z0-071	0 B.	f
+3	226	1z0-071	14 C.	t
+4	226	1z0-071	28 D.	f
+1	227	1z0-071	A. providing graphical capabilities	f
+2	227	1z0-071	B. processing sets of data	t
+3	227	1z0-071	C. providing database transaction control	t
+4	227	1z0-071	D. providing update capabilities for data in external files	f
+5	227	1z0-071	E. providing variable definition capabilities	f
+1	228	1z0-071	 A.	f
+2	228	1z0-071	 B.	t
+3	228	1z0-071	 C.	f
+4	228	1z0-071	 D.	t
+1	229	1z0-071	A PRIMARY KEY constraint can be added after a table has been created and populated. A.	t
+2	229	1z0-071	A FOREIGN KEY column can contain NULLs. B.	t
+3	229	1z0-071	A CHECK constraint can refer to values in other rows. C.	f
+4	229	1z0-071	A NOT NULL constraint can be defined at the table level. D.	f
+5	229	1z0-071	A UNIQUE constraint can use a pre-existing index on the constrained column or columns. E.	t
+6	229	1z0-071	A UNIQUE constraint permits NULLs. F.	t
+7	229	1z0-071	A column can have only one CHECK constraint. G.	f
+1	230	1z0-071	1, 2 and 3 A.	f
+2	230	1z0-071	2, 3 and 4 B.	f
+3	230	1z0-071	1 only C.	f
+4	230	1z0-071	2 and 3 only D.	t
+1	231	1z0-071	A. It will return the five employees earning the lowest salaries, in ascending order.	t
+2	231	1z0-071	B. It will return the six employees earning the highest salaries, in descending order.	f
+3	231	1z0-071	C. It will return the six employees earning the lowest salaries, in ascending order.	f
+4	231	1z0-071	D. It will return the five employees earning the highest salaries, in descending order.	f
+1	232	1z0-071	A. INSERT INTO rate_list VALUES (0.999) produces an error.	f
+2	232	1z0-071	B. INSERT INTO rate_list VALUES (-.9) inserts the value as -.9.	t
+3	232	1z0-071	C. INSERT INTO rate_list VALUES (87654.556) inserts the value as 87654.6.	f
+4	232	1z0-071	D. INSERT INTO rate_list VALUES (-10) produces an error.	f
+5	232	1z0-071	E. INSERT INTO rate_list VALUES (-99.99) inserts the value as 99.99.	f
+6	232	1z0-071	F. INSERT INTO rate_list VALUES (0.551) inserts the value as .55.	t
+1	233	1z0-071	1 and 4 give different results. A.	f
+2	233	1z0-071	2 returns the value 20. B.	t
+3	233	1z0-071	3 returns an error. C.	f
+4	233	1z0-071	1 and 4 give the same result. D.	t
+5	233	1z0-071	2 and 3 give the same result. E.	f
+1	234	1z0-071	A. SELECT last_name, (monthly_salary * 12) + (monthly_salary * 12 * NVL(monthly_commission_pct, 0)) AS annual_comp FROM employees;	t
+2	234	1z0-071	B. SELECT last_name, (monthly_salary * 12) + (monthly_salary * 12 * monthly_commission_pct) AS annual_comp FROM employees;	f
+3	234	1z0-071	C. SELECT last_name, (monthly_salary + monthly_commission_pct) * 12 AS annual_comp FROM employees;	f
+4	234	1z0-071	D. SELECT last_name, (monthly_salary * 12) + (monthly_commission_pct * 12) AS annual_comp FROM employees;	f
+1	235	1z0-071	1 and 3 A.	t
+2	235	1z0-071	2 and 3 B.	f
+3	235	1z0-071	1, 2, and 3 C.	f
+4	235	1z0-071	1 and 2 D.	f
+1	236	1z0-071	 A.	f
+2	236	1z0-071	 B.	t
+3	236	1z0-071	 C.	f
+4	236	1z0-071	 D.	f
+1	237	1z0-071	A. Both statements will execute successfully if you add E.AVG_SAL to the select list.	f
+2	237	1z0-071	B. Both statements will display departments with no employees.	f
+3	237	1z0-071	C. Only the second statement will execute successfully if you add E.AVG_SAL to the select list.	t
+4	237	1z0-071	D. Only the first statement will display departments with no employees.	t
+5	237	1z0-071	E. Only the second statement will display departments with no employees.	f
+6	237	1z0-071	F. Only the first statement will execute successfully if you add E.AVG_SAL to the select list.	f
+1	238	1z0-071	A. It can use subqueries to produce source rows.	t
+2	238	1z0-071	B. It can update the same row of the target table multiple times.	f
+3	238	1z0-071	C. It can update, insert, or delete rows conditionally in multiple tables.	f
+4	238	1z0-071	D. It can use views to produce source rows.	t
+5	238	1z0-071	E. It can merge rows only from tables.	f
+6	238	1z0-071	F. It can combine rows from multiple tables conditionally to insert into a single table.	t
+1	239	1z0-071	A. Primary key columns allow null values.	f
+2	239	1z0-071	B. Every primary or unique key value must refer to a matching foreign key value.	f
+3	239	1z0-071	C. Every foreign key value must refer to a matching primary or unique key value.	t
+4	239	1z0-071	D. Foreign key columns allow null values.	t
+5	239	1z0-071	E. Unique key columns allow null values.	t
+1	240	1z0-071	A. table1 JOIN table2 USING (column1, column2)	f
+2	240	1z0-071	B. table1 JOIN table2 ON (table1.column BETWEEN table2.column1 AND table2.column2)	t
+3	240	1z0-071	C. table1 NATURAL JOIN table2	f
+4	240	1z0-071	D. table1 JOIN table2 ON (table1.column >= table2.column)	t
+5	240	1z0-071	E. table1 JOIN table2 ON (table1.column = table2.column) WHERE table2.column LIKE ‘A%’	f
+1	241	1z0-071	A. Duplicates are eliminated automatically by the UNION ALL operator.	f
+2	241	1z0-071	B. The output is sorted by the UNION ALL operator.	f
+3	241	1z0-071	C. The names of columns selected in each SELECT statement must be identical.	f
+4	241	1z0-071	D. NULLs are not ignored during duplicate checking.	t
+5	241	1z0-071	E. The number of columns selected in each SELECT statement must be identical.	t
+1	242	1z0-071	A. Query any table in a database.	t
+2	242	1z0-071	B. Execute a procedure in another schema.	t
+3	242	1z0-071	C. Log in to a database instance.	f
+4	242	1z0-071	Access flat files, which are stored in an operating system directory, via the UTL_FILE package. D.	t
+5	242	1z0-071	E. Use the WITH GRANT OPTION clause.	f
+1	243	1z0-071	A. GRANT CREATE SEQUENCE TO manager, emp;	t
+2	243	1z0-071	B. GRANT CREATE TABLE, emp TO manager;	f
+3	243	1z0-071	C. GRANT CREATE ANY SESSION, CREATE ANY TABLE TO manager;	f
+4	243	1z0-071	D. GRANT SELECT, INSERT ON hr.employees TO manager WITH GRANT OPTION;	t
+5	243	1z0-071	E. GRANT CREATE TABLE, SELECT ON hr.employees TO manager;	f
+1	244	1z0-071	A. SELECT INITCAP(TRIM(‘H’ FROM ‘Hello World’)) FROM DUAL;	f
+2	244	1z0-071	B. SELECT SUBSTR(‘Hello World’, 2) FROM DUAL;	f
+3	244	1z0-071	C. SELECT LOWER(SUBSTR(‘Hello World’, 2, 1)) FROM DUAL;	f
+4	244	1z0-071	D. SELECT LOWER(TRIM(‘H’ FROM ‘Hello World’)) FROM DUAL;	t
+5	244	1z0-071	E. SELECT LOWER(SUBSTR(‘Hello World’, 2)) FROM DUAL;	t
+1	245	1z0-071	 A.	f
+2	245	1z0-071	 B.	f
+3	245	1z0-071	 C.	f
+4	245	1z0-071	 D.	t
+1	246	1z0-071	A. Drop pseudocolumns from a table.	f
+2	246	1z0-071	B. Restrict all DML statements on a table.	t
+3	246	1z0-071	C. Lock a set of rows in a table.	f
+4	246	1z0-071	D. Rename a table.	t
+5	246	1z0-071	Drop all columns simultaneously from a table. E.	f
+6	246	1z0-071	Enable or disable constraints on a table. F.	t
+1	247	1z0-071	A. The default length for a CHAR column is always one character.	f
+2	247	1z0-071	A VARCHAR2 blank-pads column values only in the data stored is non-numeric and contains no special characters. B.	f
+3	247	1z0-071	A VARCHAR2 column definition does not require the length to be specified. C.	f
+4	247	1z0-071	A CHAR column definition does not require the length to be specified. D.	t
+5	247	1z0-071	A BLOB stores unstructured binary data within the database. E.	t
+6	247	1z0-071	A BFILE stores unstructured binary data in operating system files. F.	t
+1	248	1z0-071	A. UPDATE can be granted only on tables and views.	t
+2	248	1z0-071	B. DELETE can be granted on tables, views, and sequences.	f
+3	248	1z0-071	C. SELECT can be granted on tables and views.	t
+4	248	1z0-071	ALTER can be granted only on tables and sequences. D.	f
+5	248	1z0-071	E. REFERENCES can be granted only on tables and views.	t
+6	248	1z0-071	F. INSERT can be granted on tables, views, and sequences.	f
+1	249	1z0-071	A. self join	t
+2	249	1z0-071	B. RIGHT OUTER JOIN with self join	f
+3	249	1z0-071	C. LEFT OUTER JOIN with self join	f
+4	249	1z0-071	D. FULL OUTER JOIN with self join	f
+1	250	1z0-071	A. Rolling back to a SAVEPOINT can undo a CREATE INDEX statement.	f
+2	250	1z0-071	B. Only one SAVEPOINT may be issued in a transaction.	f
+3	250	1z0-071	C. Rolling back to a SAVEPOINT can undo a DELETE statement.	t
+4	250	1z0-071	A SAVEPOINT does not issue a COMMIT. D.	t
+5	250	1z0-071	E. Rolling back to a SAVEPOINT can undo a TRUNCATE statement.	f
+1	251	1z0-071	A. SELECT customer_id AS “CUSTOMER_ID”, transaction_date AS “DATE”, amount + 100 DUES FROM transactions;	t
+2	251	1z0-071	B. SELECT customer_id AS ‘CUSTOMER_ID’, transaction_date AS DATE, amount + 100 ‘DUES’ FROM transactions;	f
+3	251	1z0-071	C. SELECT customer_id AS “CUSTOMER_ID”, transaction_date AS DATE, amount + 100 “DUES” FROM transactions;	f
+4	251	1z0-071	D. SELECT customer_id AS CUSTOMER_ID, transaction_date AS TRANS_DATE, amount + 100 “DUES AMOUNT” FROM transactions;	t
+5	251	1z0-071	E. SELECT customer_id CUSTID, transaction_date TRANS_DATE, amount + 100 DUES FROM transactions;	f
+1	252	1z0-071	A. WITH GRANT OPTTON cannot be used when granting an object privilege to PUBLIC.	f
+2	252	1z0-071	B. WITH GRANT OPTION can be used when granting an object privilege to both users and roles.	f
+3	252	1z0-071	C. C. Adding a primary key constraint to an existing table in another schema requires a system privilege.	t
+4	252	1z0-071	 Revoking an object privilege that was granted with the WITH GRANT OPTION clause has a cascading effect.	f
+5	252	1z0-071	Adding a foreign key constraint pointing to a table in another schema requires the REFERENCES object privilege. D.	t
+6	252	1z0-071	 Revoking an object privilege that was granted with the WITH GRANT OPTION clause has a cascading effect.\nC. Adding a primary key constraint to an existing table in another schema requires a system privilege.	f
+7	252	1z0-071	E. Revoking a system privilege that was granted with WITH ADMIN OPTION has a cascading effect.	t
+1	253	1z0-071	A. DML statements cannot be used on them.	t
+2	253	1z0-071	B. You can populate them from existing data in the database by using the CREATE TABLE AS SELECT command.	t
+3	253	1z0-071	C. Their data can be retrieved by using only SQL or PL/SQL.	f
+4	253	1z0-071	D. Indexes can be created on them.	f
+5	253	1z0-071	E. Their metadata and actual data are both stored outside the database.	f
+1	254	1z0-071	A. ALTER VIEW emp_view ADD (employee.manager_id);	f
+2	254	1z0-071	ALTER VIEW emp_view MODIFY ( ALTER VIEW emp_view MODIFY (\nSELECT employee_id, employee_name, department_name, manager_id\n\nFROM employees e, departments d -\nWHERE e.department_id = d.department_id);	f
+3	254	1z0-071	 B.	f
+4	254	1z0-071	ALTER VIEW emp_view ADD (SELECT manager_id FROM employees); C.	f
+5	254	1z0-071	 FROM employees e, departments d -	f
+6	254	1z0-071	CREATE OR REPLACE VIEW emp_view AS CREATE OR REPLACE VIEW emp_view AS\nSELECT employee_id, employee_name, department_name, manager_id\n\nFROM employees e, departments d -\nWHERE e.department_id = d.department_id;	t
+7	254	1z0-071	 D.	f
+1	255	1z0-071	A. System privileges always set privileges for an entire database.	f
+2	255	1z0-071	B. PUBLIC can be revoked from a user.	f
+3	255	1z0-071	All roles are owned by the SYS schema. C.	f
+4	255	1z0-071	A user has all object privileges for every object in their schema by default. D.	t
+5	255	1z0-071	A role is owned by the user who created it. E.	f
+6	255	1z0-071	A role can contain a combination of several privileges and roles. F.	t
+7	255	1z0-071	G. PUBLIC acts as a default role granted to every user in a database.	t
+1	256	1z0-071	 A.	f
+2	256	1z0-071	 B.	f
+3	256	1z0-071	 C.	f
+4	256	1z0-071	 D.	t
+1	257	1z0-071	A. It can be used for system and object privileges.	f
+2	257	1z0-071	B. The grantee can grant the object privilege to any user in the database, with or without including this option.	t
+3	257	1z0-071	C. The grantee must have the GRANT ANY OBJECT PRIVILEGE system privilege to use this option.	f
+4	257	1z0-071	D. It cannot be used to pass on privileges to PUBLIC by the grantee.	f
+5	257	1z0-071	E. It can be used when granting privileges to roles.	f
+6	257	1z0-071	F. It can be used to pass on privileges to other users by the grantee.	t
+1	258	1z0-071	A. SELECT dept_id, join_date, SUM(salary) FROM employees GROUP BY dept_id;	f
+2	258	1z0-071	B. SELECT dept_id, join_date, SUM(salary) FROM employees GROUP BY dept_id, join_date;	t
+3	258	1z0-071	C. SELECT dept_id, MAX(AVG(salary)) FROM employees GROUP BY dept_id;	f
+4	258	1z0-071	D. SELECT dept_id, AVG(MAX(salary)) FROM employees GROUP BY dept_id;	f
+1	259	1z0-071	A. SELECT CURRVAL FROM emp_seq;	f
+2	259	1z0-071	B. SELECT emp_seq.CURRVAL FROM DUAL;	t
+3	259	1z0-071	C. SELECT NEXTVAL FROM emp_seq;	f
+4	259	1z0-071	D. SELECT emp_seq.NEXTVAL FROM DUAL;	f
+1	260	1z0-071	A. SALES1 is created with 55,000 rows.	t
+2	260	1z0-071	B. SALES1 has NOT NULL constraints on any selected columns which had those constraints in the SALES table.	t
+3	260	1z0-071	C. SALES1 is created with no rows.	f
+4	260	1z0-071	D. SALES1 is created with 1 row	f
+5	260	1z0-071	E. SALES1 has PRIMARY KEY and UNIQUE constraints on any selected columns which had those constraints in the SALES table.	f
+1	261	1z0-071	A. TRUNC : can be used with NUMBER and DATE values	t
+2	261	1z0-071	B. FLOOR : returns the smallest integer greater than or equal to a specified number	f
+3	261	1z0-071	C. MOD : returns the quotient of a division operation	f
+4	261	1z0-071	CEIL : can be used for positive and negative numbers D.	t
+5	261	1z0-071	CONCAT : can be used to combine any number of values E.	f
+1	262	1z0-071	2 A.	t
+2	262	1z0-071	1 B.	f
+3	262	1z0-071	3 C.	f
+4	262	1z0-071	5 D.	t
+5	262	1z0-071	 D. 5 01-MAR-2019	f
+6	262	1z0-071	3 01-JAN-2019 E.	t
+7	262	1z0-071	4 01-FEB-2019 F.	f
+1	263	1z0-071	A. You can add a USING clause with a join condition.	f
+2	263	1z0-071	B. You can add an ON clause with a join condition.	t
+3	263	1z0-071	C. You can add a WHERE clause with filtering criteria.	t
+4	263	1z0-071	D. It returns the number of rows in bricks plus the number of rows in COLORS.	f
+5	263	1z0-071	E. It returns the same rows as SELECT * FROM bricks CROSS JOIN colors;.	f
+1	264	1z0-071	A. Line 3	t
+2	264	1z0-071	B. Line 5	f
+3	264	1z0-071	C. Line 7	f
+4	264	1z0-071	D. Line 8	f
+1	265	1z0-071	A. It is used to specify an equijoin of columns that have the same name in both tables.	t
+2	265	1z0-071	B. It can never be used with a full outer join.	f
+3	265	1z0-071	C. It can never be used with a natural join.	t
+4	265	1z0-071	All column names in a USING clause must be qualified with a table name or table alias. D.	f
+5	265	1z0-071	E. It is used to specify an explicit join condition involving operators.	f
+1	266	1z0-071	A. SYSDATE can be queried only from the dual table.	f
+2	266	1z0-071	B. SYSDATE can be used in expressions only if the default date format is DD-MON-RR.	f
+3	266	1z0-071	C. CURRENT_DATE returns the current date and time as per the session time zone.	t
+4	266	1z0-071	CURRENT_TIMESTAMP returns the same date as CURRENT_DATE. D.	f
+5	266	1z0-071	CURRENT_TIMESTAMP returns the same date and time as SYSDATE with additional details of fractional seconds. E.	t
+6	266	1z0-071	F. SYSDATE and CURRENT__DATE return the current date and time set for the operating system of the database server.	f
+1	267	1z0-071	A new column with the name DEPARTMENT_ID can be added to the EMPLOYEES table. A.	t
+2	267	1z0-071	B. No updates can be made to the data in the DEPARTMENT_ID column.	t
+3	267	1z0-071	C. The DEPARTMENT_ID column can be recovered from the recycle bin.	f
+4	267	1z0-071	D. The storage space occupied by the DEPARTMENT_ID column is released only after a COMMIT is issued.	f
+5	267	1z0-071	A query can display data from the DEPARTMENT_ID column. E.	f
+6	267	1z0-071	F. The DEPARTMENT_ID column is set to null for all rows in the table.	f
+1	268	1z0-071	A. It can include the CREATE..INDEX statement for creating an index to enforce the primary key constraint.	f
+2	268	1z0-071	B. The owner of the table should have space quota available on the tablespace where the table is defined.	t
+3	268	1z0-071	C. It implicitly executes a commit.	t
+4	268	1z0-071	D. It implicitly rolls back any pending transactions.	f
+5	268	1z0-071	A user must have the CREATE ANY TABLE privilege to create tables. E.	t
+6	268	1z0-071	F. The owner of the table must have the UNLIMITED TABLESPACE system privilege.	f
+1	269	1z0-071	A. ALTER TABLE products DROP COLUMN expiry_date;	f
+2	269	1z0-071	B. TRUNCATE TABLE products;	f
+3	269	1z0-071	C. DROP TABLE products;	t
+4	269	1z0-071	CREATE INDEX price_idx ON products (price); D.	t
+5	269	1z0-071	ALTER TABLE products DROP UNUSED COLUMNS; E.	t
+6	269	1z0-071	ALTER TABLE products SET UNUSED (expiry_date); F.	f
+1	270	1z0-071	A. Primary key and foreign key constraints can be defined at both the column and table level.	t
+2	270	1z0-071	A table can have only one primary key and one foreign key. B.	f
+3	270	1z0-071	C. The foreign key columns and parent table primary key columns must have the same names.	f
+4	270	1z0-071	A table can have only one primary key but multiple foreign keys. D.	t
+5	270	1z0-071	E. Only the primary key can be defined at the column and table level.	f
+6	270	1z0-071	F. It is possible for child rows that have a foreign key to remain in the child table at the time the parent row is deleted.	t
+7	270	1z0-071	G. It is possible for child rows that have a foreign key to be deleted automatically from the child table at the time the parent row is deleted.	t
+1	271	1z0-071	A. The statement executes successfully only if the subquery does not return multiple rows.	f
+2	271	1z0-071	B. The subquery is not a correlated subquery.	f
+3	271	1z0-071	C. The subquery is evaluated once for each row selected by the outer query.	t
+4	271	1z0-071	D. The subquery is executed for every row in the EMP_HISTORY table.	f
+5	271	1z0-071	E. The subquery is a correlated subquery.	t
+1	272	1z0-071	A. You must have the UNLIMITED TABLESPACE privilege.	f
+2	272	1z0-071	B. You must have either the SELECT privilege on the table or the SELECT ANY TABLE privilege.	f
+3	272	1z0-071	C. You must have the CREATE ANY INDEX privilege.	t
+4	272	1z0-071	D. You have the UNLIMITED TABLESPACE privilege or sufficient quota for the tablespace to contain the index.	t
+5	272	1z0-071	E. You have either the INDEX privilege on the table or the CREATE ANY INDEX privilege.	f
+99	273	1z0-071		f
+\.
+
+
+--
+-- Data for Name: browserless_companies; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.browserless_companies (name) FROM stdin;
+Oracle
+\.
+
+
+--
+-- Data for Name: browserless_discussions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.browserless_discussions (number, question_number, question_exam, selected_answer, text, upvote) FROM stdin;
+1	1	1z0-071	i think	AC	1
+2	1	1z0-071	A & C is correct	AC	1
+3	1	1z0-071	A-C is correct	AC	1
+4	1	1z0-071	A and C are correct options	AC	1
+5	1	1z0-071	B: Has two distincts in the statement. Not correct. D: The position of the distinct is not correct E: it is not returning unique values.	AC	2
+6	1	1z0-071	A and C is the correct answer.		1
+7	1	1z0-071	Correct answers	AC	1
+8	1	1z0-071	A and C are correct.	AC	1
+9	1	1z0-071	Agree that right answers are A and C	AC	1
+10	1	1z0-071	Agree that right answers are A and C	AC	1
+11	1	1z0-071	Distinct is used to get distinct set of values for one or more columns mentioned in select statement	AC	2
+12	1	1z0-071	The correct answers	AC	1
+13	1	1z0-071	AC are correct	AC	1
+14	1	1z0-071	-- Distinct keyword is used to select the unique values of the column/combination of columns mentioned after the DISTINCT clause. Thus Option E is incorrect , as this does not use DISTINCT clause and might include duplicates. -- Distinct should be used once in a SELECT statement and should be used IMMEDIATELY after the SELECT clause. NOT to be used before every column. Thus Options D and B are incorrect, as the positioning of the DISTINCT clause is incorrect. -- Option A and C are correct. Option A: Even though there is a string ' has ' in everyrow returned , the combination of promo_category || ' has ' || promo_cost will still be distinct. Option C: correct use case. ORDER BY clause does not affect the uniqueness in the returned result set.		4
+15	1	1z0-071	AC are correct. DB have Distinct in a wrong position in the query and E returns all because of the missing DISTINCT	AC	2
+16	1	1z0-071	Option A is not correct because the query uses the "||" operator to concatenate the promo_category and promo_cost columns with a string ' has ' in between. This creates a new column "COSTS" that combines the values from the two columns in a way that is not useful for the task of displaying unique promotion costs in each promotion category. The SELECT DISTINCT statement is used on this combined column, so it will return unique values for the concatenated column, but it does not address the requirement of showing unique promotion costs in each promotion category. Additionally, it uses an ORDER BY 1 which in this case doesn't make sense since the column COSTS doesn't exist.		1
+17	1	1z0-071	distinct must come soon after the select keyword and only one per select statement		1
+1	2	1z0-071	BCE should be correct answer cause number+varchar in this case imspossible		8
+2	2	1z0-071	BCF - would be correct	BCF	1
+3	2	1z0-071	A: Discount field doesn't exist in the table. B: OK C: OK D: Discount field doesn't exist in the table. E: Date * Number is not a valid operation F: Depending on the values, it may or may not be OK. if the entered values are numeric, this statement will work. Because the question requires 3 answers, I pass this option as correct.	BCF	1
+4	2	1z0-071	F works (altough is VARCAR2) if its content is numeric,	BCF	1
+5	2	1z0-071	B and C clearly correct. F is tricky. It can be correct only if the column Surcharge contains numeric characters defined as varchar2	BCF	2
+6	2	1z0-071	A and D wrong cause they have invalid identifier "Discount". E wrong cause date can't multiple with number.	BCF	1
+7	2	1z0-071	BCF is correct answer Please note: date+date is not allowed		2
+8	2	1z0-071	It´s not a right decision plus a NUMBER with VARCHAR2 fields.	BCF	1
+9	2	1z0-071	Seems like a sketchy question, have to assume surcharge contains only numerical characters in the string for F		3
+10	2	1z0-071	BCF The three queries that use valid expressions are: B. SELECT product_id, (unit_price * 0.15 / (4.75 + 552.25)) FROM products; C. SELECT product_id, (expiry_date - delivery_date) * 2 FROM products; F. SELECT product_id, unit_price, unit_price + surcharge FROM products; Explanation: A. This query is invalid because the alias "S" is not defined anywhere in the query. B. This query is valid. It calculates a value based on the unit price of each product using a mathematical expression. C. This query is valid. It calculates the difference between the expiry date and delivery date for each product and multiplies it by 2. D. This query is invalid because the alias "discount" is not defined anywhere in the query. E. This query is invalid because you cannot multiply a date value by a number. F. This query is valid. It selects the product ID, unit price, and the sum of the unit price and surcharge for each product.		3
+11	2	1z0-071	select '2'+3 from dual; it produces the SUM correctly so F is correct		2
+12	2	1z0-071	B-C-F IS CORRECT IF the varchar-column has stored number.		2
+13	2	1z0-071	why is D incorrect?		3
+14	2	1z0-071	Is "-discount" in AD supposed to be an alias for the column?		1
+15	2	1z0-071	IT is correct BCF because in the Datatype Varchar2 there may be a number. Oracle makes it an implicit cast and uses it as a number		4
+16	2	1z0-071	you cant multiply date, BCF correct if varchar2 is number		4
+17	2	1z0-071	bce should be		2
+1	3	1z0-071	D. Table aliases can improve performance. Table aliases can improve performance by reducing the amount of parsing needed to execute the query. C. The Oracle join syntax performs better than the SQL:1999 compliant ANSI join syntax in Oracle 18c. Oracle's join syntax can result in better performance in certain scenarios as it allows the optimizer to understand the join order and access paths more effectively. Therefore, options C and D are correct. Options A, B, and E are incorrect.	CD	6
+2	3	1z0-071	Those who answered D - provide a link with the Oracle documentation as a prove! E - is correct.	E	1
+3	3	1z0-071	DE are correct	DE	1
+4	3	1z0-071	A and B are false, no discussion. C. Oracle's query optimizer internally rewrites both syntaxes into the same execution plan. The decision on how to execute the join—nested loop, hash join, merge join, etc.—is based on statistics, indexes, and optimizer settings, not on the join syntax itself. D. Oracle's SQL parser and optimizer are designed to handle fully qualified table names just as efficiently as aliases. The use of aliases affects only the textual complexity of the query, not the underlying parsing or optimization time in any meaningful or measurable way.	E	1
+5	3	1z0-071	Oracle's official stance: Oracle documentation explicitly states that the SQL:1999-compliant join syntax does not offer any performance benefits over the Oracle-proprietary join syntax that existed in prior releases	DE	1
+6	3	1z0-071	D, E with no doupt	DE	1
+7	3	1z0-071	D. Table aliases can improve performance. Most Voted E. The join syntax used makes no difference to performance.	DE	1
+8	3	1z0-071	D. Table aliases can improve performance. Most Voted E. The join syntax used makes no difference to performance.	DE	1
+9	3	1z0-071	A and B states ALWAYS - which is not always the case. C: The join syntax doesn't make much difference with performance. D: That's correct; it helps the optimizer E: this makes sense to me - The joint syntax doesn't make a difference.	DE	1
+10	3	1z0-071	According to some papers and IA, these must be the better options...	CD	1
+11	3	1z0-071	options D and E are correct Options C are incorrect because the SQL:1999–compliant join syntax does not offer any performance benefits over the Oracle-proprietary join syntax that existed in the earlier releases.		1
+12	3	1z0-071	i find D and E a little bit contradictory, do aliases come under join syntax?		1
+13	3	1z0-071	D. Table aliases can improve performance. E. the difference related to performance that can be experimented between the two join syntax is minimum since Oracle optimizes internally both manners in a similar way	DE	1
+14	3	1z0-071	C and D is true. C is true because oracle Join does perform better. D is true. Table aliases improve the I/O. Refer: https://docs.oracle.com/middleware/1221/bip/BIPDM/best_practices.htm E is false. It does affect performance. Refer: https://docs.oracle.com/cd/F49540_01/DOC/server.815/a67781/c20c_joi.htm		1
+15	3	1z0-071	Table alias makes it easy for the parser to look up the columns in their respective tables. "Join" or "Where T1.id=T2.id" conditions have no difference in performance, though join is recommended to be used as the new syntax.	DE	1
+16	3	1z0-071	I vote for answers C and E. To be honest, I don't know how good they are, so vague are their contents... I just know that answers A, B and C are wrong. So I vote by elemination.	CE	1
+17	3	1z0-071	C and E correct.		1
+1	4	1z0-071	maby AE is Right... C. CEIL returns the largest integer less than or equal to a specified number. Can change : CEIL returns the minmum integer more than or equal to a specified number		13
+2	4	1z0-071	A and E	AE	1
+3	4	1z0-071	The only possible responses	AE	1
+4	4	1z0-071	B is wrong because [select ceil('12,4') from dual;] . '12.4' is char type, Oracle use implicit conversion to make the argument is valid if they can be.	AE	1
+5	4	1z0-071	The only possible responses	AE	1
+6	4	1z0-071	The two true statements are: AE Explanation: B. CEIL is an Oracle SQL function that requires an argument which is a numeric data type. This statement is false, as CEIL can also take input arguments of type DATE or TIMESTAMP. C. CEIL is an Oracle SQL function that returns the smallest integer greater than or equal to a specified number. This statement is false, as CEIL actually returns the largest integer less than or equal to a specified number. D. LAST_DAY is an Oracle SQL function that returns the date of the last day of the current month only. This statement is false, as LAST_DAY can be used with any date argument to return the last day of that month. E. This statement is true. LAST_DAY is an Oracle SQL function that can be used with a date argument to return the date of the last day of the month for that date. For example, LAST_DAY('2023-06-26') would return '2023-06-30'. F. This statement is false. LAST_DAY can be used with any date argument to return the last day of that month, not just the previous month.		3
+7	4	1z0-071	AE is correct since ceil returns minimum integer greater than or equal to specified value.		1
+8	4	1z0-071	https://docs.oracle.com/database/121/SQLRF/functions025.htm "CEIL returns the smallest integer that is greater than or equal to n. "	AE	1
+9	4	1z0-071	A and E is the correct answer. C is incorrect because ceil always return smallest integer greater than or equal to values.		1
+10	4	1z0-071	Based on Oracle's definitions, even though they do not make sense. Since when common sense is common practice? Anyhow for test purposes. According to that information I believe the correct answers are ABE. Although you can only choose 2. Oracle's Definition of CEIL: CEIL returns the smallest integer that is greater than or equal to n. ( https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/CEIL.html#GUID-6DCC9AFB-9B80-4C27-AF63-5AA3B1E43660 ) C is incorrect as it says: CEIL returns the largest integer less than or equal to a specific number. This is the definition of FLOOR ( https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/FLOOR.html#GUID-67F61AC7-C097-4397-A122-213157BF584F ) E: LAST_DAY ( https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/LAST_DAY.html#GUID-296C7C02-7FB9-4AAC-8927-6A79320CE0C6 )	AB	1
+11	4	1z0-071	B also could an answer as if you execute select ceil('abc') from dual; you get ORA-017222: invalid number. Making this even more confusing.		2
+12	4	1z0-071	AE is the correct answer. SELECT LAST_DAY(TO_DATE('09-SEP-2023')) FROM DUAL; //op- 30-09-2023 SELECT CEIL('100'.2) FROM DUAL; //op 101 select add_months(TO_DATE('25-DEC-2023'),3) from dual; //op 25-03-2024	AE	1
+13	4	1z0-071	A and E are the correct answers. A - ADD_MONTHS returns the date date plus integer months. (https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/ADD_MONTHS.html#GUID-B8C74443-DF32-4B7C-857F-28D557381543) E - LAST_DAY returns the date of the last day of the month that contains date. The return type is always DATE, regardless of the datatype of date. (https://docs.oracle.com/cd/B19306_01/server.102/b14200/functions072.htm)		1
+14	4	1z0-071	C. CEIL returns the largest integer less than or equal to a specified number. How does Option:C is correct. CEIL always return greater than or equal to specified number.		3
+15	4	1z0-071	AE is correct, C is false CEIL return SMALL NOT LARGEST https://docs.oracle.com/en/database/oracle/oracle-database/21/sqlrf/CEIL.html#GUID-6DCC9AFB-9B80-4C27-AF63-5AA3B1E43660		1
+16	4	1z0-071	por sure AE are correct. C cannot be correct by "CEIL returns the largest integer...". Correct answer should be "CEIL returns the smallest integer..."		1
+17	4	1z0-071	C is the definition of FLOOR()!	AE	3
+1	5	1z0-071	yes bce	BCE	1
+2	5	1z0-071	Almost all objects can have synonyms. And drop implies privileges	BCE	1
+3	5	1z0-071	bce, ecb	BCE	1
+4	5	1z0-071	BCE is the correct answer!	BCE	1
+5	5	1z0-071	BCE is the correct answer!		1
+6	5	1z0-071	D) Any user can drop a PUBLIC synonym. False. Must have system privilege to create or drop a PUBLIC SYNONYM.		2
+7	5	1z0-071	bce are the correct answers		1
+1	6	1z0-071	FLOOR arredonda o número para baixo, para o inteiro mais próximo. CONCAT é usada para concatenar duas ou mais cadeias de caracteres em uma única string	AF	1
+2	6	1z0-071	In 23 ora version B is possible.		1
+3	6	1z0-071	Selected Answer: AF	AF	1
+5	19	1z0-071	BE is correct	BE	1
+4	6	1z0-071	A. CONCAT joins two character strings together F. FLOOR returns the largest integer less than or equal to a specified number	AF	2
+5	6	1z0-071	B is correct, CONCAT joins two or more arguments. --Example query select concat('this ', 'is ', 'a ', 'test') concat from dual; Output: "this is a test" F is also correct, since it accepts negative numbers as well. --Example query select floor(-5.2526) from dual; Output: -6 (-6 is smaller than -5, it also caught me offguard the first time).	BF	1
+6	6	1z0-071	Starting from Oracle 23c, CONCAT can take multiple arguments: https://docs.oracle.com/en/database/oracle/oracle-database/21/sqlrf/CONCAT.html https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/CONCAT.html	BF	1
+7	6	1z0-071	I thought B was correct, whereas it depends on the database. Oracle defers from Microsoft.		1
+8	6	1z0-071	floor(12.3) returns 12 and ceil(12.3) returns 13	AF	1
+9	6	1z0-071	How F can be correct?! Okay, in oracle documents it is mentioned like : FLOOR returns the largest integer equal to or less than n. But why it returns less than inputted value?? (select floor(15,7) from dual => output is 15) That statement is proper for CEIL function for my point of view. Can anyone help me to overcome this simply seem but complicated question?		1
+10	6	1z0-071	How F is correct. In case argument is passed in a negative. eg -1.4. The output is -2. But -1 is greater than -2. And, its contrast with option F. F. FLOOR returns the largest integer less than or equal to a specified number. select floor(-1.4) from dual; o/p ---2		3
+11	6	1z0-071	A. CONCAT joins two character strings together. F. FLOOR returns the largest integer less than or equal to a specified number.	AF	2
+12	6	1z0-071	A-F Correct	AF	1
+13	6	1z0-071	Why option-b is not correct? can any one explain		1
+14	6	1z0-071	how is F correct?		1
+1	7	1z0-071	Its A & E not D. why? read below D. The foreign key constraint will be disabled. This is incorrect because the question states that the SQL statements execute successfully, so the foreign key constraint would typically be enabled, not disabled.	AE	1
+2	7	1z0-071	Never knew what DEFERRED was. One keeps, learning every day.		2
+3	7	1z0-071	DEFERRED: allows to make insertions and updates without immediate validation, only when you commit	AD	1
+4	7	1z0-071	AD is the correct answer	AD	2
+5	7	1z0-071	What does it mean by IMMEDIATE tho?		1
+6	7	1z0-071	is AD PK enable again		1
+7	7	1z0-071	AD Cascade constraint will disable to primay key as well as foreign key.		2
+8	7	1z0-071	AD. Due to the PK being disabled, the FK is disabled. PK afterwards is enabled again		3
+1	8	1z0-071	A and D tested on Oracle 12c1		14
+2	8	1z0-071	Correct answers are A,D	AD	1
+3	8	1z0-071	Correct Answers: A. All existing rows in the ORDERS table are updated. D. The subquery is executed for every updated row in the ORDERS table.	AD	2
+4	8	1z0-071	No WHEN in update: all rows will be updated. Correlated subquery, will execute for every row in the upddate	AD	1
+5	8	1z0-071	SHOULD BE b AND d		1
+6	8	1z0-071	B (false), depending EXPLAIN PLAN. no always is executed first. C (false), ".o" is correlative E (false) is possible multiple rows, an error more than row. A and D is correct	AD	2
+7	8	1z0-071	sHOULD BE a AND d	AD	1
+8	8	1z0-071	AD option is right		1
+9	8	1z0-071	AD; cannot be B, correlated subqueries are not executed before the parent (outer) query. Cannot be E, cannot set customer_name to multiple values for each row		1
+10	8	1z0-071	A is correct D :It will retrieve the matching value for each row from the table orders with the table customers	AD	1
+11	8	1z0-071	BD, A is incorrect only matching rows are updated, not all C is invalid, statement correct structure E is incorrect, in case multiple rows, error multiple rows in subquery		4
+12	8	1z0-071	Can someone explain why A is correct?		1
+13	8	1z0-071	I think B is correct, subquery will execute for each row its right but also update will update for each raw after fulfilling the condition of subquery :) Then how update will update each raw ? update will check its resources "subquery" is condition met ? yes ? then update after execute subquery and fully checking it.		1
+14	8	1z0-071	AD are correct	AD	2
+15	8	1z0-071	AD is the answer	AD	1
+16	8	1z0-071	A nd D are correct	AD	2
+17	8	1z0-071	E - wrong because will cause an error "ORA-01427: Subquery returns more than one row"	AD	3
+1	9	1z0-071	A. DELETE can use a WHERE clause to determine which row(s) should be removed. ---> Is correct B. TRUNCATE can use a WHERE clause to determine which row(s) should be removed. ---> Its wrong bcoz truncate will delete every rows in a table except the table definitions. C. TRUNCATE leaves any indexes on the table in an UNUSABLE state. ----> its wrong truncate will remove everything except table definition or skeleton of the table D. The result of a TRUNCATE can be undone by issuing a ROLLBACK.-----> Its wrong bcoz TRUNCATE is a ddl statement whereas it can be done for DELETE since its dml statement E. The result of a DELETE can be undone by issuing a ROLLBACK. ----> Its correct bcoz DELETE is DML statement and each delete of row are recorded in transaction log or the redo logs.		5
+2	9	1z0-071	We can use WHERE clause in DELETE, We can ROLLBACK DELETE operation.	AE	1
+3	9	1z0-071	Truncate is forever...	AE	1
+4	9	1z0-071	A, E correct answers	AE	1
+5	9	1z0-071	AE is the correct ans. With truncate we can not user where clause (B) with truncate even if we rollback data will not be rollback. (D)		2
+6	9	1z0-071	AE correct answers		2
+7	9	1z0-071	AE are the correct answers		2
+1	10	1z0-071	months_between.. The interval is important, and if I add 25 months to a date 3 years ago, it will not be in the desired interval... disregar my previous comment	C	1
+2	10	1z0-071	ADD_Months	C	1
+3	10	1z0-071	c is the answer using ADD_MONTHS(date, n)		1
+4	10	1z0-071	START_DATE stores "the date the row was inserted". Therefore cannot be > SYSDATE (that is "now") and C is the right one		1
+5	10	1z0-071	I can't get why the B is incorrect. A negative value is still less than 25. I think I have to check it in DB.		1
+6	10	1z0-071	C is correct	C	2
+7	10	1z0-071	D is false, only put an example between '01/01/200' and '01/02/2002' 25 months but isn't in the last 25 months		1
+8	10	1z0-071	C is true. MONTHS_BETWEEN(date 1, date 2) Oracle gives a positive value when date 1 > date 2 and a negative when date 1 < date 2 https://www.techonthenet.com/oracle/functions/months_between.php		2
+9	10	1z0-071	why D is not true ?		1
+1	11	1z0-071	A. They can be nested. E. A scalar subquery expression that returns zero rows evaluates to NULL F. They cannot be used in GROUP BY clauses	AEF	1
+2	11	1z0-071	I also think AEF are the correct answers	AEF	1
+3	11	1z0-071	Why is D incorrect?		1
+4	11	1z0-071	I don't think they can be nested. Tried: select employee_id, (select department_name, (select city from locations l where l.location_id=d.location_id) from departments d where d.department_id=e.department_id) from employees e; But got 'too many values error'.	BEF	1
+5	11	1z0-071	A. They can be nested. Scalar subqueries can be nested within other scalar subqueries or within other SQL expressions. E. A scalar subquery expression that returns zero rows evaluates to NULL. If a scalar subquery returns no rows, it evaluates to NULL. F. They cannot be used in GROUP BY clauses. Scalar subqueries cannot be used in GROUP BY clauses because they do not return a single value that can be used to group rows.	AEF	3
+6	11	1z0-071	Its ABE. A. They can be nested. --> True B. They cannot be used in the VALUES clause of an INSERT statement. --> True C. A scalar subquery expression that returns zero rows evaluates to zero. --> False D. They can be used as default values for columns in a CREATE TABLE statement.--> False E. A scalar subquery expression that returns zero rows evaluates to NULL. --> True F. They cannot be used in GROUP BY clauses.--> False https://www.oratable.com/scalar-subquery/		1
+7	11	1z0-071	According to both of your links, wouldn't B also correct because INSERT is part of a DML statement? B says "CANNOT" be used in the value of an INSERT statement. Double negative makes the statement positive. Just saying...		1
+8	11	1z0-071	AEF are the correct answers https://docs.oracle.com/cd/B19306_01/server.102/b14200/expressions010.htm		2
+1	12	1z0-071	B cannot be an option because the question says "Prevent prompting of hire date value". && will still prompt it once.		3
+2	12	1z0-071	Still cant get why F is the answer, it literally says 'pass a value', doesnt that translate to prompting the user? as for B, && does an implicit DEFINE on first value entered via the prompt, but if it was already defined then it will just use the value that was already defined, I say AB.	AB	1
+3	12	1z0-071	Why is B not correct?..and someone explain how o store a query in a script, i cant get the concept..		1
+4	12	1z0-071	AF are correct. B will promt once, but question asks for no prompting at all C. UNDIFINE is not a thing D/E Verify has nothing to do with prompting		2
+5	12	1z0-071	It's confusing, if you replace &1 with &&1 it would still be asking for the value every time you run the query, it doesn't make sense to me... but if you previously used DEFINE to define that variable, it wouldn't. That's why I think AF is more accurate	AF	2
+6	12	1z0-071	B. By replacing '&1' with '&&1' in the query, it creates a double-ampersand substitution variable which will remember the value of the variable throughout the session and will not prompt for a value every time it is used. F. By storing the query in a script and passing the substitution value to the script when executing it, you can provide a value for the variable before the query is executed. This prevents the query from prompting for a value when it is executed.		3
+7	12	1z0-071	Why not B?		1
+8	12	1z0-071	https://www.oreilly.com/library/view/oracle-sqlplus-the/1565925785/ch04s06.html#:~:text=The%20UNDEFINE%20command%20deletes%20a,it%20is%20no%20longer%20needed. The UNDEFINE command deletes a variable definition. If you have created a variable containing sensitive information, such as a password,...		1
+9	12	1z0-071	There is no UNDEFINE keyword	AF	1
+1	13	1z0-071	C is correct: WITH GRANT OPTION is necessary in this case		7
+2	13	1z0-071	C. GRANT UPDATE (title, address) ON customers TO andrew WITH GRANT OPTION;	C	1
+3	13	1z0-071	C is correct (GRANT option is for object privileges): GRANT UPDATE (title, address) ON customers TO andrew WITH GRANT OPTION E is not correct (ADMIN option is for system privileges): GRANT UPDATE (title, address) ON customers TO andrew WITH ADMIN OPTION gives the error ORA-00993: missing GRANT keyword.	C	1
+4	13	1z0-071	C is the correct answer. https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/GRANT.html#GUID-20B4E2C0-A7F8-4BC8-A5E8-BE61BDC41AC3__I2126048	C	1
+5	13	1z0-071	The answer is C. C is for Cat.	C	1
+6	13	1z0-071	Yes, this is the correct syntax according to some sites	C	1
+7	13	1z0-071	C is correct		1
+8	13	1z0-071	Why is E not correct?		1
+9	13	1z0-071	E is also correct	E	2
+10	13	1z0-071	Whats the difference between C & E ? C. GRANT UPDATE (title, address) ON customers TO andrew WITH GRANT OPTION; E. GRANT UPDATE ON customers.title, customers.address TO andrew WITH GRANT OPTION;		1
+11	13	1z0-071	C is correct! WITH GRANT OPTION now the user ANDREW can give grants to other users. GRANT UPDATE(TITLE) ON CUSTOMERS TO HR; If REVOKE UPDATE(TITLE,ADDRESS) ON CUSTOMERS FROM ANDREW is executed then eventually HR will also lose the grants.		1
+12	13	1z0-071	C is correct. The owner of an object can grant it to another user by specifying the WITH GRANT OPTION clause in the GRANT statement. In this case, the new grantee can then grant the same level of access to other users or roles. Here are three points to keep in mind about the WITH GRANT OPTION clause: https://www.oreilly.com/library/view/oracle-database-administration/1565925165/ch06s01s05s01.html#:~:text=The%20owner%20of%20an%20object,to%20other%20users%20or%20roles.		1
+13	13	1z0-071	C is correct		2
+1	14	1z0-071	ABE. Note: Synoyms and views will get invalid, Indexes will be dropped along with the table and data will be purged and free space will be regained, dropped table can not be recovered even if you use flashback table command		5
+2	14	1z0-071	It will drop DEPARTMENTS table along with all indexes as we have used PURGE in DROP statement so table cann't be rollback or recovered.	ABE	1
+3	14	1z0-071	ABE correct answers	ABE	1
+4	14	1z0-071	ABE are correct. Views and synonyms are not dropped with the table	ABE	2
+5	14	1z0-071	ABE IS CORRECT.	ABE	1
+6	14	1z0-071	ABE is the answer	ABE	1
+7	14	1z0-071	ABE is correct answers		1
+8	14	1z0-071	ABE is correct		1
+9	14	1z0-071	https://docs.oracle.com/database/121/SQLRF/statements_9003.htm#SQLRF01806	ABE	1
+10	14	1z0-071	A,D,E - correct answer	ADE	1
+11	14	1z0-071	https://docs.oracle.com/cd/E18283_01/server.112/e17120/tables010.htm		1
+12	14	1z0-071	In ORACLE SQL, you own table DEPARTMENTS, referenced by views, indexes, and synonyms. Examine this command which executes successfully: DROP TABLE departments PURGE; Which three statements are true? (Choose three.) A. It will remove the DEPARTMENTS table from the database. (True) B. It will drop all indexes on the DEPARTMENTS table. (True) C. It will remove all views that are based on the DEPARTMENTS table. (False, it will not remove the views that are based on the DEPARTMENTS table) D. It will remove all synonyms for the DEPARTMENTS table. (False, it will not remove the synonyms for the DEPARTMENTS table) E. Neither can it be rolled back nor can the DEPARTMENTS table be recovered. (True) F. It will delete all rows from the DEPARTMENTS table, but retain the empty table. (False, it will delete all rows and the table itself)		2
+13	14	1z0-071	A, B, E https://docs.oracle.com/database/121/SQLRF/statements_9003.htm#SQLRF01806		1
+1	15	1z0-071	A needs to be heard as well.		1
+2	15	1z0-071	I think the answer should be BCD as SQL is used for both RDBMS and Object Oriented DB. Regarding atomicity and consistency, I think that is facilitated by the RDBMS engine.		1
+3	15	1z0-071	Answers are B, C, E.	BCE	1
+4	15	1z0-071	A is also true my reference is https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/Hierarchical-Queries.html#GUID-0118DF1D-B9A9-41EB-8556-C6E7D6A5A84E		1
+5	15	1z0-071	BCF CORRECT		1
+6	15	1z0-071	BCE is the correct answer		4
+7	15	1z0-071	answer is BCE		4
+8	15	1z0-071	Answer is ACE		1
+1	16	1z0-071	A. Any user can create a PUBLIC synonym.( x) Must have Create Publc Syn Priv. B. A synonym has an object number. C. All private synonym names must be unique in the database. (X) Unique in the schema. D. A synonym can be created on an object in a package. (X) A schema object can't be in a package E. A synonym can have a synonym.		16
+2	16	1z0-071	A synonym cannot be created on an object inside a package like procedure or function, but synonym can be created on whole package.	BE	1
+3	16	1z0-071	B. A synonym has an object number E. A synonym can have a synonym	BE	1
+4	16	1z0-071	B,D,E are correct. B and E are obvious. Why D is correct : Following workd in oracle.livesql.com CREATE PACKAGE employee_pkg1 AS PROCEDURE add_employee(p_first_name VARCHAR2, p_last_name VARCHAR2); END employee_pkg1; CREATE SYNONYM emp_pkg_syn FOR employee_pkg1; --Works CREATE SYNONYM add_emp_addemp_syn FOR employee_pkg1.add_employee; -- works		1
+5	16	1z0-071	B & E is correct	BE	2
+6	16	1z0-071	C is incorrect because private synonyms are need to be private in the schama not in the database so BDE		1
+7	16	1z0-071	BE IS CORRECT		1
+8	16	1z0-071	BE is correct. syn has object. here is to find object ID. Modify it or remove the owner SELECT s.synonym_name, s.owner, o.object_id, o.object_name, o.object_type FROM dba_synonyms s JOIN dba_objects o ON s.synonym_name = o.object_name AND s.owner = o.owner and S.owner = 'HR' ;		1
+9	16	1z0-071	With no so many arguments, I would answer DE in an hypothetical exam since documentation says that a synonym can be created on a Stored procedure, function, or package. Besides, I don't find accurate the way B is written since the creation of a new synonym doesn't envolve a new object id, but the synonim actually "has" the object id of the object it references...	DE	1
+10	16	1z0-071	D and E Specify the object for which the synonym is created. The schema object for which you are creating the synonym can be of the following types: Table or object table View or object view Sequence Stored procedure, function, or package Materialized view Java class schema object User-defined object type Synonym https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/CREATE-SYNONYM.html		1
+11	16	1z0-071	de should be	DE	1
+12	16	1z0-071	b is wrong 1000%		1
+13	16	1z0-071	DE for me	DE	1
+14	16	1z0-071	A - user need CREATE PUBLIC SYNONYM : false C - must be unique in schema : false D - The schema object cannot be contained in a package for synonyms	BE	1
+15	16	1z0-071	Synonym can be created for the whole package but not for components of the package.	BE	3
+16	16	1z0-071	D. A synonym can be created on an object in a package. A synonym can be created for an object in a package, allowing users to reference the object using the synonym name instead of the package and object name 1. E. A synonym can have a synonym. A synonym can be created for another synonym, allowing users to reference the underlying object using either synonym name	DE	1
+17	16	1z0-071	D and E is true the rest is false	DE	1
+1	17	1z0-071	Both return 0	C	2
+2	17	1z0-071	C is correct Both return 0		2
+1	18	1z0-071	A. DML statements always start new transactions. (X). Not always B. DDL statements automatically commit only data dictionary updates caused by executing the DDL. (X) Not "only" data dictionary C. A session can see uncommitted updates made by the same user in a different session. (X) in the same session D. A DDL statement issued by a session with an uncommitted transaction automatically commits that transaction. E. An uncommitted transaction is automatically committed when the user exits SQL*Plus.		9
+2	18	1z0-071	D. A DDL statement issued by a session with an uncommitted transaction automatically commits that transaction E. An uncommitted transaction is automatically committed when the user exits SQL*Plus	DE	1
+3	18	1z0-071	hix chatGPT said that	AD	2
+4	18	1z0-071	A : transaction contains of one or more dml statements or DDL statement D : because DDL make commit before and after DDL statement https://docs.oracle.com/cd/E11882_01/server.112/e40540/transact.htm#CNCPT016	AD	1
+5	18	1z0-071	The answer is DE	DE	1
+6	18	1z0-071	bd is correct	BD	2
+7	18	1z0-071	The answer is BE		1
+8	18	1z0-071	should be DE SET AUTOCOMMIT does not alter the commit behavior when SQL*Plus exits. Any uncommitted data is committed by default.	DE	1
+9	18	1z0-071	https://docs.oracle.com/cd/E11882_01/server.112/e16604/ch_twelve040.htm#BABEGEGC		3
+10	18	1z0-071	True hehe		1
+1	19	1z0-071	For '%%' or '_' we have to use LIKE, not "="	BE	1
+2	19	1z0-071	Option BE is right!		2
+3	19	1z0-071	EF cannot be right. As the question asks us to first sort by cities in the ascending order. Only then further the sorting requires for lastname is descending order. F does vice versa	BE	1
+4	19	1z0-071	B-E IS CORRECT.	BE	2
+6	19	1z0-071	BE is ok , but i think EF is also right	BE	1
+7	19	1z0-071	BE is correct	BE	1
+8	19	1z0-071	lname is alias and can be used on order by	BE	1
+9	19	1z0-071	lname is in the question SELECT city, last_name AS lname FROM members	BE	2
+10	19	1z0-071	lname is in the question SELECT city, last_name AS lname FROM members	BF	1
+11	19	1z0-071	LNAME doesn't exist	EF	1
+1	20	1z0-071	A. the access driver TYPE clause ✅ Required This tells Oracle which access driver to use (typically ORACLE_LOADER or ORACLE_DATAPUMP). Example: sql Copy Edit TYPE ORACLE_LOADER B. the DEFAULT DIRECTORY clause ✅ Required This defines the Oracle directory object where the external file is located. Example: sql Copy Edit DEFAULT DIRECTORY ext_dir	AB	1
+2	20	1z0-071	LOCATION is the only MUST clause. You can specify the ENTIRE physical path in LOCATION without having to have a DEFAULT_DIRECTORY clause		1
+3	20	1z0-071	The Right answers are : B and D as i tried the following create table statement but an error occured to specify the default ditrectory . The query is : create table CUST( cust_id number (2), Credit_limit Number (10)) Organization External Type Oracle_Loader Location ('c:\\test.txt')) ;		1
+4	20	1z0-071	Option A is required because Oracle needs to know how to handle the external data file (driver type). Option D is required because Oracle needs to know the location of the external data file to access the data.	AD	1
+5	20	1z0-071	A D TRUE BECAUSE IF WE USE LOCATION THEN WE CAN USE DEFAULT DIRECTORY		2
+6	20	1z0-071	D and E. B is WRONG, there is no need to define the DEFAULT DIRECTORY, you can specify each of the files with a DIRECTORY, like: create directory testsdir as 'c:\\tests'; LOGFILE testsdir:'loggile.log' BADFILE testsdir:'badfile.log' LOCATION (testsdir:'invoice_data.txt') Tried to upload the full example but the site does not accept it, gives a Cloudflare error.		1
+7	20	1z0-071	TYPE: "Oracle Database provides two access drivers: ORACLE_LOADER and ORACLE_DATAPUMP. If you omit the TYPE specification, ORACLE_LOADER is the default access driver." https://docs.oracle.com/cd/B28359_01/server.111/b28310/tables013.htm#ADMIN11705 ACCESS PARAMETERS: "To modify the default behavior of the access driver for external tables, specify access parameters." https://docs.oracle.com/en/database/oracle/oracle-database/23/sutil/oracle-external-tables-concepts.html#GUID-ACF1D3AA-1D61-4682-AEC5-42C944756E12 REJECT LIMIT : there are several examples that don't use this clause LOCATION: "For ORACLE_HIVE, the LOCATION clause is not used." https://docs.oracle.com/en/database/oracle/oracle-database/23/sutil/oracle-external-tables-concepts.html#GUID-ACF1D3AA-1D61-4682-AEC5-42C944756E12 That about LOCATION confuse me, but I tend to believe it's a very particular case, so the answer should be (BD) DEFAULT DIRECTORY and LOCATION	BD	4
+8	20	1z0-071	E is also correct since it species the data source of the external tables.		2
+9	20	1z0-071	why not E?		1
+1	21	1z0-071	Option B: "Unused columns retain their data until they are dropped." This is correct. Unused columns keep their data until they are explicitly removed from the table. Setting a column to unused does not immediately delete its data; it only marks the column as unavailable. Option C: "Once a column has been set to unused, a new column with the same name can be added to the table." This is correct. Once a column is marked as unused, you can add a new column with the same name to the table, because the unused column is effectively 'removed' from the table’s structure in a logical sense.	BC	1
+2	21	1z0-071	Note on C: you can add the same name and data type as unused column even if it's not dropped. Tested and it works.	BC	4
+3	21	1z0-071	I tested, Unused can be added on primary key. Desc does not display unused column. not does select query.		1
+4	21	1z0-071	B C. Note on C. You can only add a new column with the same name as long as it's a different data type until the UNUSED is dropped.		2
+1	22	1z0-071	The rules are listed in descending order: Parentheses (as well as brackets in lookup expressions and IN expressions). Note that you can freely add parentheses any time you want to impose an alternative precedence or to make precedence clearer. * / + - = <> < > <= >= IS (IS NULL, IS NOT NULL, IS EMPTY, IS NOT EMPTY) BETWEEN NOT AND OR		11
+2	22	1z0-071	✅ A. || (concatenation) vs + (addition) In Oracle SQL, the concatenation operator || has higher precedence than the addition operator +. ✅ C. NOT vs AND/OR Correct. In logical expressions, NOT is evaluated before AND, and AND is evaluated before OR. Order: NOT > AND > OR	AC	1
+3	22	1z0-071	|| (OR) doesn't have a highter order of precedence than + (addition). Here I'll show you why: SELECT 1+1||'1.9' AS addition_operator FROM DUAL; --output: 21.9 SELECT '1.9'||1+1 AS or_condition FROM DUAL; --output: 2.91 In the first SELECT statement is first adding up 1+1 (2) and then concatenating with '1.9', making the output '21.9'. Lastly, the second SELECT statement concatenates '1.9' with 1 ('1.91') and then adding up 1, making the output '2.91'. This proves that, in this case, whatever comes first in the statement will be calculated. If there was an order of precedence, the outputs would've been: OR first: '12.9' (1+(1||'1.9')) and '2.91' (('1.91'||1)+1). + first: '21.9' ((1+1)||'1.9') and '1.92' ('1.9'||(1+1)). So the correct answers are C and E.	CE	1
+4	22	1z0-071	|| has a higher order of precedence than + (addition).	AC	1
+5	22	1z0-071	select '9.9'||1+2 from dual Result 11.91 Contamination is done first	AC	1
+6	22	1z0-071	https://docs.oracle.com/cd/E49933_01/server.770/es_eql/src/ceql_expr_precedence_rules.html#:~:text=The%20rules%20are,the%20JOIN%20operators.	CE	1
+7	22	1z0-071	CE is correct	CE	2
+8	22	1z0-071	This Oracle doc explains between OR, AND, and NOT. https://docs.oracle.com/en/database/other-databases/nosql-database/22.2/sqlreferencefornosql/operator-precedence.html		2
+9	22	1z0-071	https://www.tutorialspoint.com/plsql/plsql_operators_precedence.htm		1
+1	23	1z0-071	Option C is the statement that returns the result 02-JAN-2020. The statement converts the string '29-10-2019' to a date using the TO_DATE function, then adds an interval of 2 months and an interval of 5 days, and subtracts an interval of 120 seconds. The resulting date is then converted to a string using the TO_CHAR function with the format model 'DD-MON-YYYY', which produces the result 02-JAN-2020. Here is the calculation: TO_DATE('29-10-2019') = October 29, 2019 + INTERVAL '2' MONTH = December 29, 2019 + INTERVAL '5' DAY = January 3, 2020 - INTERVAL '120' SECOND = January 2, 2020	C	6
+2	23	1z0-071	note to self: study the calendar to know when months end, because if Dec ends on 30 instead of 31, the answer would've been A or D		1
+2	31	1z0-071	✅ F. A GLOBAL TEMPORARY TABLE'S definition is available to multiple sessions. True. The table structure is shared among all users, but data is private to each session	CDF	1
+3	23	1z0-071	C because: when we add INTERVAL '2' MONTH + INTERVAL '5' DAY to 29-10-2019, we get 03-01-2020, as of midnight, and then we subtract - INTERVAL '120' SECOND i.e. 2 minutes, hence we get answer as '02-JAN-2020'		3
+4	23	1z0-071	Correct answer should be SELECT TO_CHAR(TO_DATE('29-OCT-2019') + INTERVAL '2' MONTH + INTERVAL '5' DAY - INTERVAL '120' SECOND, 'DD-MON-YYYY') AS "date" FROM DUAL;		4
+5	23	1z0-071	C is correct after testing, although I don't know why it is INTERVAL '5' instead of '4'.		2
+1	24	1z0-071	For anyone confused A isn't gonna work because you didn't use aliases so its not comparing the right things. Here is the correct query create table invoices( invoice_id number, currency_code varchar2(10), raised_date date ); insert into invoices values(1, 'EUR', to_date('01-jan-2019')); insert into invoices values(2, 'USD', to_date('01-feb-2019')); insert into invoices values(3, 'JPY', to_date('01-mar-2019')); create table currencies( currency_code varchar2(10) ); insert into currencies values('JPY'); insert into currencies values('GPD'); insert into currencies values('CAD'); insert into currencies values('EUR'); insert into currencies values('USD'); select * from invoices; select * from currencies; select * from currencies c where not exists ( select null from invoices i where i.currency_code = c.currency_code );		7
+2	24	1z0-071	D IS CORRECT OPTION...AS THE NUMBER OF COLUMN ARE NOT SAME IN BOTH TABLES..PRACTICALLY IMPLEMENTED..CORRECT OPTION D		1
+3	24	1z0-071	for minus operator one needs to specify the colums. Intersect gives you the matching data. So C		3
+4	24	1z0-071	C is correct.		2
+1	25	1z0-071	BE is the correct one	BE	2
+2	25	1z0-071	You cannot have a COUNT() in a WHERE clause. That is what the HAVING clause is for		1
+1	26	1z0-071	BDF is correct. Can be nested to any level.	BDF	1
+2	26	1z0-071	BDF is correct	BDF	4
+3	26	1z0-071	BDF is correct. Can be nesed to any level.		1
+4	26	1z0-071	Answer is BDF. check the discussion of the link. https://www.examtopics.com/discussions/oracle/view/20182-exam-1z0-071-topic-2-question-46-discussion/		2
+5	26	1z0-071	E is not right either because of the word "only".		2
+6	26	1z0-071	DEF. B is wrong. Nested only to 255 levels.		1
+1	27	1z0-071	dba_tables - requires privileges for querying, all_tables - does not require privileges for querying.	AD	1
+2	27	1z0-071	Not F because ALL_TABLES shows only those tables the user already has access to, so no special privileges are needed beyond access. Also, the question says 'You must have..' ✅ D. You must have ANY TABLE system privileges, or be granted object privileges on the table, to view a table in DBA_TABLES. True. To query DBA_TABLES, you need appropriate system privileges, like SELECT_CATALOG_ROLE.	AD	1
+3	27	1z0-071	AF is the right answer anyday. USER_TABLE - dictionary view which has list of tables owned by the user ALL_TABLE - dictionary view which has list of tables owned by the user + tables which user has grants for. DBA_TABLE - All tables in database(but you should have dba privelege to see them)		1
+4	27	1z0-071	AD , the right answers. The data dictionary views that begin with DBA_ are restricted. These views can be accessed only by users with the SELECT_ANY_TABLE privilege. This privilege is assigned to the DBA role when the system is initially installed. https://docs.oracle.com/cd/A57673_01/DOC/server/doc/SRF73/ch2a.htm		3
+5	27	1z0-071	if you don't have dba role then you will get message that DBA_TABLES doesn't exist. DBA_TABLES is a data dictionary view	AF	2
+6	27	1z0-071	I tried D and it doesn't work for me!!!! But its probably A. idk about the 2nd option		1
+7	27	1z0-071	AD to view dba_table should have privilege.		2
+8	27	1z0-071	i am for AF	AF	3
+9	27	1z0-071	AD. Tried on ORA 19. GRANT SELECT ANY_TABLE to gives access to DBA_TABLES F is incorrect because querying ALL_TABLES you can always do but only see those tables you have the rights to view, which would be a subset of DBA_TABLES		4
+10	27	1z0-071	AF cannot grant dba_tables privilege	AF	3
+11	27	1z0-071	A, F are correct		1
+12	27	1z0-071	Don't get USER_TABLE and ALL_TABLE views confused. A) USER_TABLES displays all tables owned by the current user. (True) E) ALL_TABLES displays all tables owned by the current user. (False) The ALL_TABLES view contains description of tables accessible to the user.		3
+1	28	1z0-071	BC are correct https://oracle-base.com/articles/9i/multitable-inserts		7
+2	28	1z0-071	Not A Because: ❌ A. Each row returned by the subquery can be inserted into only a single target table. False. A row can be inserted into multiple tables if multiple WHEN clauses are true, or if a WHEN clause targets multiple INTO tables	BC	1
+3	28	1z0-071	B and C are correct.	BC	1
+4	28	1z0-071	A,c are correct		2
+1	29	1z0-071	Group functions do not consider NULL values, except the COUNT(*)		9
+2	29	1z0-071	tested	AC	1
+3	29	1z0-071	A and C are correct.	AC	1
+4	29	1z0-071	A and C seem correct!		4
+1	30	1z0-071	Oracle’s NEXT_DAY(date, 'DAY') function returns the next specified weekday after the given date. Since the NLS_TERRITORY is set to AMERICA, Oracle understands 'MONDAY' correctly.	D	1
+2	30	1z0-071	This query first uses ADD_MONTHS(hire_date, 6) to calculate the date six months after the hire date, and then uses NEXT_DAY to find the first Monday after this date. This is the correct approach and meets the requirements of the problem.	D	1
+3	30	1z0-071	D is correct. https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/NEXT_DAY.html#GUID-01B2CC7A-1A64-4A74-918E-26158C9096F6	D	3
+1	31	1z0-071	A global temporary table is a type of table in Oracle that holds data only for the duration of a session or transaction. It is a persistent database object, visible to all sessions, until the user drops it explicitly using the DROP TABLE statement. Data is only visible to the session which inserts it. The data stored in the global temporary table is private to the session1. In contrast, a regular table is a permanent database object that stores data on disk and is visible to all sessions. The data stored in a regular table is not private to any session and can be accessed by any session with the appropriate privileges. In summary, the main differences between a global temporary table and a regular table are: A global temporary table holds data only for the duration of a session or transaction, while a regular table holds data permanently. Data stored in a global temporary table is private to the session, while data stored in a regular table is not private to any session.	CDF	5
+5	66	1z0-071	Because both rows are the same, the UNION result gives distinct answers		3
+3	31	1z0-071	When I delete from GTT and then Rollback, response is "Rollback complete" but the rollback does not occur. The rows are still gone from the table		3
+4	31	1z0-071	Delete operation can totally be rolled back!	CDF	1
+5	31	1z0-071	https://www.oracletutorial.com/oracle-basics/oracle-global-temporary-table/ will explain the differences between session or transaction specific GTT.		3
+6	31	1z0-071	A. Can someone explain me when a space allocation occurs? B. It's not true because GTT are avaible for everyone even without permissions like SELECT. C. Changing in private session causes only for private data in GTT. D. Any rows existing at GTT retain after close a session but are not avaible. E. It can be rolled back, GTT works like a normal table. F. GTT for everyone LOCAL TEMPORARY TABLE only for a current session. If what I wrote is not true, please correct me.		1
+1	32	1z0-071	✅ C. It can be used only in SQL*Plus. True. SET VERIFY ON is a command specific to SQL*Plus (and tools that emulate it). It is not supported in GUI tools like SQL Developer (though similar behavior can sometimes be simulated). ✅ D. It displays values for variables prefixed with &&. True. When SET VERIFY ON is enabled, SQL*Plus displays the old and new values of substitution variables (like &&var) before executing the SQL. ❌ Incorrect options: A. It displays values for variables used only in the WHERE clause of a query. ➤ False. It shows substituted values regardless of where they are used, not just in the WHERE clause. B. It displays values for variables created by the DEFINE command. ➤ False. SET VERIFY ON shows values of substitution variables, not necessarily those created by DEFINE. E. It can be used in SQL Developer and SQLPlus.* ➤ False. SET VERIFY ON works only in SQL*Plus. SQL Developer ignores it.	CD	2
+2	32	1z0-071	BE works well	BE	1
+3	32	1z0-071	ANSWER CD	CD	1
+4	32	1z0-071	after testing it does not work with &&	BE	1
+5	32	1z0-071	The Correct Answer Is : D & E		1
+6	32	1z0-071	BDE ---All true		1
+7	32	1z0-071	Should be DE	DE	2
+8	32	1z0-071	BE for me	BE	1
+9	32	1z0-071	id say DE, B is kinda right?	DE	1
+10	32	1z0-071	BDE all worked for me.		2
+11	32	1z0-071	correct is BE	BE	2
+12	32	1z0-071	correct is BE		2
+13	32	1z0-071	Is C also correct?		1
+14	32	1z0-071	B no right: VERIFY ON shows all substituted variables althought you dont use DEFINE (sqlplus/developer ask for them).		2
+15	32	1z0-071	BDE are true but if I have to narrow it down to 2 answers then DE.		2
+16	32	1z0-071	BDE are correct, when SET VERIFY ON it shows us variables defined by a DEFINE and a variables in &&.		4
+17	32	1z0-071	correct is BE		3
+1	33	1z0-071	Reduce chances of gaps: so NOCACHE is preferred, since cached sequences can create gaps if the database shuts down before cache is used.	DE	1
+2	33	1z0-071	NO CACHE	DE	2
+3	33	1z0-071	if there is cache option sequence get some numbers (for example 10). if oracle used some of this (less than 10) and restart instance occurs, then will be gap, because oracle will cache next 10 numbers.		2
+4	33	1z0-071	How reduce the chances of gaps in the values by syntax?		1
+1	34	1z0-071	A is also right why?... ✅ A. SELECT 1 - SYSDATE - DATE '2019-01-01' FROM DUAL; Valid: Oracle allows arithmetic with dates and numbers. 1 - SYSDATE gives a negative number (interval), and subtracting another DATE results in a valid numeric result. ✅ Executes successfully	ABD	1
+2	34	1z0-071	I am assuming it is supposed to be to_date	BDE	2
+3	34	1z0-071	Tried all the alternatives	BDE	4
+1	35	1z0-071	The following OBJECT PRIV'S can be granted on tables, views and sequences--- UPDATE: tables, views. REFERENCES: tables, views ALTER: tables, sequences. SELECT: tables, views, sequences	CD	10
+2	35	1z0-071	D incorrect for Oracle - only for IBM hierarchial dbms Per Oracle doc REFERENCES Table or materialized view Enables a user to create a foreign key dependency on a table or materialized view. The REFERENCES privilege on a parent table implicitly grants SELECT privilege on the parent table.	CE	1
+3	35	1z0-071	Object Privilege Table SELECT, INSERT, UPDATE, DELETE, REFERENCES, ALTER, DROP, INDEX View SELECT, INSERT, UPDATE, DELETE, ALTER, DROP Sequence SELECT, USAGE	CE	1
+4	35	1z0-071	UPDATE: tables, views. REFERENCES: tables, views ALTER: tables, sequences. SELECT: tables, views, sequences. DELETE: tables, views. INSERT: tables, views. Doc: https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/GRANT.html#GUID-20B4E2C0-A7F8-4BC8-A5E8-BE61BDC41AC3__BGBCIIEG	CD	2
+5	35	1z0-071	C and D	CD	1
+6	35	1z0-071	C and D because you can grant References on a view. Tried out! :)		1
+7	35	1z0-071	CE, according to this site: https://docs.oracle.com/database/121/TTSQL/privileges.htm#TTSQL338 A. INSERT can be granted only on tables and sequences. (FALSE, table + synonym) B. DELETE can be granted on tables, views, and sequences. (FALSE, only table) C. SELECT can be granted on tables, views, and sequences. (TRUE) D. ALTER can be granted only on tables and sequences. (FALSE, ALTER is system priv. not object) E. REFERENCES can be granted only on tables. (TRUE, tables + materialised views, which are different than 'normal' views)	CE	3
+1	36	1z0-071	A. The second ROLLBACK command replays the delete. This is false. The second rollback undoes the INSERT operation but does not affect the DELETE. The first rollback already restored the rows deleted before the savepoint. B. The first ROLLBACK command restores the 101 rows that were deleted and commits the inserted row. This is false. The first rollback restores the deleted rows but does not commit the inserted row. The insert is still in an uncommitted state until the second rollback is issued. C. The first ROLLBACK command restores the 101 rows that were deleted, leaving the inserted row still to be committed. This is true. The first rollback restores the deleted rows (100 rows), and the inserted row is still uncommitted, meaning it will be undone by the second rollback. D. The second ROLLBACK command undoes the insert. This is true. The second rollback undoes the insert, as it was the most recent uncommitted operation at the time. E. The second ROLLBACK command does nothing. This is false. The second rollback does undo the inserted row ('ADV112', 'Adventures of Tom Sawyer'), so it does something.	CD	1
+2	36	1z0-071	CD are correct	CD	1
+3	36	1z0-071	For me DE	DE	1
+4	36	1z0-071	Seems right!	CD	1
+5	36	1z0-071	Rollback without savepoint: - end of the transaction - delete savepoints - undoes all changes in the transactions	CD	3
+6	66	1z0-071	Option-B is the correct choose		2
+1	37	1z0-071	Table can have multiple foreign Key: CREATE TABLE ENCOUNTER ( ENCT_ID VARCHAR2(25) PRIMARY KEY, ENCT_DATE DATE NOT NULL, PT_MRN NUMBER NOT NULL, ENCT_BP VARCHAR2(10) NOT NULL, ENCT_WT NUMBER(3,2) NOT NULL, ENCT_TEMP NUMBER(3) NOT NULL, ACCT_ID VARCHAR2(25) NOT NULL, PHX_ID VARCHAR2(25) NOT NULL, CONSTRAINT FK_PATIENT FOREIGN KEY (PT_MRN) REFERENCES PATIENT(PT_MRN) CONSTRAINT FK_ACCOUNT FOREIGN KEY (ACCT_ID) REFERENCES ACCOUNT(ACCT_ID) CONSTRAINT FK_PTHISTORY FOREIGN KEY (PHX_ID) REFERENCES PTHISTORY(PHX_ID));		1
+2	37	1z0-071	CD is correct answer. PFB discussion link for same question https://www.examtopics.com/discussions/oracle/view/21762-exam-1z0-071-topic-2-question-64-discussion/		1
+3	37	1z0-071	One pk and yeah if you dont insert anything in a row with a with a varchar datatype the value is null and not an empty string which i guess is what they're trying to trick you into?	CD	1
+1	38	1z0-071	alias does not work with Group by and Having	D	6
+1	39	1z0-071	BE A : False. Creating role is system privilege. B : True. Use REFERENCE privilege. C : False. Use DELETE ANY TABLE system privilege. D : False? E : True. Use EXECUTE privilege.		16
+2	39	1z0-071	B, E - correct see description in the table 7-2 https://docs.oracle.com/database/121/TTSQL/privileges.htm#TTSQL341	BE	7
+3	39	1z0-071	E. Execute a procedure or function in another schema. ✅ If you’re granted the EXECUTE privilege on a procedure/function in another schema, you can run it.	BE	1
+4	39	1z0-071	ANSWER BC	BC	1
+5	39	1z0-071	SELECT * FROM DBA_SYS_PRIVS; SELECT * FROM user_tab_privs;		1
+6	39	1z0-071	B. Correct. To create foreign key constraints in one schema that reference tables in another schema, you must have appropriate object permissions on the target table, such as the REFERENCES permission. This is a typical application of object permissions. E Correct. Executing a procedure or function in another schema requires having the EXECUTE permission on that procedure or function, which is also a type of object permission.	BE	1
+7	39	1z0-071	`BE is correct		1
+8	39	1z0-071	should be bE	BE	1
+9	39	1z0-071	B and E. A can not be correct cause it is system privilege.		1
+10	39	1z0-071	BE for me, please update the answers	BE	3
+11	39	1z0-071	You can delete from a table under sys schema if object priv is granted	BE	2
+12	39	1z0-071	System privileges allow a user to perform a particular database operation or class of database operations. For example, to create a table, the user needs the create table privilege. Objects have privileges associated with them, such as insert, update and delete a table.		1
+13	39	1z0-071	A is wrong because : Create Role is a system privilege	BC	6
+14	39	1z0-071	ADE is system privileges	BC	3
+15	39	1z0-071	A You must have the CREATE ROLE system privilege. B Object privileges REFERENCES object type Table or materialized view Enables a user to create a foreign key dependency on a table or materialized view. The REFERENCES privilege on a parent table implicitly grants SELECT privilege on the parent table C System privileges DELETE ANY TABLE Enables a user to delete from any table in the database. D I think it’s System privileges E Object privileges: Object type PL/SQL package, procedure or function; Enables a user to execute a PL/SQL package, procedure or function directly.		2
+16	39	1z0-071	Delete is an onject privilege, same as execute, I think B and E are correct, please correct me if I'm wrong	BE	3
+1	40	1z0-071	AEF is correct	AEF	1
+2	40	1z0-071	AEF is correct answer	AEF	1
+1	41	1z0-071	Can anyone please explain why option E is the right answer here? why not C?		1
+1	42	1z0-071	answer CEF	CE	1
+2	42	1z0-071	You can drop a column that is referenced by another column with CASCADE CONSTRAINTS clause (E), so I only find here 2 correct answers (CF)	CF	2
+3	42	1z0-071	CEF for me	CEF	1
+4	42	1z0-071	For E, using cascade constraints, I was able to delete a primary key column that was referenced by a foreign key. C and F seem like the only truly correct options.		3
+5	42	1z0-071	If use have on delete then E is indeed right	CEF	1
+6	42	1z0-071	CF are the most correct, the other options have some special cases	CF	2
+7	42	1z0-071	E is partial correct because you can use ON DELETE clause		4
+1	43	1z0-071	the correct answer is B and e and F		1
+2	43	1z0-071	what that is mean no segment about view		1
+3	43	1z0-071	I don't understand the answer E. How can views refers to non-existent table ?		4
+4	43	1z0-071	select object_id, object_name from user_objects In this table you will also find views so they do have an object number. Views have no segment since they don't take up physical space	BEF	4
+1	44	1z0-071	1. CREATE GLOBAL TEMPORARY TABLE my_temp_table ( id NUMBER, description VARCHAR2(20) ) ON COMMIT PRESERVE ROWS 2. INSERT INTO my_temp_table VALUES (1, 'ONE'); 3. Commit; 4. ALTER TABLE my_temp_table ADD ID_1 VARCHAR(20); --> ORA-14450: attempt to access a transactional temp table already in use 5. drop table my_temp_table; --> ORA-14452: attempt to create, alter or drop an index on temporary table already in use 6. truncate table my_temp_table; 7. drop table my_temp_table;		13
+2	44	1z0-071	How can someone answer A and take this exam?	CE	1
+3	44	1z0-071	ANSWER CE	CE	1
+4	44	1z0-071	Here is why A is wrong: ❌ A. To drop the table in this session, you must first truncate it. False. Truncating is not required before dropping a table in Oracle. You can drop a temporary table at any time (assuming permissions). ✅ No dependency on truncation.	CE	1
+5	44	1z0-071	ANSWER CE	CE	1
+6	44	1z0-071	A. Incorrect. Dropping a table is unrelated to whether it has been truncated. If you have sufficient privileges, you can drop the table directly without needing to truncate it first. B. Incorrect. In a global temporary table, data is isolated per session, and other sessions cannot see the data in the current session, even if it has been committed. C. Correct. If you have sufficient privileges, you can modify the table structure in the current session, including adding new columns. D. Incorrect. Generally, you cannot add a foreign key to a global temporary table because a foreign key requires referencing a permanent table, and the rows in a global temporary table are cleared at the end of the session. E. Correct. With a global temporary table using ON COMMIT PRESERVE ROWS, all data inserted during the session will be automatically cleared when the session ends.	CE	1
+7	44	1z0-071	At least in 23c C and E are correct. I haven't faced any error when adding a column, so C correct I could drop the table without truncating it first -- A incorrect	CD	1
+8	44	1z0-071	A and E, test in 19c. C in the session error ORA 14450 attempt to access a transactional temp table already in use, FIRST end session and add column, but no in the same session	AE	1
+9	44	1z0-071	You get the following error if you don't truncate table invoices_gtt drop table invoices_gtt Error report: SQL Error: ORA-14452: attempt to create, alter or drop an index on temporary table already in use 14452. 00000 - "attempt to create, alter or drop an index on temporary table already in use" *Cause: An attempt was made to create, alter or drop an index on temporary table which is already in use. *Action: All the sessions using the session-specific temporary table have to truncate table and all the transactions using transaction specific temporary table have to end their transactions.	AE	1
+10	44	1z0-071	Should be A and E tried it out	AE	1
+11	44	1z0-071	why is C wrong? google tells me its possible 'A temporary table can be altered in the same way as a permanent base table although there is no official support to toggle the behavior of the ON COMMIT clause.' -some article	CE	1
+12	44	1z0-071	You cant add an fk to a temporary table. Can't refer to it and cannot refer to another table from the temporary table. Tried it out!	AE	2
+13	44	1z0-071	AE is the answer	AE	1
+14	44	1z0-071	A is correct ,you can try execute the sql ,and you would get the err msg:ORA-03290 E is correct,when you terminate your session,the row will be deleted,you can try it.	AE	1
+15	44	1z0-071	DDL operation on global temporary tables It is not possible to perform a DDL operation (except TRUNCATE) on an existing global temporary table if one or more sessions are currently bound to that table.		2
+16	44	1z0-071	for me , correct are A. To drop the table in this session, you must first truncate it. E. When you terminate your session, the row will be deleted.		2
+17	44	1z0-071	I think A and E are correct. You have a row inserted, so first you have to truncate the table in order to drop it. When you end the session, the table will be dropped, what it means that the row will be also deleted. Please correct me if I am wrong.		1
+1	45	1z0-071	A. The names of employees earning the maximum salary will appear first in an unspecified order: Because if there more than one employ with the same salary the order is unspecified cuz both will use 'A' letter. B. All remaining employee names will appear in descending order. Because there is last_name DESC I should just google the answers instead of depending on the ones here...	AB	6
+2	45	1z0-071	I tested, D & F are right. Order by 'A' means nothing, are not sorted. all of salary > avg salary rows that are not sorted at first, then they are sorted by 'last_name DESC;' at the end of query.	DE	1
+3	45	1z0-071	see answer by ninjax_m further down: D. All remaining employee names will appear in ascending order. Ascending is default ordering. case - else outputs employee name that should be sorted ascending. F. The names of employees earning the maximum salary will appear first in descending order. They appear first because of 'A' , then after that they are sorted by name, but in descending order (2nd order by clause).	DF	1
+4	45	1z0-071	B. All remaining employee names will appear in descending order. Correct: The last_name DESC clause ensures this. F. The names of employees earning the maximum salary will appear first in descending order. Correct: The last_name DESC clause ensures this.	BF	1
+5	45	1z0-071	A and B IS CORRECT ANSWER		1
+6	45	1z0-071	Chat GPT says A, B The two correct answers are: A. The names of employees earning the maximum salary will appear first in an unspecified order. In the CASE statement, when the employee's salary matches the maximum salary (MAX(salary)), the value 'A' is assigned. Since 'A' comes before any other string alphabetically, employees with the maximum salary will be listed first. However, the order of employees with the maximum salary is unspecified unless there is a secondary sort defined for this group (which is not in this query). B. All remaining employee names will appear in descending order. After the maximum salary employees are displayed, all other employees will be ordered by their last names in descending order due to the clause ORDER BY last_name DESC.		1
+7	45	1z0-071	DF is correct	DF	2
+8	45	1z0-071	DF is the correct create table emp(last_name varchar2(100), salary number); insert all into emp values('Shri',5000) into emp values('van',5000) into emp values('ben',15000) into emp values('zoo',15000) into emp values('cat',4000) select * from dual; output: zoo ben Shri cat van		4
+9	45	1z0-071	A. The names of employees earning the maximum salary will appear first in an unspecified order: Because if there more than one employ whit the same salary the order is unspecified. B. All remaining employee names will appear in descending order. Because there is last_name DESC	AB	2
+10	45	1z0-071	DF is correct	DF	2
+11	45	1z0-071	D/E ARE CORRECT.	DE	1
+12	45	1z0-071	DF is correct, I have checked in DB	DF	2
+13	45	1z0-071	DF is correct		1
+14	45	1z0-071	DF is correct	DF	2
+15	45	1z0-071	BE is correct		2
+16	45	1z0-071	Can someone explain me why D and F are correct?		1
+1	46	1z0-071	ChatGPT says also C and D: True Statements: C. When creating an external table, data can be selected from another external table or from a table whose rows are stored in database blocks. This statement is correct because external tables can be created based on data in other external tables, as well as regular database tables. This flexibility allows for various data processing scenarios where data can be accessed from multiple sources. D. Creating an external table creates a dump file that can be used by an external table in the same or a different database. This statement is also true. The ORACLE_DATAPUMP access driver allows the creation of dump files that can be utilized across different databases. This enables data movement and integration between Oracle databases effectively.		1
+2	46	1z0-071	BD IS CORRET FOR SURE	BD	2
+3	46	1z0-071	https://www.examtopics.com/discussions/oracle/view/22606-exam-1z0-071-topic-2-question-60-discussion/	CD	3
+1	47	1z0-071	The first query is syntactically incorrect. You cannot use the COUNT function in the WHERE clause. The second query is also incorrect. The HAVING clause is used to filter the results of an aggregation, and it should be used after the GROUP BY clause, not after the WHERE clause. The third query is also incorrect for the same reason as the second one. The HAVING clause should come after the GROUP BY clause. The fourth query is correct and will work as expected. It filters rows where the department_id is not equal to 90 using the WHERE clause, groups the remaining rows by department_id, and then applies the HAVING clause to count the rows within each group and filter out groups where the count is greater than or equal to 3.		7
+1	67	1z0-071	Oracle documentation says: “In set operations, two NULLs are considered equal when determining duplicates.”	D	1
+2	47	1z0-071	A will fail because of the use of COUNT(*) in the WHERE clause. In SQL, aggregate functions like COUNT(*) should be used in the HAVING clause, not the WHERE clause. The WHERE clause is applied before the grouping (aggregation), so you can't filter on the result of COUNT(*) until after the data has been grouped.		1
+3	47	1z0-071	A is the correct answer		1
+4	47	1z0-071	Ignore semicolon , A will fail .		1
+5	47	1z0-071	C is wrong Because HAVING Clause come under group by clause		1
+6	47	1z0-071	A if you correct the semicolon to each and every query A the one that is failing with ORA-00934: group function is not allowed here		2
+7	47	1z0-071	D is the right answer. Works fine and AB and C are incorrect by semicolon		2
+8	47	1z0-071	Don't pay attention about semicolon and the answer is A. Order of HAVING and GROUP BY doesn't matter. WHERE is not required in statement.		2
+9	47	1z0-071	A B are incorrect answers		1
+10	47	1z0-071	ABC are incorrect for semicolon and even for HVAING should comes after GROUP BY clause.		1
+11	47	1z0-071	A IS NOT correct for semicolon and also count is not applied to where clause		1
+12	47	1z0-071	It's a mess! the first three are incorrect for the semicolon		4
+1	48	1z0-071	B is not correct because "when found then" isnt valid syntax C doesnt have an on clause D also has a "when found then" which isnt valid		7
+1	49	1z0-071	its asking for complete weeks so its B		33
+2	49	1z0-071	B. Rounding up gives then employees extra days for their "complete" weeks. B would make more sense.		11
+3	49	1z0-071	B, Truncate not round for complete week.		2
+4	49	1z0-071	The correct answer is B. C doesn't have sense		1
+5	49	1z0-071	B. its asking for completed weeks (TRUNC not ROUND) and order by DESC.		2
+6	49	1z0-071	Moderator, please change the correct answer to B. Currently it is C which is incorrect as the order needs to be descending.		2
+7	49	1z0-071	There is no department in the table.. I also vote for B because of complete weeks, starting from longest period of time		1
+8	49	1z0-071	The answer should be changed to A or B because both are correct. By no means C is correct, it violates the last requirement LONGEST SERVING ON TOP.		1
+9	49	1z0-071	b is correct		3
+10	49	1z0-071	A & B, Both are correct. More precise is B. The requirement “output must be sorted by the number of weeks, starting with the longest” means the sorting order MUST be DESC on Tenure (High -- Low) Since in C & D, the order by tenure will adopt ASC by default, it will be from low -High so lowest tenure will be on top of output and highest tenure at bottom.		1
+11	49	1z0-071	B is the correct answer		3
+12	49	1z0-071	Are you kidding me? Why paying for incorrect answers? Obviously the answer is B!		7
+13	49	1z0-071	Answer B. Complete weeks with trunc		3
+14	49	1z0-071	B would be more accurate since it does not give extra days by rounding		2
+15	49	1z0-071	how to filter department = 90 when theres no Department or Dept_ID in the table... All options must be wrong.		6
+16	49	1z0-071	Answer is B, complete weeks.		1
+17	49	1z0-071	I would say A. If we have 5 working days in a week, then Round will give us the correct result. And as we were asked to show employees, who serves longer, first, then we should order by desc. So, I do not understand why correct answer is C ...		1
+1	50	1z0-071	B. PRODUCT_PRICE can be used in an arithmetic expression even if it has no value stored in it. Why? Because while the result is NULL, the expression itself is valid SQL and won’t cause an error.	BF	1
+2	50	1z0-071	EXPIRY_DATE cannot be used in ALL arithmetic operators As there is no information on whether PRODUCT_ID contains duplicate values, we cannot determine whether PK can be assigned on it.	BD	1
+3	50	1z0-071	You can add NULL to a number it will result in NULL	BF	2
+4	50	1z0-071	BF correct	BF	1
+5	50	1z0-071	We dont know if there's any duplicate values for the id column so how do we know if it can be a PK	BD	1
+6	50	1z0-071	B's correct, so is F	BF	1
+7	50	1z0-071	BF correct, see discussion on same question: https://www.examtopics.com/discussions/oracle/view/8221-exam-1z0-071-topic-1-question-229-discussion/	BF	1
+8	50	1z0-071	B is wrong, absence of data means null. An arithmetic operation with a null value always yields null		2
+9	50	1z0-071	BF are correct	BF	2
+10	50	1z0-071	Expiry_DATE cannot be used in arithmetic expressions -> FALSE.		1
+11	50	1z0-071	why expiry date can not be used in arithmetic expressions ?		1
+1	51	1z0-071	Correct answer: C and E		13
+2	51	1z0-071	AB -> typos CE -> fails		5
+3	51	1z0-071	A - logical typo but still will work B - Won't work because if _ is missing oracle does not recognize column (invalid identifier) C - Won't work because you can't use aliases in where clause D - Works E - The same as C F - Works Answers : A, C, E Tested on Oracle live		1
+4	51	1z0-071	C and E because of the alias used in the where clause		4
+5	51	1z0-071	BCE fail. Tested all.		4
+6	51	1z0-071	a, b is typo error hence answer is CE because we cant use column aliase in the where clause Answer CE		2
+7	51	1z0-071	a,b,c,e will fail. Pick 2 :)		2
+8	51	1z0-071	A -- no comma separator between column names B- wrong column name last name it should be Last_Name		2
+9	51	1z0-071	CE is correct		1
+10	51	1z0-071	what about B. select first_name, last name from employees; - Will result in ORA-00904 invalid Identifier		4
+11	51	1z0-071	Cannot use aliases in WHERE clause: ORA-00904: "ANNUAL_SALARY": invalid identifier		5
+1	52	1z0-071	You have to use double quotes to refer to the table names	B	2
+2	52	1z0-071	You have to use double quotes to refer to the table names since you can't create a table named 123 using regular means	B	1
+3	52	1z0-071	Why wont Option D work when it works for me.		1
+4	52	1z0-071	Object Quoted Names. https://docs.oracle.com/en/database/oracle/oracle-database/21/sqlrf/Database-Object-Names-and-Qualifiers.html#GUID-75337742-67FD-4EC0-985F-741C93D918DA	B	1
+5	52	1z0-071	las 4 me salen ERROR		1
+1	53	1z0-071	A and B can co-exist. Answer should be ABD.		6
+2	53	1z0-071	D is worng: https://docs.oracle.com/cd/B19306_01/server.102/b14200/statements_9012.htm When you drop a table, any indexes on the table are dropped and put into the recycle bin along with the table. If subsequent space pressures arise, then the database reclaims space from the recycle bin by first purging indexes. In this case, when you flash back the table, you may not get back all of the indexes that were defined on the table.		6
+3	53	1z0-071	A,B and D	AB	1
+4	53	1z0-071	ChatGPT find E also correct: E. A table belonging to one user cannot have an index that belongs to a different user. Indexes must belong to the same schema as the table. This means that if a table is owned by one user (in one schema), an index on that table must be created within the same schema. The system won’t allow you to create an index on a table that belongs to one user while placing the index under another user’s schema.		1
+5	53	1z0-071	D can not be correct. Indexes are sent to the recycle bin as well	AB	1
+6	53	1z0-071	D is definitely not correct since index are moved to recycle bin not permanently removed		2
+7	53	1z0-071	D is wrong. When a table is moved to the recycle bin, indexes on that table are also moved to the recycle bin and can be restored at the same time as the table.	AB	1
+8	53	1z0-071	AB exactly	AB	1
+9	53	1z0-071	a and b. I tried E out and you can create an index on someone else's table	AB	3
+10	53	1z0-071	for me ABE	AB	2
+11	53	1z0-071	D is wrong, indexes can be restored	AB	3
+12	53	1z0-071	A is correct as well, it should be ABD.		1
+13	53	1z0-071	BD are correct	BD	1
+14	53	1z0-071	ABD it should be		1
+1	54	1z0-071	Union all works with clob.	CE	6
+2	54	1z0-071	Set operations cannot be performed on BLOB, CLOB, BFILE, VARRAY, or nested table columns. BCE is the Answer	BE	6
+3	54	1z0-071	B,C & E All correct		3
+4	54	1z0-071	CB The set operators are not valid on columns of type BLOB, CLOB, BFILE, VARRAY, or nested table. https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/The-UNION-ALL-INTERSECT-MINUS-Operators.html#GUID-B64FE747-586E-4513-945F-80CB197125EE		1
+5	54	1z0-071	Should be C and E. Tried it out !	CE	3
+6	54	1z0-071	B: this option is wrong. we can use UNION ALL with 2 tables having columns with CLOB datatype. But we cannot use UNION,INTERSECT and MINUS SET operators as it performs removal of duplicate and sorting implicitly and could not work with CLOB.		1
+7	54	1z0-071	B should be included into the TRUE answer: https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/The-UNION-ALL-INTERSECT-MINUS-Operators.html#GUID-B64FE747-586E-4513-945F-80CB197125EE The set operators are subject to the following restrictions: The set operators are not valid on columns of type BLOB, CLOB, BFILE, VARRAY, or nested table. The UNION, INTERSECT, and MINUS operators are not valid on LONG columns. If the select list preceding the set operator contains an expression, then you must provide a column alias for the expression in order to refer to it in the order_by_clause. You cannot also specify the for_update_clause with the set operators. You cannot specify the order_by_clause in the subquery of these operators. You cannot use these operators in SELECT statements containing TABLE collection expressions.		1
+8	54	1z0-071	CE is the answer None of the set operator can be used with CLOB -False The set operator which is excluding duplicate rows (intersect,minus,union) will fail to compare the LOB data type. Union all operator doesn't throw any error if it contains LOB datatype		2
+9	54	1z0-071	https://docs.oracle.com/database/121/SQLRF/queries004.htm#SQLRF52341		1
+10	54	1z0-071	BCE per link.		2
+11	54	1z0-071	BCE it is for sure		2
+12	54	1z0-071	Checking provided link, valid are BCE		1
+1	55	1z0-071	for Book.seq currval- is there a logical error despite the statement does execute?		1
+2	55	1z0-071	How not null and primary key can be set on the same column as primary key = not null + unique key ? I checked it is possible but technically it should not work in that way		1
+3	55	1z0-071	Can any one explain A,D are the correct answers		1
+4	55	1z0-071	CURRVAL might have a null value so option C may not work.		1
+1	56	1z0-071	multiple row subqueries return multiple row with one column . then how D could be the answer.		1
+2	56	1z0-071	A is wrong due to word ALWAYS. it is not necessary multiple row sub query always return multiple rows, it can return one row also depends on DB. BCD is correct		4
+3	56	1z0-071	BCD, https://www.w3resource.com/sql/subqueries/multiplee-row-column-subqueries.php	BCD	2
+4	56	1z0-071	A Must to be also true because it severals rows which are values	ABC	2
+1	57	1z0-071	AEF is 100% correct.		1
+2	57	1z0-071	AEF for me	AEF	2
+3	57	1z0-071	why not ADE? will E work? when we add a new column with default value, will it use that default value automatically for all the existing rows? im not sure, I know that it will do so for new ones though. as for D, shouldnt it be possible? as dates are stored as numeric value in the DB from what I know..	ADE	1
+4	57	1z0-071	AEF B is wrong an additional column will appear at the end C is wrong default value will affect rows that will be inserted after creating default constraint		4
+1	58	1z0-071	why D is not correct ?		1
+2	58	1z0-071	I thought that the option "A" for this question would apply the same reasoning as the question 50, where the option that said "PRODUCT_PRICE can be used in an arithmetic expression even if it has no value stored in it." was justified by saying "it doesn't make sense, it's not advisable, but it can be done".		3
+3	58	1z0-071	Inner join can be done on different tables . Same table is called self join		4
+4	58	1z0-071	How is E wrong?		1
+1	59	1z0-071	Not C. Look out for *only*	BDG	3
+2	59	1z0-071	BDG is correct	BDG	1
+3	59	1z0-071	BDG are correct		3
+1	60	1z0-071	It could not be A, because string doesn't match NLS format (RR not RRRR for year). E is correct in my opinion because CONCAT can work only with strings, you need to use TO_CHAR for both arguments (date and number).	BE	1
+2	60	1z0-071	ABC are correct		3
+3	60	1z0-071	A and C can't work because it doesn't match the NLS date format, D works fine by implicit conversion , so it's BE	BE	2
+4	60	1z0-071	why is E wrong?		1
+5	60	1z0-071	AB are correct, I tested it.	AB	3
+6	60	1z0-071	C. invoice_date > '01-02-2019': This statement uses implicit conversion. The date string is implicitly converted to a DATE type using the default date format. D. qty_sold = '0554982': This statement requires explicit conversion. You need to explicitly convert the string to a NUMBER to compare it with the QTY_SOLD column.	CD	1
+7	60	1z0-071	Can anyone please explain the correct answers? not quite getting the sense... thank you.		1
+1	61	1z0-071	✅ B. Outer joins can be used when there are multiple join conditions on two tables. ➡️ True – You can absolutely have multiple conditions in an outer join using AND, and it works across columns. A & F are obvious.	ABF	1
+2	61	1z0-071	Full Outer join returns rows from both tables regardless of match. Inner join only return matched rows	ABF	1
+3	61	1z0-071	From chagpt A. Option A is true. A full outer join returns both matched rows and unmatched rows from the joined tables. Matched rows are those that satisfy the join condition, while unmatched rows are those that do not have a matching row in the other table. B. Option B is true. Outer joins can be used when there are multiple join conditions on two tables. This allows for more complex join conditions and provides flexibility in joining tables based on multiple criteria. F. Option F is true. An inner join returns only the matched rows from the joined tables. It filters out the unmatched rows, resulting in a result set that contains only the rows that satisfy the join condition.	ABF	1
+4	61	1z0-071	What exactly is the Oracle syntax here?		1
+5	61	1z0-071	QUESTION UNMATCHED COLUMN ARE THEY NOT PRODUCED BY LEFT AND RIGHT OUTER JOINS		1
+1	62	1z0-071	1. The ORDER BY clause uses the column of the first SELECT query. 2. By default, the first column of the first SELECT query is used to sort the ouput in ascending order. 3. The ORDER BY clause accepts the column name or an alias. 4. You can use ORDER BY clause only once in a compound query. 5. The ORDER BY clause does not recognize the column names of the second SELECT query. To avoid confusion over column names, it is common practice to ORDER BY column positions.		2
+2	62	1z0-071	A for sure		1
+3	62	1z0-071	@cspro2410 A)If your running both select without order by means it will union and return only 2 columns and after giving order by 1,2 it will run successfully. This is because 1,2 represents two columns. B)In here it will union and it return one column only but in order by its given 1,2 so will fail C)Here it will union and it return one column but order by is happening on 3rd column D)Here union and it return two columns but order by happening on 3rd,4th column so a is correct		4
+4	62	1z0-071	why C is incorrect ?		1
+1	63	1z0-071	A,B and E by chatGpt		1
+2	63	1z0-071	B & D is correct only. E is not		1
+3	63	1z0-071	IN E, the column alias avg_salary from the sub query is used in the WHERE clause of the main query. Is that allowed?		2
+1	64	1z0-071	ACG are correct	ACG	1
+2	64	1z0-071	HERE QUES 3 AND 64 ARE SAME CONCEPT, U PROVIDEd answer for question 3 is oracle joins is better than ansi join, now you are saying different annwer	ACF	1
+3	64	1z0-071	ACG. E is incorrect, because the natural join exists only in SQL:1999 (ANSI)		1
+4	64	1z0-071	ACG is correct	ACG	1
+5	64	1z0-071	E is also correct. The newer Oracle syntax does support Natural Join. https://docs.oracle.com/javadb/10.8.3.0/ref/rrefsqljnaturaljoin.html		1
+1	65	1z0-071	D. COALESCE(expr1, expr2, ..., exprN) returns the first non-null expression from the list and stops evaluating after that. E. In NVL2(expr1, expr2, expr3), if expr1 is not null, then expr2 is returned, otherwise expr3. So, the first expression can influence the result, but isn’t returned.	DE	1
+2	65	1z0-071	A can perform implicit expression : wrong D: First expression of NVL2 is never returned, it's only used for evaluation: true	DE	1
+3	65	1z0-071	https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/NVL.html	DE	1
+4	65	1z0-071	A is not necessarily be true. DB applies implicit conversation which sometimes will not work. https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/NVL.html		1
+5	65	1z0-071	First expression of NVL2 is never returned, it's only used for evaluation.	DE	3
+6	65	1z0-071	A: NVL, does implicit conversion. Could have expressions of different datatype	DE	4
+7	65	1z0-071	A: NVL must have expressions of same datatype my inputs- here in option used must have hence it is not right SELECT NVL(ENAME, 0) FROM EMP; -- Here Ename is Varchar2 and we are passing 0 Number data type as second parameter. In this scenario, NVL working for 2 different datatypes.		1
+8	65	1z0-071	DE is correct the data types of the nvl are possible to explicitly convert the data type		2
+9	65	1z0-071	D IS CORRECT COALESCE () BEACUSE Return first not null expression in the expression list.		1
+10	65	1z0-071	E IS CORRECT The first expression in NVL2 is never returned, it is only used to determine whether expression2 must be returned, or expression3.		1
+11	65	1z0-071	E is not right because NVL2 (expr1, expr2, expr3) expr1 is the source value or expression that may contain null expr2 is the value returned if expr1 is not null expr3 is the value returned if expr1 is null F is not right because The COALESCE() function returns the first non-null value in a list.	AD	1
+12	65	1z0-071	AD is correct, if not then please correct me.	AD	1
+13	65	1z0-071	DE is correct: D. COALESCE stops evaluating the list of expressions when it finds the first non-null value. TRUE https://www.oracletutorial.com/oracle-comparison-functions/oracle-coalesce/ E. The first expression in NVL2 is never returned. TRUE If expr1 is not null, then NVL2 returns expr2. If expr1 is null, then NVL2 returns expr3. (https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/NVL2.html)	DE	2
+14	65	1z0-071	A, D is correct	AD	1
+15	65	1z0-071	It should be AD. A: it is true that oracle can make implicit conversions but still the NVL function requires that the two exps be of the same data type. Hence A is correct E is wrong because if we specified that we want the same exp to be returned when it's not null it would return its first exp. Tried this in Toad and got 'h1' select nvl2('h1', 'h1', 4) from dual;		2
+16	65	1z0-071	it's also true the A, select nvl(1,'pippo') from dual returns ora-01722		1
+1	66	1z0-071	D because it is union	D	1
+2	66	1z0-071	Union will get rid of duplicate so only 1 row remaining	D	1
+3	66	1z0-071	It is not union all to return duplicated rows	D	1
+4	66	1z0-071	D checked select 1 as id, 'john' as first_name from dual union select 1, 'john' as name from dual order by 1;		1
+16	91	1z0-071	DE Correct Answer		1
+2	67	1z0-071	Important SQL Rule: In Oracle SQL, NULL is not equal to another NULL. That means: sql Copy Edit NULL = NULL → FALSE (or unknown, technically) The INTERSECT operator returns only the distinct rows that are equal in both sets. Since NULL ≠ NULL, even if the rows look the same, Oracle treats them as not equal thus ERROR!	A	1
+3	67	1z0-071	INTERSECT will only keep rows that exists for both tables so only 1 row remaining	D	1
+4	67	1z0-071	Checked	D	1
+5	67	1z0-071	D tested select 1 as id, 'john' as first_name, NULL as commission from dual intersect select 1, 'john' as name, null from dual order by 3;		2
+6	67	1z0-071	It returns 1 row, because the values are the same. I do tested as well	D	2
+7	67	1z0-071	tested on 19c, returns 0 rows.		1
+1	68	1z0-071	the answer is A and B tested		1
+2	68	1z0-071	how did u extract only text from this text image		1
+3	68	1z0-071	AB tested		2
+4	68	1z0-071	why is D wrong?		1
+1	69	1z0-071	A is not successful DML	BCD	2
+2	69	1z0-071	For A to be true the statement would have to be syntactically valid.	BCD	2
+3	69	1z0-071	Should be BCD: A - FALSE - it is syntax error therefore does not implicitly commit: Oracle Database issues an implicit COMMIT under the following circumstances: Before any syntactically valid data definition language (DDL) statement, even if the statement results in an error After any data definition language (DDL) statement that completes without an errorhttps://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/COMMIT.html#GUID-6CD5C9A7-54B9-4FA2-BA3C-D6B4492B9EE2		1
+4	69	1z0-071	A is wrong, ddl is still in compilation mode, so no ddl considered.	BCD	1
+5	69	1z0-071	A - false since it is syntax error (checked ) if it is run time error then it commits the transaction. B is true The SHUTDOWN TRANSACTIONAL waits for all uncommitted transactions to complete before shutting down the database instance. This saves the work for all users without requesting them to log off. BCD would be the right answer		1
+6	69	1z0-071	Chat GPT says A is correct and B is wrong. as SHUTDOWN TRANSACTIONAL functionality is that it waits all transactions to end then it shuts down the database, but he says since it was 'successful' then that means that the database already was shut down before the user committed. I think there is some logical problem with the answer.. its confusing, how is it successful but there was still a transaction in progress?	ACD	1
+7	69	1z0-071	ALTER TABLE and CREATE INDEX , which do cause a commit. Oracle performs an implicit commit after any SQL DDL (Data Definition Language) statement (even if this DDL statement fails). This includes table / index creation. So no open transaction should exist.		1
+8	69	1z0-071	I CHECKED making an experiment and A IS CORRECT answer. Looks like just CREATE TABLE AS creates a COMMIT (error was placed later - I used unexisting table as a source)		2
+9	69	1z0-071	Don't know why A is correct answer		1
+10	69	1z0-071	BCD is correct.	BCD	3
+11	69	1z0-071	B should be correct, because the session will be killed after the last transaction will be committed or the user will use rollback... A is incorrect because the statement failed with a syntax error	BCD	2
+12	69	1z0-071	why is not B? C used SQLPLUS is right but use sql developer ....Maybe not		3
+1	70	1z0-071	Not NULL constraints can only be set at column level not table level. Each table have only have one primary key constraint with multiple foreign key constraints	DF	1
+2	70	1z0-071	D and F are true	DF	1
+3	70	1z0-071	https://docs.oracle.com/javadb/10.8.3.0/ref/rrefsqlj13590.html	DF	2
+4	70	1z0-071	What does D mean?		1
+5	70	1z0-071	why A not correct?		2
+1	71	1z0-071	Selected Answer: AF		1
+2	71	1z0-071	UNIQUE and PRIMARY key constraints will have unique index created automatically	AF	3
+1	72	1z0-071	create table channels_order ( channel_type varchar2(50), month date, code varchar2(5), sales number); insert into channels_order values('internet','2009-09','GB',16569); insert into channels_order values('internet','2009-09','US',124224); insert into channels_order values('internet','2009-10','GB',14539); insert into channels_order values('internet','2009-10','US',137054); insert into channels_order values('direct sales','2009-09','GB',85223); insert into channels_order values('direct sales','2009-09','US',638201); insert into channels_order values('direct sales','2009-10','GB',91925); insert into channels_order values('direct sales','2009-10','US',682297); select channel_type,month,code,sum(sales) sums from channels_order ch group by channel_type,rollup(month,code);	A	1
+2	72	1z0-071	D is correct, can't say about rollup		1
+3	72	1z0-071	A for me	A	1
+4	72	1z0-071	D is the correct answer	D	1
+5	72	1z0-071	Ok, out of curiosity I added the first group to see the result... 16569+124224+14539+137054 = 292386. A difference of 1?? Why? Could it have been a sum of undisplayed decimal values?	A	1
+6	72	1z0-071	As per my understanding from below link I think A is correct. https://www.oracletutorial.com/oracle-basics/oracle-rollup/#:~:text=The%20ROLLUP%20works%20as%20follows%3A%201%20First%2C%20calculate,to%20left.%203%20Finally%2C%20calculate%20the%20grand%20total.	A	1
+7	72	1z0-071	D is the correct answer		2
+1	73	1z0-071	Not valid to compare NULL to any value must use IS NOT NULL or IS NULL	C	2
+2	73	1z0-071	C is OK, last comment was a mistake.	C	2
+3	73	1z0-071	AD are the correct answers	A	1
+4	73	1z0-071	Distinct should come first after select, also we use is not null so it is C.		2
+1	74	1z0-071	AD are the correct answers		29
+2	74	1z0-071	A D create table briks ( brick_id number(38) , shape varchar2(30) , color varchar2(30) , weight number ); create table bricks_stage( weight number , shape varchar2(30) , color varchar2(30)); --A + select brick_id , shape from briks minus select weight, color from bricks_stage; --B - select * from briks minus select * from bricks_stage; -- C - select shape, color from briks minus select weight, color from bricks_stage; -- D + select shape, color from briks minus select color, shape from bricks_stage; --E select shape, color, weight from briks minus select * from bricks_stage;		7
+3	74	1z0-071	A and D are the correct options		1
+4	74	1z0-071	Answer is A, D is not correct because of the ordering of the columns (datatype mismatch)		1
+5	74	1z0-071	AD is correct. The Data type and number of columns have to be same.		1
+6	74	1z0-071	AD for me		2
+17	91	1z0-071	DE is correct		1
+7	74	1z0-071	AD, number of columns and order types should match		2
+8	74	1z0-071	if D works, why wont E?		1
+9	74	1z0-071	AD are the correct answers		1
+10	74	1z0-071	AD should be the correct answer since the data types match with same number of columns		1
+11	74	1z0-071	AD are the correct answers		1
+12	74	1z0-071	AD are the correct		2
+13	74	1z0-071	It is no brainer. AD!		2
+14	74	1z0-071	AD is Correct answer. Use Minus operator to return all distinct rows selected by the first query, but not present in the second query result set. In Minus operator, the number of columns must be the same and data type of columns being selected by the SELECT statements in queries must belong to the same data type group in all the SELECT statements used in the query. The names of the columns, however, need not be identical.		2
+15	74	1z0-071	A,D are correct		3
+16	74	1z0-071	AD ARE CORRECT. The others show errors.		1
+17	74	1z0-071	why C inccorect?		2
+1	75	1z0-071	Inner query is run first then update query is ran	BE	1
+2	75	1z0-071	BE Correct	BE	1
+3	75	1z0-071	BE ARE CORRECT.	BE	1
+1	76	1z0-071	B is correct answer From first table it will take 2 records, from second table it will take 3 records. After cross join we will have 6 records (2x3).		6
+2	76	1z0-071	Ans is 4 cause each manager from from emp table (clark and jones) is matched with both dept table (10,20)---2*2=4	A	1
+3	76	1z0-071	B IS CORRECT.	B	3
+4	76	1z0-071	B is correct because in emp table he take all manager rows then in dept he take 10 and 20 will be 3*2=6		2
+5	76	1z0-071	3 x 2 = 6 so B	B	2
+1	77	1z0-071	CURRENT_TIMESTAMP returns a timestamp data type with time zone	B	1
+2	77	1z0-071	Correct is B	B	1
+3	77	1z0-071	LOCALTIMESTAMP returns a TIMESTAMP value while CURRENT_TIMESTAMP returns a TIMESTAMP WITH TIME ZONE value B is correct		1
+1	78	1z0-071	C is correct because of 3rd condition: 'Be used for calculating interest for the number of days the loan remains unpaid'	C	1
+2	78	1z0-071	C. The data type of each column returned by the second query must be implicitly convertible to the data type of the corresponding column returned by the first query. The data types must be implicitly convertible between corresponding columns. For example: A NUMBER column in the first query can correspond to a VARCHAR column in the second query, provided Oracle can implicitly convert the VARCHAR to a NUMBER. E. The number, but not names, of columns must be identical for all select statements in the query. All queries in a UNION, INTERSECT, or MINUS statement must return the same number of columns, but the column names do not have to match.	C	1
+3	78	1z0-071	C is correct.	C	1
+4	78	1z0-071	C is correct because it fulfill all the condition. 1) store without conversion 2) store up to 99 years and 11 month 3) can be use for calculation		1
+5	78	1z0-071	The INTERVAL DAY TO SECOND data type is used to store a period of time in terms of days, hours, minutes, and seconds. It does not support storing a loan period of up to 10 years, as it does not have a year component. To meet the requirements of storing a loan period of up to 10 years and supporting date arithmetic without using conversion functions, you should use the INTERVAL YEAR TO MONTH data type instead. This data type allows you to store a period of time in terms of years and months, which aligns with the requirement of storing a loan period.	A	1
+6	78	1z0-071	ChatGPT came back with C (INTERVAL DAY TO SECOND): -This data type stores a period of time in terms of days, hours, minutes, and seconds. -It supports date arithmetic and can precisely represent the number of days a loan remains unpaid, making it suitable for calculating daily interest. -This seems like the most appropriate choice for the given requirements. Based on the analysis: The most appropriate choice is C. INTERVAL DAY TO SECOND because it fulfills all the requirements. Options A, B, D, and E are not suitable because they either don't consider the number of days specifically (A) or represent specific points in time rather than durations (B, D, E). -------- Please correct me if I'm wrong.	C	1
+7	78	1z0-071	ChatGPT comes back with INTERVAL YEAR TO MONTH		1
+8	78	1z0-071	B is correct	B	1
+9	78	1z0-071	C is correct		1
+1	79	1z0-071	C and E. A. It is a misleading answer because Oracle does not require 'group match' , this is wrong. C. It is Oracle's behavior, second query columns must be 'implicitly convertible' to the first. So answers: C and E	CE	1
+2	79	1z0-071	Not A. because "Data type group" isn’t a strict SQL requirement — Oracle uses implicit conversion, not strict groups.	CE	2
+3	79	1z0-071	A , C and E are correct		1
+4	79	1z0-071	CE for sure 100%		4
+5	79	1z0-071	AE for me - I don't think they need to match exactly.	AE	2
+6	79	1z0-071	The data types does not need to match exactly	AE	1
+7	79	1z0-071	AE Correct	AE	1
+8	79	1z0-071	CE is 100% percent is correct		4
+9	79	1z0-071	AE are correct.	AE	1
+10	79	1z0-071	c is incorrect ->The set operators are not valid on columns of type BLOB, CLOB, BFILE, VARRAY, or nested table. i think D E are correct The UNION, INTERSECT, and MINUS operators are not valid on LONG columns. https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/The-UNION-ALL-INTERSECT-MINUS-Operators.html#GUID-B64FE747-586E-4513-945F-80CB197125EE		2
+1	80	1z0-071	According to: https://docs.oracle.com/cd/B19306_01/server.102/b14200/queries004.htm "If both queries select values of datatype CHAR of equal length, then the returned values have datatype CHAR of that length. If the queries select values of CHAR with different lengths, then the returned value is VARCHAR2 with the length of the larger CHAR value." AND "In queries using set operators, Oracle does not perform implicit conversion across datatype groups. " So DE.		5
+2	80	1z0-071	A. In a query containing multiple set operators, INTERSECT always takes precedence over UNION and UNION ALL. Correct: In queries with multiple set operators, the precedence order is: INTERSECT UNION / UNION ALL MINUS If parentheses are not used to explicitly define precedence, INTERSECT is evaluated before UNION or UNION ALL. D. CHAR columns of different lengths used with a set operator return a VARCHAR2 whose length equals the longest char value. Correct: When CHAR columns of varying lengths are combined using a set operator, Oracle returns the result as a VARCHAR2 column whose length matches the longest CHAR value in the result set.	AD	2
+1	92	1z0-071	DEF is the right answer.	DEF	1
+2	138	1z0-071	AEF Correct	AEF	1
+3	80	1z0-071	https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/The-UNION-ALL-INTERSECT-MINUS-Operators.html#GUID-B64FE747-586E-4513-945F-80CB197125EE	DE	4
+4	80	1z0-071	A. In a query containing multiple set operators, INTERSECT always takes precedence over UNION and UNION ALL. When multiple set operators are used in a query, INTERSECT has higher precedence than UNION and UNION ALL. This means that the INTERSECT operation will be evaluated before the other set operators, unless parentheses are used to explicitly define the order of operations. D. CHAR columns of different lengths used with a set operator return a VARCHAR2 whose length equals the longest char value. When CHAR columns of different lengths are combined using set operators, the result is a VARCHAR2 column with a length equal to the longest CHAR value in the result set. This is due to how Oracle handles the return type when different CHAR lengths are combined.	AD	1
+5	80	1z0-071	DE are correct	DE	4
+6	80	1z0-071	DE are the correct answer	DE	3
+7	80	1z0-071	DE are correct	DE	2
+8	80	1z0-071	DE are correct	DE	2
+9	80	1z0-071	D E are correct. source: https://docs.oracle.com/cd/B19306_01/server.102/b14200/queries004.htm	DE	2
+10	80	1z0-071	DE , tested that		1
+11	80	1z0-071	Definitely not BC	DE	1
+12	80	1z0-071	B is incorrect because it is not mandatory to have an alias for each column in the first SELECT select first_name ||''||last_name, employee_id from hr.employees union select first_name,employee_id from HR.EMPLOYEES order by 1,2; C is incorrect because the datatypes : BLOC,CLOB are not valid the set Operators. DE is the correct answer.	DE	1
+13	80	1z0-071	DE are correct	DE	1
+14	80	1z0-071	DE are correct		1
+15	80	1z0-071	I think it’s BD?		1
+1	81	1z0-071	https://www.examtopics.com/discussions/oracle/view/15644-exam-1z0-071-topic-1-question-17-discussion/	CD	1
+2	81	1z0-071	Why B incorrect?		1
+1	82	1z0-071	C , D and F are correct		1
+2	82	1z0-071	CDF CORRECT		1
+3	82	1z0-071	CDF ARE CORRECT	CDF	1
+4	82	1z0-071	CDF are correct https://moqups.com/templates/diagrams-flowcharts/erd/	CDF	2
+1	83	1z0-071	drop table orders; create table orders(order_id number , order_date date); insert into orders values(1,null); insert into orders values(2,null); insert into orders values(3,'1-jan-2019'); insert into orders values(4,'1-feb-2019'); insert into orders values(5,'1-mar-2019'); create table invoices( invoice_id number, order_id number, order_date date); insert into invoices values(1,1,null); insert into invoices values(2,2,'01-jan-2019'); insert into invoices values(3,3,null); insert into invoices values(4,4,'01-feb-2019'); insert into invoices values(5,5,'01-APR-2019'); SELECT ORDER_ID , ORDER_DATE FROM ORDERS INTERSECT SELECT ORDER_ID , ORDER_DATE FROM INVOICES; ANSWER IS B,F.	BF	11
+2	83	1z0-071	This needs an update badly. There is no question, just some tables and a query showing on this site..		10
+3	83	1z0-071	1 4 01-FEB-19	BF	1
+4	83	1z0-071	I think the question is what the result of intersect The result will only include rows where both the order_id and order_date match between the ORDERS and INVOICES tables. So, order ID 1& 4 has exact match -------- but the 4 1-Fab-2019 is not in result (if you dont consider the Typo in option F) B seems to be the answer in given circumstances		1
+5	83	1z0-071	Best answer is B. 01-FEB-2019		1
+6	83	1z0-071	Just finished this exam. Question: Which three results will be returned?		1
+7	83	1z0-071	La respuesta es la B y la F	BF	1
+8	83	1z0-071	B and F is answer- below is the result we will get. F option has typo 01-FEB-2019 orderid order_date 1 (null) 4 01-02-19		1
+9	83	1z0-071	Question is not there		1
+10	83	1z0-071	In Oracle, the INTERSECT operator is used to combine the result sets of two or more SELECT statements and returns only the rows that are common to all result sets.		1
+11	83	1z0-071	BF ARE CORRECT	BF	1
+12	83	1z0-071	BF is the answer	BF	1
+13	83	1z0-071	I already took the exam ant these question ask for 3 answers B, E, F		1
+14	83	1z0-071	Tesded: 1 null 4 01/02/19 00:00:00		3
+15	83	1z0-071	BF is the answer		1
+16	83	1z0-071	bf only if F is 01-FEB-2019 and not 01-FEB-2015 i am sorry then is B only		2
+17	83	1z0-071	is t 100% bf went we do created everything		1
+1	84	1z0-071	why isnt C correct?		1
+2	84	1z0-071	BD is correct provided there is a type on Question B, sysdate		1
+3	84	1z0-071	checked	BD	3
+4	84	1z0-071	B and D is correct answers.		2
+5	84	1z0-071	checked for E -> ORA-00932: inconsistent datatypes: expected CHAR got DATE	BD	1
+6	84	1z0-071	BD are correct	BD	2
+7	84	1z0-071	BD is the answer	BD	2
+8	84	1z0-071	verified, only BD is correct, E will throw an error ORA-00932	BD	1
+9	84	1z0-071	E is wrong ORA-00932: inconsistent datatypes: expected CHAR got DATE BD is the correct one		1
+10	84	1z0-071	BD IS 100% IF YOU GO TO CHEK		1
+11	84	1z0-071	B D if B is SELECT NVL('DATE', SYSDAte) FROM DUAL;		1
+12	84	1z0-071	Checked should be B D. E is wrong "inconsistent data type"		1
+1	85	1z0-071	D. It can be an outer join. True: A self join can indeed be an outer join. For example, you can use a left outer join or a right outer join when joining a table to itself, allowing you to retain unmatched rows from one of the instances of the table.	DEF	1
+2	85	1z0-071	Answer is B, D, F. It cannot be E. 'On' clause Must be used.	BDF	1
+3	85	1z0-071	D , E and F		1
+4	85	1z0-071	DEF for me	DEF	2
+5	85	1z0-071	DEF, D says CAN		1
+6	85	1z0-071	not sure why ain't like this	BCF	1
+2	92	1z0-071	Synonyms for HR.EMPLOYEES are dropped. When you drop a table, any synonyms that point to that table are automatically dropped because the underlying object no longer exists.	BDF	1
+3	92	1z0-071	DEF for me	DEF	3
+4	92	1z0-071	DEF is correct	DEF	1
+5	92	1z0-071	I think the same as lucemqy and jm9999	DEF	1
+6	92	1z0-071	Views and synonyms are not dropped but invalid	DEF	1
+3	138	1z0-071	A, F we all agree: B because when remote database is accessible via a database link, multitable INSERTS are widely used.	ABF	1
+1	86	1z0-071	B. It returns the date for the first Monday of the next month. Explanation: LAST_DAY(SYSDATE): This function returns the last day of the current month. NEXT_DAY(LAST_DAY(SYSDATE), 'MON'): This function returns the next Monday after the date provided (which in this case is the last day of the current month). Since the last day of the current month is used, NEXT_DAY will return the first Monday of the next month. TO_CHAR(..., 'dd "Monday for" fmMonth rrrr'): This formats the date to display the day (dd), followed by the string "Monday for", followed by the full month name (with fm removing any leading spaces), and finally the year (rrrr). Thus, the query returns the date for the first Monday of the next month formatted as specified.	B	2
+2	86	1z0-071	B correct. D is wrong. output is "06 Monday for May 2024"		1
+3	86	1z0-071	Answer is B. Tested.	B	3
+4	86	1z0-071	There should be 'Monday' instead of 'MON'	D	2
+1	87	1z0-071	C & D tested fine.	CD	1
+2	87	1z0-071	C is incorrect because subqueries using aggregate functions typically do not use HAVING clauses; rather, HAVING is used in the outer query to filter the results of aggregates		1
+3	87	1z0-071	CD for me	CD	2
+1	88	1z0-071	AD is correct	AD	2
+2	88	1z0-071	AD is correct	AD	2
+3	88	1z0-071	AD is correct		2
+4	88	1z0-071	Option A is correct. Indexes can be created on global temporary tables, allowing for efficient data retrieval and manipulation. Option D is correct. If the ON COMMIT clause is specified as transaction-specific (ON COMMIT DELETE ROWS), all rows in the global temporary table are automatically deleted after each COMMIT or ROLLBACK statement. This ensures that the table is cleared for the next transaction.		1
+5	88	1z0-071	A D are correct: D. If the ON COMMIT clause is transaction-specific, all rows in the table are deleted after each COMMIT OR ROLLBACK. ''all rows in the table are deleted'' = TRUNCATE	AD	2
+6	88	1z0-071	C isn't correct: By default, Oracle stores the data of the global temporary table in the default temporary tablespace of the table’s owner. But you can explicitly assign another tablespace to a global temporary table during table creation using the TABLESPACE clause https://www.oracletutorial.com/oracle-basics/oracle-global-temporary-table/		2
+7	88	1z0-071	AC is correct D is wrong, because : The ON COMMIT clause specifies whether data in the table is transaction-specific or session-specific: The ON COMMIT DELETE ROWS clause specifies that the global temporary table is transaction-specific. It means that ORACLE TRUNCATE THE TABLE after each commit. The ON COMMIT PRESERVE ROWS clause specifies that the global temporary table is session-specific, meaning that ORACLE TRUNCATE THE TABLE when you terminate the session, not when you commit a transaction. Delete is DML, truncate is DDL		1
+8	88	1z0-071	I think A,C		1
+9	88	1z0-071	I Think A, D. D -> If the ON COMMIT is transaction specific -> COMMIT, ROLLBACK delete rows. NOT C-> Allocation of temporal segments are done on USER TEMP TABLESPACE, at time of use table, no always in the TEMP TABLESPACE of the OWNER.		3
+10	88	1z0-071	I think are A and C		1
+1	89	1z0-071	F: Is correct.	ACF	1
+2	89	1z0-071	ACE F is incorrect		1
+3	89	1z0-071	ACF correct	ACF	1
+4	89	1z0-071	why not B?		1
+5	89	1z0-071	why is E wrong ?		1
+6	89	1z0-071	Why C is not correct?		1
+1	90	1z0-071	i am finding 3 that are correct. CEF		7
+2	90	1z0-071	I think it’s CE ?		5
+3	90	1z0-071	✅ C. sql Copy Edit INSERT INTO employees (employee_id, salary, first_name, hiredate, last_name) VALUES (101, 12100, 'John', SYSDATE, 'Smith'); This works: all required columns (EMPLOYEE_ID, LAST_NAME) are provided. The column order doesn’t have to match the table, as long as it's declared. DEPARTMENT_ID is nullable, so it's fine to omit. ✅ E. sql Copy Edit INSERT INTO employees SELECT 101, 'John', 'Smith', 12000, (SELECT SYSDATE FROM dual), 10 FROM dual;	CE	1
+4	90	1z0-071	C: Explicitly matches columns with their values. E: Uses a SELECT query to populate all columns correctly. F: Provides all values in the correct order.	CE	1
+5	90	1z0-071	CF is correct. in F, if have space between ' ' for last Name, it will be accepted. if there is no space, then not null constraint will apply.		2
+6	90	1z0-071	A, C for me. E is wrong because SELECT 101 is not correct.		1
+7	90	1z0-071	EF is correct for me as ' ' is not null...	EF	1
+8	90	1z0-071	CE definitely works tested	CE	1
+9	90	1z0-071	CD also works	CD	1
+10	90	1z0-071	CF Should be the correct answer	CF	1
+11	90	1z0-071	C, E worked. F gave me ora-01400		1
+12	90	1z0-071	E works too	CF	1
+13	90	1z0-071	CE tested		1
+14	90	1z0-071	CEF are corret. I checked in data base.	CE	2
+15	90	1z0-071	Why A is wrong?		1
+16	90	1z0-071	C E are correct. F would be ok whith an space between ' '. If you copy and paste the exact alternative from here, it works, but I imagine that the exam doesn't have that space and that's why the're only two correct options.	CE	2
+17	90	1z0-071	CE is the answer	CE	1
+1	91	1z0-071	D, E - TRUNCATE only affects rows(data), not table definition.	DE	1
+2	91	1z0-071	DE should be the correct answer	DE	3
+3	91	1z0-071	D y E son correctas.	DE	2
+4	91	1z0-071	The structure of the TEST table is still available. It is dropped only when drop the table	DE	1
+5	91	1z0-071	I think instead of TRUNCATE command DROP should be use to get option A and C as answers		1
+6	91	1z0-071	DE ARE CORRECT	DE	2
+7	91	1z0-071	DE is the answer	DE	1
+8	91	1z0-071	D and E are the correct answers.	DE	1
+9	91	1z0-071	"D" and "E" are correct.	DE	1
+10	91	1z0-071	DE are correct	DE	2
+11	91	1z0-071	DE are correct	DE	2
+12	91	1z0-071	DE are correct.	DE	2
+13	91	1z0-071	https://docs.oracle.com/database/121/SQLRF/statements_10007.htm#SQLRF01707 DE is correct answer	DE	2
+14	91	1z0-071	DE is correct A. The structure of the TEST table is removed. wrong, only content will get removed B. All the indexes on the TEST table are dropped. indexes will stay C. All the constraints on the TEST table are dropped. wrong D. Removed rows can not be recovered using the ROLLBACK command. true E. All the rows in the TEST table are removed. true		2
+15	91	1z0-071	DE are correct	DE	2
+7	92	1z0-071	For me, only EF proved to be true. The constraint was still listed in user_constraints after issuing the drop. I think ABC are definitely false and you have to pick 3 so ....	EF	1
+8	92	1z0-071	D,E,F are correct		1
+9	92	1z0-071	DEF, I think synonyms and views are invalidated but not dropped		2
+10	92	1z0-071	B,C,D are correct	BCD	2
+1	93	1z0-071	A & E doesn't work because he ORDER BY clause needs to refer to something that exists in both parts of the union (either a column position or an alias that applies to both parts).	BCD	1
+2	93	1z0-071	You can only order by column names from the first select query	BCD	3
+3	93	1z0-071	Correct answer is BCD. The ORDER BY clause does not recognize the column names of the second SELECT query. So,		2
+1	94	1z0-071	Why E is wrong? Because - * Per official Oracle documentation, you can use 'FORCE' keyword to create view over table that doesn't exists when needed. https://www.oracletutorial.com/oracle-view/oracle-create-view/	AD	1
+2	94	1z0-071	AD is correct	AD	1
+3	94	1z0-071	C and E also correct?		1
+1	95	1z0-071	D is incorrect, there is a missing single quote before the (||) operator		1
+2	95	1z0-071	A. SELECT 'The first_name is " || first_name || " FROM (select 'user' first_name from dual); --O/P = ORA-00923: FROM keyword not found where expected B. SELECT 'The first_name is ''' || first_name || '''' FROM (select 'user' first_name from dual); --O/P = The first_name is 'user' C. SELECT 'The first_name is ''' || first_name || ''' FROM (select 'user' first_name from dual); --O/P = ORA-00923: FROM keyword not found where expected D. SELECT 'The first_name is ' || first_name || '' FROM (select 'user' first_name from dual); --O/P = The first_name is user E. SELECT 'The first_name is \\" || first_name || '\\" FROM (select 'user' first_name from dual); --O/P = ORA-24450: Cannot pre-process OCI statement	BD	1
+3	95	1z0-071	BD for me	BD	1
+4	95	1z0-071	BD is correct checked	BD	1
+5	95	1z0-071	Can someone explain why B,D is correct ?		3
+6	95	1z0-071	it depends on quotation mark, since we can not copy from this question normally you have to guess where are double qoutes and where are single ones, but if it like that: SELECT 'The first_name is ' " || first_name || ' ' " FROM temp; (column name || first_name || ' ' ) SELECT 'The first_name is ' " || first_name || ' " FROM temp; (column name || first_name || ' ) SELECT 'The first_name is ' || first_name || ' ' FROM temp; ( The first_name is Jhon ) then 3 answers are right: BCD		1
+7	95	1z0-071	BD checked	BD	1
+8	95	1z0-071	Why its BD ? explain the reason logically & don't tell me I tested it. In the exam there will be no tool to test anything if something changed so we need to understand the logic please.		1
+9	95	1z0-071	BD is the answer	BD	1
+10	95	1z0-071	Who chose the correct answer?	BD	2
+11	95	1z0-071	I tried... none works.... anybody can explain even just a bit?		2
+12	95	1z0-071	tested it	BD	1
+13	95	1z0-071	*Tested in SQL* - BD are correct.		1
+14	95	1z0-071	BD is the correct answer	BD	2
+15	95	1z0-071	BD are correct	BD	2
+16	95	1z0-071	BD is correct regarding to try in SQL		2
+17	95	1z0-071	BD are correct		2
+1	96	1z0-071	From Oracle documentation: You can view all tables with columns marked UNUSED in the data dictionary views USER_UNUSED_COL_TABS, DBA_UNUSED_COL_TABS, and ALL_UNUSED_COL_TABS. Source: https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/ALTER-TABLE.html	BC	1
+2	96	1z0-071	C and D		1
+3	96	1z0-071	CE is correct you can see number of unused columns but not their names in the data dictionary	CE	1
+4	96	1z0-071	B C E are all correct according to Oracle "SET UNUSED Clause" https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/ALTER-TABLE.html#GUID-552E7373-BF93-477D-9DA3-B2C9386F2877		2
+5	96	1z0-071	CE ARE CORRECT.	CE	1
+6	96	1z0-071	All are wrong except E		1
+7	96	1z0-071	Correct answer B,E		1
+1	97	1z0-071	A: Incorrect: INITCAP changes the first character of the extracted last name to uppercase and the rest to lowercase. However, this does not work for "MC" because INITCAP would change it to "Mc." B:Correct: This extracts the last name and matches it directly against "Mc%" (case-sensitive). This works because "Mc" is explicitly matched. D: Correct: UPPER ensures that both the extracted last name and the pattern are converted to uppercase, making the comparison case-insensitive. This matches both "Mc" and "MC."	BD	1
+2	97	1z0-071	AD is correct LIKE is case sensitive	AD	1
+3	97	1z0-071	AD tested 100% guarantee		1
+4	97	1z0-071	AD ARE CORRECT	AD	1
+5	97	1z0-071	AD is the answer	AD	1
+6	97	1z0-071	A and D are correct, B is wrong.	AD	1
+7	97	1z0-071	B is wrong	AD	1
+8	97	1z0-071	Tried all, AD are correct. B is incorrect as it only returns McCain and not MCEwan due to Mc and MC mismatch.	AD	4
+9	97	1z0-071	B is correct. D is incorrect as it will also generate the last name starts with small letter m.		1
+10	97	1z0-071	AD are correct	AD	2
+11	97	1z0-071	AD are correct		1
+12	97	1z0-071	AD is the correct answer		3
+1	98	1z0-071	B for me	B	1
+2	98	1z0-071	Definitely B!	B	1
+3	98	1z0-071	B is right solution		2
+4	98	1z0-071	B IS CORRECT	B	1
+5	98	1z0-071	B IS CORRECT	B	3
+6	98	1z0-071	B IS CORRECT		1
+7	98	1z0-071	B is the answer	B	2
+8	98	1z0-071	B is correct	B	1
+9	98	1z0-071	B is correct	B	2
+10	98	1z0-071	B is correct	B	3
+11	98	1z0-071	B is correct	B	2
+12	98	1z0-071	B is correct		2
+13	98	1z0-071	B for sure	B	2
+14	98	1z0-071	Definitely B		2
+1	99	1z0-071	AD is the right answer.	AD	1
+2	99	1z0-071	Selected Answer: AD for me		1
+3	99	1z0-071	For me	AD	1
+4	99	1z0-071	AD for sure.		1
+5	99	1z0-071	AD is the correct answer	AD	2
+6	99	1z0-071	AD ARE CORRECT	AD	2
+4	138	1z0-071	AEF correct	AEF	1
+1	100	1z0-071	The correct answer is B which is 6 rows Explanation: The CROSS JOIN operation combines each row from the first table with each row from the second table. Since the BRICKS table has 4 rows, the result of the CROSS JOIN will have 4 * 4 = 16 rows. The WHERE clause filters out rows where b1.weight is not less than b2.weight. This means that only rows where the weight of the first brick is less than the weight of the second brick will be included in the result. There are 6 such combinations: (5,10), (5,15), (5,20), (10,15), (10,20), and (15,20). So the final result will have 6 rows.	B	8
+2	100	1z0-071	B is the correct answer.	B	1
+3	100	1z0-071	Option B is correct	B	1
+4	100	1z0-071	checked in DB B is correct		1
+5	100	1z0-071	Option B is correct		1
+6	100	1z0-071	return 6 rows option B tested		1
+7	100	1z0-071	C is correct	C	1
+8	100	1z0-071	I think its 16	C	1
+1	101	1z0-071	Explanation: The given query is using an interval literal with a value of '100' and a unit of 'MONTH'. When using the interval literal syntax, the specified value represents the number of intervals of the given unit. In this case, the query is requesting an interval of 100 months. Since there are 12 months in a year, the interval '100' months is equivalent to 8 years and 4 months. The output format for intervals in Oracle is '+YY-MM', where YY represents the number of years and MM represents the number of months. Therefore, the output will be '+08-04', indicating an interval of 8 years and 4 months. The correct answer is D. +08-04.	D	11
+2	101	1z0-071	D is the right answer. Interval Year to month.	D	1
+3	101	1z0-071	D is the correct answer	D	1
+4	101	1z0-071	D respuesta revisada y correcta	D	1
+5	101	1z0-071	try SELECT INTERVAL '100' MONTH as DURATION FROM DUAL;	D	1
+6	101	1z0-071	D is the answer	D	1
+7	101	1z0-071	In my test, it returned an error, even though I adjusted the quotes.	A	1
+8	101	1z0-071	it's gets an error when I try it on https://livesql.oracle.com/apex		2
+9	101	1z0-071	beware of alias	D	1
+10	101	1z0-071	D is correct		2
+1	102	1z0-071	Answer is B	B	2
+2	102	1z0-071	Answer is 200	B	1
+3	102	1z0-071	Respuesta revisada	B	1
+4	102	1z0-071	can someone explain why the answer is 200?		2
+5	102	1z0-071	B is the correct tested		2
+6	102	1z0-071	B is correct, run it in SQL Developer	B	2
+7	102	1z0-071	I have run it in oracle and the answer is 200.		1
+8	102	1z0-071	A is the right one : The ROUND(156.00, -2) function call rounds the number 156.00 to the nearest hundredth, resulting in the value 200. The TRUNC(200, -1) function call truncates the number 200 to the nearest ten, resulting in the value 150. Therefore, the final result of the SQL query is 150.	A	2
+9	102	1z0-071	TRUNC does nothing here. The rounding of -2 gives closest order of 100, 156->200. Then 200 is truncated to 200		2
+1	103	1z0-071	D is the correct answer	D	1
+2	103	1z0-071	D is the answer	D	3
+3	103	1z0-071	D is the correct answer	D	2
+4	103	1z0-071	D &prompts always, && prompts once as it created a session variable	D	4
+5	103	1z0-071	D is the correct answer	D	2
+6	103	1z0-071	D is correct	D	2
+7	103	1z0-071	C is correct look the question the where condition each time it is executed in a session but only prompts for the table name the first time it is executed.		1
+8	103	1z0-071	D is the answer	D	2
+9	103	1z0-071	D is the answer		2
+1	104	1z0-071	C and F are wrong, oracle documentation says: Unlike unusable indexes, an invisible index is maintained during DML statements. https://docs.oracle.com/en/database/oracle/oracle-database/19/admin/managing-indexes.html#GUID-3A66938F-73C6-4173-844E-3938A0DBBB54	ABE	2
+2	104	1z0-071	ABE correct	ABE	1
+3	104	1z0-071	ABE correct	ABE	1
+4	104	1z0-071	BEF for me		1
+5	104	1z0-071	These are correct	ABE	2
+6	104	1z0-071	invisible indexes are maintained, unusable indexes are not. C and F are wrong	ABE	1
+7	104	1z0-071	F is wrong but C is correct: https://docs.oracle.com/cd/E18283_01/server.112/e17120/indexes004.htm so either ACE or BCE		1
+8	104	1z0-071	F is wrong. it is not maintained by DML.		2
+9	104	1z0-071	ABE are correct		2
+10	104	1z0-071	Answer is ABE. F is wrong, unused index is not mentained		3
+1	105	1z0-071	Answer D, since in GROUP BY clause must used column names instead positioned numbers like here, like GROUP BY deptno - works fine		1
+2	105	1z0-071	D ORA-00979: not a GROUP BY expression		1
+3	105	1z0-071	why D? A is correct		1
+1	106	1z0-071	https://oracle-base.com/articles/11g/virtual-columns-11gr1		5
+2	106	1z0-071	AE is the right answer.	AE	1
+3	106	1z0-071	Correct answer is: AB A. Virtual columns can be indexed just like regular columns. This is useful when queries frequently filter or sort data based on the virtual column, as indexing improves performance. B. Virtual columns can be used in the expression of another virtual column. This allows for more complex derived data to be generated from other columns, including other virtual columns.		1
+4	106	1z0-071	E is false. Although virtual columns can be used in a WHERE clause of queries to filter data, they cannot be used in the WHERE clause of an UPDATE or DELETE statement because these statements modify data, and virtual columns are not physically stored.		1
+5	106	1z0-071	AE They can be indexed and used in where clause of UPDATE and DELETE statements	AE	1
+6	106	1z0-071	more details about virtual columns: https://www.gpsos.es/2021/03/virtual-columns-in-oracle-use-and-limitations/?lang=en	AE	3
+1	107	1z0-071	BD is right answer due to internal nls date format and explicit format parameter.	BD	1
+2	107	1z0-071	Answers are: B & D.	BD	1
+3	107	1z0-071	BD Works		1
+4	107	1z0-071	BD IS CORRECT		1
+5	107	1z0-071	B wouldnt work right bc it doesnt match the nls_parameter thing?. D works tho		2
+1	108	1z0-071	AE is the correct answer	AE	1
+2	108	1z0-071	AE is correct	AE	1
+2	173	1z0-071	CE correct see the reference below https://docs.oracle.com/cd/B14117_01/server.101/b10759/queries009.htm	CE	1
+3	108	1z0-071	A. The DELETE statement executes successfully even if the subquery selects multiple rows. This is because the EXISTS condition only checks for the existence of at least one row in the subquery, regardless of how many rows are returned. E. The subquery is executed for every row in the EMPLOYEES table. This is because the subquery is a correlated subquery, which means that it references a column from the outer query (e.employee_id). As a result, the subquery must be executed once for each row in the EMPLOYEES table to determine whether the EXISTS condition is true or false for that row.	AE	2
+4	108	1z0-071	A,D. Subquery isn't query before outer query.		1
+5	108	1z0-071	AB are correct.		1
+6	108	1z0-071	Why is B wrong?		2
+1	109	1z0-071	i think BCE are correct		17
+2	109	1z0-071	As per the rule Primary and Composite Key can not contain Null value Then why B option is right I think A is right		1
+3	109	1z0-071	but how did we know that the manager is referencing the empno column ?!		3
+4	109	1z0-071	BCE is Correct A. The SALARY column must have a value. .............FALSE B. The DEPTNO column in the EMP table can contain NULLS..........TRUE C. The COMMISION column can contain negative values. ....TRUE D. The DEPTNO column in the EMP table can contain the value 1...... TRUE WITH CONDITION. (If dept table primary key has 1 values) E. The MANAGER column is a foreign key referencing the EMPNO column........ TRUE F. The DNAME column has a unique constraint. FALSE G. An index is created automatically in the MANAGER column....FALSE		2
+5	109	1z0-071	I think B is wrong : The DEPTNO column in the EMP table can contain NULLS no because it refers to a PK so not possible.	CDE	2
+6	109	1z0-071	BCE, D is wrong because DEP_NO has a constraint in the department table that prevents it from having a value less than 10, very tricky, those who answered D might get surprises after the exam.	BCE	1
+7	109	1z0-071	BDE Is correct but why is C wrong?		1
+8	109	1z0-071	BCE is correct	BCE	1
+9	109	1z0-071	BCE are correct. D is wrong because DEPTNO in EMP table is referencign DEPTNO in DEPT and there is check constraint which demands DEPTNO in DEPT to be greater than 9	BCE	1
+10	109	1z0-071	BDE is the correct answer	BDE	1
+11	109	1z0-071	why E ?		1
+12	109	1z0-071	BCE - is the answer		1
+13	109	1z0-071	deptno is a pk so cannot be null	CE	1
+14	109	1z0-071	BCE seems correct	BCE	1
+15	109	1z0-071	CDE seems to be right option	CDE	1
+1	110	1z0-071	BC is right answer.	BC	1
+2	110	1z0-071	BC is correct	BC	1
+3	110	1z0-071	Should be BC	BC	1
+4	110	1z0-071	BC cuz google says: 'System privileges allow a user to perform a particular database operation or class of database operations. For example, to create a table, the user needs the create table privilege.' 'Objects have privileges associated with them, such as insert, update and delete a table.'	BC	1
+5	110	1z0-071	To create a relational table in your own schema, you must have the CREATE TABLE system privilege. To create a table in another user's schema, you must have the CREATE ANY TABLE system privilege. A) is wrong because external table creates a file only if it's created with 'CREATE AS SELECT' statement	BC	3
+6	110	1z0-071	Should be AC since CREATE TABLE does not require system privilege just object privilege. CREATE ANY TABLE require system privilege	AC	1
+1	111	1z0-071	A is the right answer.	A	1
+2	111	1z0-071	I'd give it D	D	1
+3	111	1z0-071	Tested on Oracle live sql. A is correct query for the output B comm nulls are at the top - wrong C Turmer, Allen, Ward, Martin at the bottom - wrong D Only Turner at the bottom - wrong		1
+4	111	1z0-071	A for me	A	1
+5	111	1z0-071	D is not correct, because Turner is last in the table. A is correct answer		3
+6	111	1z0-071	D also correct answer,, Tested and its giving expected output		3
+1	112	1z0-071	F -for sure C - is second closest if it was customer_name LIKE 'Ma%' but not when it is 'Ma*' as shown	F	1
+2	112	1z0-071	EF is correct	EF	1
+3	112	1z0-071	EF since like is case sensitive	EF	1
+4	112	1z0-071	EF is correct		2
+5	112	1z0-071	EF are correct		1
+6	112	1z0-071	D is false - it will return all names (checked with SQL Developer)	EF	2
+7	112	1z0-071	D and F, %a% will return all names with letter a		1
+8	112	1z0-071	EF is correct		4
+1	113	1z0-071	BD is correct	BD	1
+2	113	1z0-071	BD is the correct answer	BD	1
+3	113	1z0-071	Not sure why D is correct. Could someone explain please. Thanks		1
+1	114	1z0-071	CE is right answer.	CE	1
+2	114	1z0-071	C and E are the most accurate	CE	2
+3	114	1z0-071	C and E. https://docs.oracle.com/cd/B28359_01/server.111/b28318/schema.htm#CNCPT111 A schema is a collection of logical structures of data, or schema objects. A schema is owned by a database user and has the same name as that user. Each user owns a single schema. Schema objects can be created and manipulated with SQL and include the following types of objects:	CE	1
+4	114	1z0-071	Answer should be C and D. C is ACID which Oracle SQL always do https://docs.oracle.com/cd/B13789_01/server.101/b10759/statements_8003.htm CREATE USER my_user IDENTIFIED BY my_password DEFAULT TABLESPACE tbspace1 QUOTA UNLIMITED ON tbspace1; GRANT schema1, schema2 TO my_user;	CD	1
+1	115	1z0-071	B is right answer.	B	1
+2	115	1z0-071	B is correct	B	1
+3	115	1z0-071	Answer is B ORA-02266: unique/primary keys in table referenced by enabled foreign keys	B	1
+4	115	1z0-071	So answer should be B	B	1
+5	115	1z0-071	The answer is B Here is explanation : In this option it does not mean you can never truncate a table it says if foreign key activated and would be violated you can NEVER. The keyword is IF <<<<		1
+6	115	1z0-071	C CAN work if we have CASCADE, B is wrong cuz it says NEVER, the documentation states: 'You cannot truncate the parent table of an enabled foreign key constraint. You must disable the constraint before truncating the table. An exception is that you can truncate the table if the integrity constraint is self-referential.'	C	1
+7	115	1z0-071	C is correct since you can delete using cascade option B is incorrect since it says never but you can by disable the constraint	C	3
+8	115	1z0-071	B is correct. Truncate is faster than delete	B	1
+9	115	1z0-071	Very confusing. It seems truncate is always faster than delete. And for B and C, B is false if you use cascade in the command and constraint was created with on delete cascade. Similarly with C, if constraint was created with on delete cascade then you can delete those rows.		1
+10	115	1z0-071	You cannot truncate the parent table of an enabled foreign key constraint. You must disable the constraint before truncating the table. https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/TRUNCATE-TABLE.html	B	1
+11	115	1z0-071	B is correct	B	2
+12	115	1z0-071	C is correct, We can trucate table contains referential integrity, one by drop the constraint/ while adding constraint we can include on delete cascade . Truncate table colors cascade; this statement will run successfully. Reference https://www.examtopics.com/discussions/oracle/view/15064-exam-1z0-071-topic-1-question-268-discussion/		2
+13	115	1z0-071	This needs to be updated!		1
+14	115	1z0-071	Option B is true. When using the TRUNCATE statement, if there are foreign key constraints referencing the table to be truncated, you will not be able to truncate the table. Truncating a table removes all the data in the table, and if there are dependent foreign key constraints, truncating the table would violate those constraints. In such cases, you would need to either disable or drop the foreign key constraints before truncating the table.		1
+15	115	1z0-071	B -You cannot truncate the parent table of an enabled foreign key constraint. You must disable the constraint before truncating the table. An exception is that you can truncate the table if the integrity constraint is self-referential.		1
+16	115	1z0-071	C. A and D: False --> Truncate is better and has better performance than delete and Drop except for very small tables. B False --> You can truncate a table with a FK on Cascade. You can disable FK and then Truncate (except if FK is self-refential).		4
+17	115	1z0-071	D is wrong . B is correct https://docs.oracle.com/database/121/SQLRF/statements_10007.htm#SQLRF01707	B	2
+1	116	1z0-071	DE is right answer.	DE	1
+2	116	1z0-071	DE Case is a statement DECODE is a function	DE	2
+3	116	1z0-071	DE are correct. CASE is a expression not a function. https://docs.oracle.com/cd/B13789_01/appdev.101/b10807/13_elems004.htm#:~:text=The%20CASE%20statement%20evaluates%20a,first%20one%20that%20is%20TRUE%20.		1
+4	116	1z0-071	case is statement while decode is a function		2
+5	116	1z0-071	DE are correct	DE	3
+6	116	1z0-071	DE are correct		1
+7	116	1z0-071	Should be DE ?		2
+1	117	1z0-071	ADE is the right answer.	ADE	1
+2	117	1z0-071	ADE is the correct answer	ADE	3
+1	118	1z0-071	D is not correct because it will prompt the user once, and only once for all queries, not once for every query.	AB	1
+2	118	1z0-071	D too select &&a, &&a from dual; select &&a from dual;		2
+3	118	1z0-071	AB is correct https://docs.oracle.com/en/database/oracle/oracle-database/21/sqpug/using-substitution-variables-sqlplus.html#GUID-0BEEC1D7-876B-495C-9327-17037652D3D2	AB	1
+4	118	1z0-071	A.B correct. reference for B If a single ampersand prefix is used with an undefined variable, the value you enter at the prompt is not stored. Immediately after the value is substituted in the statement the variable is discarded and remains undefined. If the variable is referenced twice, even in the same statement, then you are prompted twice.		1
+1	119	1z0-071	A is right answer.	A	1
+2	119	1z0-071	A Correct select department_id, listagg(last_name, ',') within group (order by last_name) from employees group by department_id;		1
+3	119	1z0-071	B, C, D will throw error. A is the only correct option		1
+4	119	1z0-071	tried it in sql developer	A	1
+1	120	1z0-071	Checked: A, B Check: CREATE TABLE COLORS_120 ( RGB_HEX_VALUE VARCHAR2(100) , COLOR_NAME VARCHAR2(100) ); CREATE TABLE BRIKS_120 ( BRICK_ID NUMBER , COLOR_RGB_HEX_VALUE VARCHAR2(100) ); INSERT INTO COLORS_120 SELECT 'FF0000','red' FROM DUAL UNION ALL SELECT '00FF00','green' FROM DUAL UNION ALL SELECT '0000FF','blue' FROM DUAL; INSERT INTO BRIKS_120 SELECT 1,'FF0000' FROM DUAL UNION ALL SELECT 2,'00FF00' FROM DUAL UNION ALL SELECT 3,'FFFFFF' FROM DUAL; A; SELECT * FROM BRIKS_120 b RIGHT JOIN COLORS_120 c ON b.COLOR_RGB_HEX_VALUE = c.RGB_HEX_VALUE; B; SELECT * FROM BRIKS_120 b FULL JOIN COLORS_120 c ON b.COLOR_RGB_HEX_VALUE = c.RGB_HEX_VALUE; C; SELECT * FROM c FULL JOIN BRIKS_120 b USING(RGB_HEX_VALUE); D; SELECT * FROM COLORS_120 c LEFT JOIN BRIKS_120 b ON b.COLOR_RGB_HEX_VALUE = c.RGB_HEX_VALUE WHERE b.brick_id > 0 ; E; SELECT * FROM BRIKS_120 b LEFT JOIN COLORS_120 c ON b.COLOR_RGB_HEX_VALUE = c.RGB_HEX_VALUE;		13
+2	120	1z0-071	AB is right answer.	AB	1
+3	120	1z0-071	A, B is correct. tried.	AB	1
+4	120	1z0-071	tried it . A,B,C correct	BC	1
+5	120	1z0-071	Not possible to use the using clause as the names of the columns are not the same. For me AB is the correct answer.	AB	1
+6	120	1z0-071	AB is the correct answer	AB	1
+7	120	1z0-071	How can the answer key say DE? Not even close.		1
+8	120	1z0-071	A and B are correct.		1
+9	120	1z0-071	Why D incorrect?		1
+10	120	1z0-071	AB are correct ones	AB	1
+11	120	1z0-071	AB are the answers	AB	2
+12	120	1z0-071	AB are correct	AB	1
+13	120	1z0-071	AB is correct		1
+14	120	1z0-071	AB ARE THE ANSWERS	AB	4
+1	121	1z0-071	AB is right answer.	AB	1
+2	121	1z0-071	AB is correct	AB	2
+3	121	1z0-071	Checked in Oracle	AB	2
+1	122	1z0-071	* LOCALTIMESTAMP returns the local time with the time zone offset included (-05:00 )	A	1
+2	122	1z0-071	C - because Localtimestamp is from the session which we've set to -5	C	1
+3	122	1z0-071	Correct Answer is B		1
+1	123	1z0-071	When I tested this one, BD were true and E returned grant succeeded. However when I tested to see if those table privileges had actually been granted by E, the recipient had none of those abilities.		2
+1	137	1z0-071	A. Aggregate functions can be nested to any number of levels. -> Can be nested upto one level only. B. The AVG function implicitly converts NULLS to zero. -> AVG function ignores NULLS. C. The MAX and MIN functions can be used on columns with character data types. -> True D. Aggregate functions can be used in any clause of a SELECT statement. -> It can't be used with where clause.	C	3
+2	137	1z0-071	tested on a sample data	C	3
+1	138	1z0-071	A C F are correct	ACF	1
+2	123	1z0-071	A, D A. User FIN_CLERK can grant SELECT on SCOTT.EMP to user FIN_MANAGER - This is true because user FINANCE has been granted SELECT privilege on SCOTT.EMP with the GRANT OPTION, and user FINANCE subsequently granted SELECT on SCOTT.EMP to user FIN_CLERK. The GRANT OPTION allows the privilege to be further granted to other users. D. Revoking SELECT on SCOTT.EMP from user FINANCE will also revoke the privilege from user FIN_CLERK - This is true because when a privilege is revoked from a user who was granted the privilege with the GRANT OPTION, and who subsequently granted that privilege to other users, then the privilege is also revoked from the other users.		2
+3	123	1z0-071	BDE. B is right, because dropping a user implies to REVOKE all OBJECT PRIVILEGES granted by this user. Pay attention in the difference between object privileges and system privileges. System privileges must be revoked directly from user who has them.		3
+4	123	1z0-071	This is from official Oracle course: "If a user leaves the company and you revoke his or her privileges, you must re-grant any privileges that this user granted to other users. If you drop the user account without revoking privileges from it, the system privileges granted by this user to other users are not affected by this action."	DE	2
+5	123	1z0-071	why E is not correct?		1
+1	124	1z0-071	BE is correct answer.	BE	1
+2	124	1z0-071	B. The owner of an object acquires all object privileges on that object by default. is False – The owner does not "acquire" privileges; ownership itself implies full control without needing to grant privileges.	AE	1
+3	124	1z0-071	BE is the correct answer	BE	1
+1	125	1z0-071	BE is the correct answer	BE	1
+2	125	1z0-071	BE tested		1
+3	125	1z0-071	Tested. A. not a GROUP BY expression C.D boths are not a single-group group function	BE	1
+4	125	1z0-071	BE tested	BE	1
+5	125	1z0-071	I think answer B is the only correct answer because In SQL, a group function operates on a set of rows and returns a single value for each group. Group functions include AVG, COUNT, MAX, MIN, and SUM. These functions cannot be nested within one another. For example, in query A, the AVG function is nested within the MAX function which is not allowed. Similarly, in query C, D and E, the MAX function is nested within the AVG function which is also not allowed. What do you think?		4
+6	125	1z0-071	C works.		1
+1	126	1z0-071	CE is right answer.	CE	1
+2	126	1z0-071	C and E are correct.	CE	1
+1	127	1z0-071	CD is right answer.	CD	1
+2	127	1z0-071	CD correct	CD	1
+3	127	1z0-071	Between includes the upper and lower bounds	CD	1
+1	128	1z0-071	A. select last_name, salary from employees fetch first 3 rows only order by salary; - results in an error --------------------------------------------- B. select last_name, salary from ( select * from employees order by salary) where rownum <= 3; - works ------------------------------------------------------- c. select last_name, salary from employees order by salary fetch first 3 rows only ; - works ---------------------------------------------------------------- D. select last_name, salary from employees where rownum <= 3 order by salary; - returns the first 3 rows and orders the 3 rows based on salary so its incorrect ------------------------------------------------------- E. select last_name, salary from employees where rownum <= 3 order by (select salary from employees); - subquery returns more than one row so results in error	BC	5
+2	128	1z0-071	D is wrong after order by rownum might not anymore be sequential.		1
+3	128	1z0-071	D is the correct answer	D	1
+1	129	1z0-071	union all includes duplicates	A	2
+1	130	1z0-071	ADE correct for me	ADE	1
+2	130	1z0-071	Believe ADE	ADE	2
+3	130	1z0-071	ADE are the correct answers	ADE	1
+4	130	1z0-071	ADE are correct: A - TRUE; cash values are lost if instance shuts down B - FALSE; Transaction can be rolled back if not COMMITed yet, but sequence number was already used and cannot be reused C - FALSE; user can create sequence and therefore has all privileges to this object, including DROP D - TRUE; CYCLE parameter can be set and values can be looped E - TRUE; there is a list of activities that can influence the gaps generation, like failed INSERT or DELETE; COMMIT or INSERT; ROLLBACK etc. F - FALSE; from ORACLE documentation "Sequence numbers are generated independently of tables, so the same sequence can be used for one or for multiple tables"	ADE	2
+5	130	1z0-071	The whole idea of SEQUANCE is to provide unique keys so D cannot be correct. About F - why not?! This is something called in the code. But even as default value, there is no check for unique value accross all tables into the database.	AEF	1
+6	130	1z0-071	ADE are correct	ADE	2
+7	130	1z0-071	ADE ARE CORRECT		1
+8	130	1z0-071	Correct Answer: ADE	ADE	3
+1	131	1z0-071	A. wrong, missing update in when matched clause, B. wrong, missing ON clause. C. correct D. correct	CD	4
+2	131	1z0-071	checked	CD	2
+1	132	1z0-071	BD correct -> Data type has to be the same for NVL but not for NVL2	BD	1
+2	132	1z0-071	BD tested	BD	2
+3	132	1z0-071	NVL2 requires 3 arguments and it doesnt have to be the same data type NVL requires 2 arguments and it must be the same datatype or something that is implicitly converted	BD	2
+1	133	1z0-071	D is the correct answer, but what is the correct answer in a real exam?		2
+2	133	1z0-071	D is the correct answer	D	2
+3	133	1z0-071	D is correct.		1
+4	133	1z0-071	D ORA-01402: view WITH CHECK OPTION where-clause violation		2
+5	133	1z0-071	D is correct. B won't delete anything..	D	1
+6	133	1z0-071	D is the correct https://www.oracletutorial.com/oracle-view/oracle-with-check-option/	D	3
+7	133	1z0-071	D is correct	D	3
+8	133	1z0-071	D is correct		2
+9	133	1z0-071	D is the correct answer	D	3
+10	133	1z0-071	i vote for D		4
+1	134	1z0-071	The answers are correct.	CD	1
+1	135	1z0-071	Correct answers are B , D and F see : https://dbaclass.com/article/ora-12984-cannot-drop-partitioning-column/#google_vignette		1
+2	135	1z0-071	Correct answers	BDF	2
+1	136	1z0-071	CEF is right answer.	CEF	1
+2	136	1z0-071	E. Is incorrect. Data pumps doesn't focus on DML.	ACF	1
+3	136	1z0-071	E can't be the correct answer?!		1
+4	136	1z0-071	https://www.examtopics.com/discussions/oracle/view/20181-exam-1z0-071-topic-2-question-45-discussion/	CEF	1
+5	138	1z0-071	A. Multitable INSERT statements can insert each computed row into more than one table. This is achieved by specifying multiple INTO clauses in the INSERT statement, each corresponding to a different table. Here's an example: INSERT ALL INTO table1 (column1, column2) VALUES (value1, value2) INTO table2 (column3, column4) VALUES (value3, value4) SELECT * FROM source_table; In this example, the computed rows from the source_table are inserted into both table1 and table2. C. Multitable INSERT statements can be performed on external tables using SQL*Loader. External tables allow you to access data in external files as if it were in a regular database table. Here's an example: INSERT ALL INTO table1 (column1, column2) VALUES (value1, value2) INTO table2 (column3, column4) VALUES (value3, value4) SELECT * FROM external_table; In this example, the data from the external_table is inserted into both table1 and table2. F. Multitable INSERT statements can be performed on relational tables. Relational tables	ACF	1
+6	138	1z0-071	ACG is TRUE.		1
+7	138	1z0-071	https://www.examtopics.com/discussions/oracle/view/9427-exam-1z0-071-topic-1-question-236-discussion/	AEF	1
+1	139	1z0-071	Answers are B, E, F.		1
+2	139	1z0-071	EF are correct. I tried		1
+3	139	1z0-071	C is not correct. if no row is returned, it will not throw an error. DEF is ok		2
+4	139	1z0-071	CDF is correct.		1
+1	140	1z0-071	E and F are correct, tested both and they show 4 digits year. B is incorrect because is missing the single quotes in TO_CHAR(SYSDATE, MM/DD/YYYY)	EF	1
+2	140	1z0-071	E and F are the correct answers: tested and confirmed: SELECT TO_DATE(TO_CHAR(SYSDATE, 'MM/DD/YYYY'), 'MM/DD/YYYY') FROM DUAL; SELECT TO_CHAR(ADD_MONTHS(SYSDATE, 6), 'dd-mon-yyyy') FROM DUAL;	EF	2
+3	140	1z0-071	B is not correct, because the date format 'MM/DD/YYYY' should be enclosed in single quotes, otherwise it's a syntax error.		3
+4	140	1z0-071	B and E tested		1
+5	140	1z0-071	E & B will show year forma in 4 digits only if you consider B has no typing error..the string has to be quoted. SELECT TO_CHAR(SYSDATE, 'MM/DD/YYYY') FROM DUAL; In answer it is written MM/DD/YYYY without quotes.		1
+6	140	1z0-071	D have no fm so best is E F		1
+7	140	1z0-071	Why F is not correct in my editor it gives a result ? I think the answer is (BEF)	EF	1
+8	140	1z0-071	B & E is correct answer. Tested.	BE	1
+9	140	1z0-071	BE is correct	BE	1
+10	140	1z0-071	Just need quotes around format string in B	BE	2
+11	140	1z0-071	B only if you correct it SELECT TO_CHAR(SYSDATE, 'MM/DD/YYYY') FROM DUAL; and E		1
+12	140	1z0-071	B and e		1
+13	140	1z0-071	sorry i am kind of confused...why do they have to be converted to character?		1
+14	140	1z0-071	Weird. Imported all in to Oracle apex and got the following results: SELECT TO_DATE(SYSDATE, 'RRRR-MM-DD') FROM DUAL; ---- ORA-01843: not a valid month SELECT TO_CHAR(SYSDATE, MM/DD/YYYY) FROM DUAL; ----- Error at line 1/31: ORA-00904: "YYYY": invalid identifier. This answer is missing single quotes around the format, otherwise it would be correct. SELECT TO_DATE(ADD_MONTHS(SYSDATE, 6), 'dd-mon-yyyy') FROM DUAL; ------ ORA-01843: not a valid month SELECT TO_CHAR(ADD_MONTHS(SYSDATE, 6)) FROM DUAL; ------ 09/15/2023 and thus is correct. SELECT TO_CHAR(ADD_MONTHS(SYSDATE, 6), 'dd-mon-yyyy') FROM DUAL; ------ 15-sep-2023 and thus is also correct. SELECT TO_DATE(TO_CHAR(SYSDATE, 'MM/DD/YYYY'), 'MM/DD/YYYY') FROM DUAL; ------- 03/15/2023 and thus is also correct?| This question is just a mess...		1
+15	140	1z0-071	BE is correct	BE	1
+16	140	1z0-071	BE is correct	BE	3
+17	140	1z0-071	BE is correct		3
+1	141	1z0-071	AD is correct	AD	1
+2	141	1z0-071	The answers are A and E. D is incorrect. If you place a savepoint at the beginning of a transaction and rollback to it, it undoes the entire transaction after the savepoint.	AE	1
+3	141	1z0-071	C is not correct, because you can only commit the entire transaction, not portions of it based on savepoints. Savepoints allow you to roll back to a specific point, but not selectively commit changes between two points.		1
+4	141	1z0-071	AD is correct	AD	1
+5	141	1z0-071	AD is correct		1
+6	141	1z0-071	AB should be the correct answer	AB	1
+7	141	1z0-071	https://www.examtopics.com/discussions/oracle/view/20279-exam-1z0-071-topic-2-question-52-discussion/	AD	1
+1	142	1z0-071	ABF is the correct answer	ABF	1
+2	142	1z0-071	100% ABF	ABF	2
+3	142	1z0-071	ABF is correct		1
+4	142	1z0-071	ABF is correct	ABF	1
+5	142	1z0-071	ABF is correct	ABF	1
+6	142	1z0-071	ABF is the answer	ABF	2
+1	143	1z0-071	E. when the typo '.' is replaced with a comma ','	AE	1
+2	143	1z0-071	in E there is a mistake and should be "," instead of ".", the E should be correct answer.	AE	1
+3	143	1z0-071	Answers are: A & E - both tested.	AE	1
+4	143	1z0-071	A & D is correct. below works select * from emp WHERE hire_date > To_Char(ADD_MONTHS(SYSDATE, 6), 'dd mm yyyy');		2
+5	143	1z0-071	E is wrong. the string in quotes seems like a date after = but DB will only consider it as a string, not a date.		1
+6	143	1z0-071	I thin AE is correct	AE	1
+7	143	1z0-071	AE correct	AE	1
+8	143	1z0-071	Only A works. Assuming that in E there is a mistake and should be "," instead of ".", the E should be correct answer.	AE	1
+9	143	1z0-071	checked	AE	2
+1	144	1z0-071	B is correct , return 0 row	B	1
+2	144	1z0-071	still it will return 1 row . checked. OPTION C		1
+3	144	1z0-071	As the condition is always false -> no row.	B	1
+4	144	1z0-071	Where condition is not correct	B	1
+5	144	1z0-071	No row is returned check in Oracle	B	1
+6	144	1z0-071	The where condition is never valid, so no rows.	B	1
+7	144	1z0-071	Checked, B is correct.		2
+8	144	1z0-071	B is correct	B	2
+9	144	1z0-071	B is the correct answer	B	3
+1	145	1z0-071	Update, insert, references can be set on column lvl	CD	3
+2	145	1z0-071	https://www.examtopics.com/discussions/oracle/view/20185-exam-1z0-071-topic-2-question-48-discussion/	CD	1
+1	146	1z0-071	I executed commands, correct are CE.		1
+1	195	1z0-071	are correct, check with chat gpt	CDE	1
+2	146	1z0-071	B&D can be eliminated straight away by looking at the ORDER BY AESC because the question states that the highest date should be first which means DESC should be used with the column PURCHASE_DATE Rule out A because of syntax error in OR operator usage C & D is correct		1
+3	146	1z0-071	CE is correct	CE	2
+4	146	1z0-071	A gives error because of > 1000	CE	1
+5	146	1z0-071	CE is correct A have incorrect syntax		2
+6	146	1z0-071	CE is correct. A - where condition should have 'price' as well for 1000 B - where condition 'between 500 and 1000' does not satisfy what is asked; 'order by' clause's default is ascending D - where condition 'price IN (500,1000)' and order by ASC is wrong		2
+7	146	1z0-071	Price needs to be repeated after the OR statement, so C,E correct. A results in error	CE	1
+8	146	1z0-071	A results in an error and to get the most recent you need to order by desc	CE	1
+9	146	1z0-071	A is not valid . CE is the correct	CE	2
+1	147	1z0-071	ABF is correct based on this erd : https://www.examtopics.com/assets/media/exam-media/02818/0021800001.jpg	ABF	1
+2	147	1z0-071	ERD MISSING		1
+3	147	1z0-071	https://www.examtopics.com/assets/media/exam-media/02818/0021800001.jpg		1
+4	147	1z0-071	See answer below. ERD is missing	ABF	2
+5	147	1z0-071	ERD is missing Check https://www.examtopics.com/discussions/oracle/view/9455-exam-1z0-071-topic-1-question-249-discussion/https://www.examtopics.com/discussions/oracle/view/9455-exam-1z0-071-topic-1-question-249-discussion/	ABF	1
+1	148	1z0-071	DEF correct, Null is sorted last in ascending and first in descending by default		2
+2	148	1z0-071	The three statements that are true about an ORDER BY clause are: D. By default, an ORDER BY clause sorts rows in ascending order. E. An ORDER BY clause can perform a binary sort. F. An ORDER BY clause can perform a linguistic sort. An ORDER BY clause is used to sort the rows returned by a query in a specified order. By default, if no sort order is specified, the rows are sorted in ascending order. An ORDER BY clause can perform different types of sorts, including binary and linguistic sorts. A binary sort sorts the data based on the binary representation of the values being sorted. A linguistic sort sorts the data based on a specific linguistic definition, taking into account language-specific rules for character and string comparison.	DEF	2
+3	148	1z0-071	Shouldn't it be DEF? A - FALSE; by default sorting is ASC B - FALSE; In both syntax and execution ORDER BY is always after HAVING C - FALSE; NULLS FIRST can be used to sort NULL values first D - TRUE; E, F - TRUE; parameter NLS_SORT can be changed between BINARY and linguistic_definition. https://docs.oracle.com/database/121/REFRN/GUID-04243CDA-43CA-4AF8-B59D-6FB841B307BE.htm#REFRN10127	DEF	4
+1	149	1z0-071	ninguna, la pregunta es GREATER THAN 20000, y todas son >=	ABC	1
+2	149	1z0-071	ABF is the correct answer	ABF	2
+3	149	1z0-071	ABF is the correct answer	ABF	3
+1	150	1z0-071	both SYSDATE AND HIRE_DATE AR OF TYPE date, SO SUBTRACTING IS VALID. rest are invalid.	AE	1
+2	150	1z0-071	missing 5 in the D query, otherwise these 2 are correct, CURRENT_DATE - hire_date and SYSDATE- hire_date return both results in days so we have to divide by 365	DE	1
+3	150	1z0-071	Eliminate ABC because of fact /12 .. in order to get year it should be /365.		1
+4	150	1z0-071	DE should be the correct answer	DE	1
+5	150	1z0-071	CE tested SELECT FIRST_NAME, hire_date FROM hr.employees WHERE (SYSDATE - hire_date) / 12 > 5; SELECT FIRST_NAME, hire_date FROM hr.employees WHERE (SYSTIMESTAMP - hire_date) / 12 > INTERVAL '5' YEAR; SELECT FIRST_NAME, hire_date FROM hr.employees WHERE (CURRENT_DATE - hire_date) / 12 > 5; SELECT FIRST_NAME, hire_date FROM hr.employees WHERE (CURRENT_DATE - hire_date) / 365 > SELECT FIRST_NAME, hire_date FROM hr.employees WHERE (SYSDATE - hire_date) / 365 > 5; SELECT FIRST_NAME, hire_date FROM hr.employees WHERE (SYSTIMESTAMP - hire_date) / 365 > INTERVAL '1825' DAY;		1
+6	150	1z0-071	DE is correct (even though D seems to be with typo). F is not correct as default precision of DAY is 2 - should be INTERVAL '1845' DAY(4)	DE	4
+7	150	1z0-071	I think EF. D is with typo?	EF	1
+8	150	1z0-071	I think EF. D is with typo?		2
+9	150	1z0-071	DE is correct	DE	4
+1	151	1z0-071	CD is the correct answer	CD	2
+2	151	1z0-071	100% C and D	CD	2
+3	151	1z0-071	CD are correct		1
+4	151	1z0-071	C D are correct	CD	1
+5	151	1z0-071	CD is correct, checked in SQL Dev.	CD	1
+6	151	1z0-071	A - ORA-00904 ERROR. B - ORA-00923 ERROR. C - Hello! We're ready D - Hello! We're ready E - ORA-00923 So correct: CD. I'm not sure what kind of Oracle Compiling tools use the people from other comments, but these are definitely the correct answers using Oracle Developer...	CD	3
+7	151	1z0-071	DE is correct answer		1
+1	152	1z0-071	I do believe B is also right, as the command shows the PRIMARY KEY constraint too	ADF	1
+2	152	1z0-071	ADF is correct		1
+3	152	1z0-071	Update this please	ADF	2
+4	152	1z0-071	ADF tested		2
+5	152	1z0-071	ADF are right ones	ADF	1
+6	152	1z0-071	I think ADF	ADF	1
+7	152	1z0-071	A, D, F is right		4
+1	153	1z0-071	E. is so WRONG. look up to believe - referential integrity constraints cannot be defined on views in Oracle.	AC	1
+2	153	1z0-071	CE is the correct answer	CE	1
+3	153	1z0-071	checked. CE is correct	CE	2
+4	153	1z0-071	Answer is CE https://www.examtopics.com/discussions/oracle/view/22610-exam-1z0-071-topic-2-question-68-discussion/		1
+1	154	1z0-071	CE are correct	CE	1
+2	154	1z0-071	Just finished the exam, the other two answers are supposed to say matched, not watched.		2
+3	154	1z0-071	CE are correct	CE	1
+4	154	1z0-071	CE are correct	CE	1
+5	154	1z0-071	CE are correct	CE	1
+6	154	1z0-071	I suggest C,E https://docs.oracle.com/database/121/SQLRF/statements_9017.htm#SQLRF01606	CE	3
+1	155	1z0-071	D & E are correct.	CE	1
+2	155	1z0-071	The answer is DE.		1
+3	173	1z0-071	CE are correct. https://www.examtopics.com/discussions/oracle/view/14717-exam-1z0-071-topic-1-question-293-discussion/	CE	1
+4	173	1z0-071	https://www.examtopics.com/discussions/oracle/view/14717-exam-1z0-071-topic-1-question-293-discussion/		1
+1	156	1z0-071	C. The EXPIRY_DATE column data type can be changed to TIMESTAMP. This is true. In Oracle, you can modify the data type of a DATE column to a TIMESTAMP data type using the ALTER TABLE statement, as long as there are no incompatible data types involved. D. The PROD_ID column can be renamed. This is true. Oracle allows you to rename columns in a table using the ALTER TABLE statement with the RENAME COLUMN clause.	CD	1
+2	156	1z0-071	ORA-01439: column to be modified must be empty to change datatype D is ok cos the same group of datatype		2
+3	156	1z0-071	All are true for empty table CREATE TABLE K (ID NUMBER(2) NOT NULL,NAME VARCHAR2(20),EXPIRY_dATE DATE NOT NULL) ALTER TABLE K MODIFY NAME DEFAULT 'TEST' ALTER TABLE K MODIFY EXPIRY_dATE TIMESTAMP ALTER TABLE K RENAME COLUMN ID TO PROD_ID ALTER TABLE K MODIFY PROD_ID VARCHAR2(2)		1
+4	156	1z0-071	100% C AND D HAVE A TRY: CREATE TABLE PRODUCTS_156 ( PROD_ID NUMBER(2) NOT NULL, PROD_NAME VARCHAR2(20), EXPIRY_DATE DATE ); INSERT INTO PRODUCTS_156 VALUES (1, 'Product 1', TO_DATE('2023-12-31', 'YYYY-MM-DD')); ALTER TABLE PRODUCTS_156 MODIFY EXPIRY_DATE TIMESTAMP; alter table products_156 rename column prod_id to product_id; alter table products_156 modify product_id varchar(2); (CHANGE DATA TYPE NOT ALLOWED WITH EXISTING DATA IN THE TABLE).	CD	2
+5	156	1z0-071	CD is correct in that case	CD	1
+6	156	1z0-071	in case of empty table correct will be C,E,D. But in case of existing data in the table correct will be C,D. Impossible to change datatype. System raise an error: "ORA-01439: column to be modified must be empty to change datatype"	CD	3
+7	156	1z0-071	C works well when i run sql statement.		1
+8	156	1z0-071	drop table products_156; CREATE TABLE PRODUCTS_156 (PROD_ID NUMBER(2) NOT NULL, PROD_NAME VARCHAR2(20), EXPIRY_DATE DATE); ALTER TABLE PRODUCTS_156 MODIFY EXPIRY_DATE TIMESTAMP; /*C OK*/ alter table products_156 modify prod_id varchar(2); /*E OK*/ alter table products_156 rename column prod_id to product_id; /*D OK*/ desc products_156; Nombre ¿Nulo? Tipo ----------- -------- ------------ PRODUCT_ID NOT NULL VARCHAR2(2) PROD_NAME VARCHAR2(20) EXPIRY_DATE TIMESTAMP(6)		1
+1	157	1z0-071	A. It fails unless the expression is modified to SUBSTR(TO_CHAR(SYSDATE), 1, 5). This statement is correct because the SUBSTR function needs a string as input, and SYSDATE must be converted to a string using TO_CHAR. The correct syntax would be SUBSTR(TO_CHAR(SYSDATE, 'DD-MON-YYYY'), 1, 5) if you wanted to extract the first 5 characters from the formatted date.	A	1
+2	157	1z0-071	D works -> implicit conversion!	D	2
+3	157	1z0-071	D tried it and worked	D	1
+4	157	1z0-071	D, implicit conversion works	D	2
+5	157	1z0-071	Correct answer is D - it executes successfully, my result: 27-02	D	3
+6	157	1z0-071	select sysdate from dual; --Result : 2/20/2023 10:32:16 AM select substr(sysdate,1,5) as "xxx" from dual; --Result: 20-FE	D	3
+1	158	1z0-071	A definitely A it does not ignore NULL values	A	2
+2	158	1z0-071	INTERSECT DOES NOT IGNORE NULLS	A	1
+3	158	1z0-071	tested in sql dev	A	2
+4	158	1z0-071	https://www.examtopics.com/discussions/oracle/view/8224-exam-1z0-071-topic-1-question-239-discussion/	A	1
+5	158	1z0-071	A must be correct select null as nulltest from dual intesect select null as nulltest1 from dual it shows one row		1
+1	159	1z0-071	C because each DML starts a new transaction.	BCE	1
+2	159	1z0-071	The Transaction END with Comitt or DDL The new Transaction starts with INSERT, UPDATE, DEL, MERGE (Not even select TESTED) OR A transaction can be start manually by begin transaction command (which is irrelevent in context of this question).		1
+3	159	1z0-071	A. after successfully executing a CREATE TABLE statement followed by a CREATE INDEX statement CREATE WILL END THE TRANSACTION BUT AGAIN CREATE INDEX WILL NOT START NEW TRANSACTION. FALSE B. after successfully executing a TRUNCATE statement followed by a DML statement. TRUNC WILL END TRANS... AND LET SUPPOSE DML IS NOT SELECT IN THIS CASE SO THIS IS A POSSIBLE TRUE. TRUE C. after successfully executing a DML statement following a failed DML statement. DML WILL NOT END TRANSATION AT ALL. FALSE D. after successfully executing a CREATE TABLE AS SELECT statement followed by a SELECT FOR UPDATE statement. CREATE IS DDL WHICH IS IMPLICIT COMIT AND SELECT FOR UPDATE IS A START OF NEW TRANSACTION. TRUE E. after successfully executing a COMMIT or ROLLBACK followed by a DML statement. SO COMIT END TRANSACTION AND DML CAN POTENTIALLY START NEW TRANSACTION (OTHER THAN SELECT). TRUE F. after successfully executing a COMMIT or ROLLBACK followed by a SELECT statement. TRANSACTION ENDS HOWEVER ONLE SELECT, LET SAY SELEC * FROM EMP WILL NOT START A NEW TRANSACTION. FALSE TRUE ---- BDE		3
+4	159	1z0-071	BDE is correct	BDE	2
+5	159	1z0-071	BEST ANSWERS	BDE	2
+6	159	1z0-071	BDE is correct, tested all on DB. F is incorrect as SELECT is a limited DML statement which means it can only access data in the database, it cannot manipulate data.		2
+7	159	1z0-071	I would said BDE because STATUS means that the Transaction must be active so not yet completed	BDE	1
+8	159	1z0-071	I would say BDE		1
+9	159	1z0-071	I think new transaction can't start in the following case. C.after successfully executing a DML statement following a failed DML statement and I didn't find the difference between E and F.Can I get any reference link?		1
+1	160	1z0-071	A and D are correct.	AD	1
+1	161	1z0-071	Answers A & E are correct.	AE	1
+1	162	1z0-071	I think AD is correct	AD	2
+2	162	1z0-071	Tested twice. AC		1
+3	162	1z0-071	No error for me on D, worked fine.	AD	1
+4	162	1z0-071	A D are correct	AD	2
+5	162	1z0-071	D i am getting an error ORA-01722: invalid number	AC	1
+6	162	1z0-071	A D are correct	AD	2
+7	162	1z0-071	Not sure about this one - A, B, E compile successfully and got the same results for all of them. C is not an implicit conversion, D throws an error 'invalid NUMBER'.		1
+8	162	1z0-071	AD must be correct. C is not an implicit conversion		3
+1	163	1z0-071	A & B are correct! C & E are incorrect because CURRENT_TIMESTAMP reflects the session time zone, not DBTIMEZONE		1
+2	163	1z0-071	AB should be the correct answer	AB	2
+3	163	1z0-071	A seems 100%. B is correct if you consider timestamp as the overarching data type of timestamp with time zone and timestamp with local time zone. However if D says current_date then I like AD over AB.	AB	2
+4	163	1z0-071	A - Is correct D - Should be either CURRENT_TIMESTAMP or CURRENT_DATE	AD	1
+2	195	1z0-071	The correct answer is CDE		1
+3	195	1z0-071	DE for sure true.		1
+5	163	1z0-071	select tzname, tz_offset(tzname) from v$timezone_names; select tzname, tz_offset(tzname) from v$timezone_names where tzname = 'America/Anchorage'; alter session set time_zone='America/Anchorage'; select sessiontimezone, current_timestamp, dbtimezone, systimestamp from dual; select current_time from dual; A → OK. B → NOOK: Returns TIMESTAMP WITH TIME ZONE. C → NOOK: No, in the SESSIONTIMEZONE.. D → CURRENT_TIME doesn’t exist. E → NOOK: No, in the SESSIONTIMEZONE. F → NOOK. SYSTIMESTMP returns date based on DBSTIMEZONE.		3
+1	164	1z0-071	A is correct	A	1
+2	164	1z0-071	% is zero or more char so ...		1
+3	164	1z0-071	A is correct	A	2
+4	164	1z0-071	Definitely A	A	1
+5	164	1z0-071	A is correct.	A	2
+6	164	1z0-071	A is correct	A	1
+7	164	1z0-071	A is correct	A	1
+8	164	1z0-071	A is correct	A	2
+9	164	1z0-071	I think A should be correct . A. city LIKE ‘D__%’		2
+1	165	1z0-071	BE is correct	BE	2
+2	165	1z0-071	B E are correct	BE	2
+3	165	1z0-071	B - can SELECT FOR UPDATE be used with DISTINCT? I receive ORA-01786 error when testing		1
+1	166	1z0-071	fail A - because in the subquery exist condition referenced to main table but not subquery table. By other words, in the subquery not exist limitation for fetching rows and subquery return more than one row		7
+2	166	1z0-071	A is not correct, failed with "ORA-01427: single-row subquery returns more than one row"		1
+3	166	1z0-071	A -failed with "ORA-01427: single-row subquery returns more than one row"	A	1
+4	166	1z0-071	A fails		2
+5	166	1z0-071	AD Both similar results. A should be preferred		1
+6	166	1z0-071	Correct Answer is A. Tested.		1
+7	166	1z0-071	alic_alex, I am sorry but where did you see the EXIST condition in A?		2
+8	166	1z0-071	A is correct	A	1
+9	166	1z0-071	is the A the correct A is select count(*) from hr.employees e where e.salary < (select a.salary from hr. employees a where a.employee_id=110);	A	2
+10	166	1z0-071	Answer by alic_alex explains it well.	A	1
+11	166	1z0-071	A fails due to the wrong condition in subquery	A	1
+12	166	1z0-071	i would say A		1
+13	166	1z0-071	A,B,D give the same result. But C is different I suggest C	C	1
+1	167	1z0-071	• LEFT OUTER JOIN: o Returns all rows from the employees table, regardless of whether there is a matching row in the managers table. o For employees without a manager, the columns from the managers table will contain NULL.	C	1
+2	167	1z0-071	C is correct. The manager table needs to be fully preserved.	C	1
+1	168	1z0-071	B and E by chatgpt	B	1
+2	168	1z0-071	B and E		1
+3	168	1z0-071	Should be B,E but won't allow multiple answers to be voted for.	B	1
+4	168	1z0-071	BE is correct		1
+5	168	1z0-071	BE is correct	B	2
+6	168	1z0-071	BE 100%. Why so many answers are incorrectly marked?		1
+7	168	1z0-071	B AND E CORRECT	B	1
+8	168	1z0-071	BE is correct	B	1
+9	168	1z0-071	BE is correct. A is false, a Foreign Key column can contain Null values.		1
+10	168	1z0-071	BE is the correct answer.	B	2
+11	168	1z0-071	AE is good	E	1
+1	169	1z0-071	B and C. B) there is a typo, should be = 0 not - 0. C) LOOR(quantity / 10) = TRUNC(quantity / 10) return the same value, indicating quantity is a multiple of 10.	BC	1
+2	169	1z0-071	D: returns 0 if the Quantity is less than 10, not just some tens.		1
+3	169	1z0-071	B. SELECT * FROM order_items WHERE MOD(quantity, 10) = 0; This is correct. The MOD function returns the remainder of a division operation. If MOD(quantity, 10) equals 0, it means that quantity is evenly divisible by 10, i.e., quantity is a multiple of 10. C. SELECT * FROM order_items WHERE FLOOR(quantity / 10) = TRUNC(quantity / 10); This is correct. FLOOR(quantity / 10) and TRUNC(quantity / 10) will both give the same result when quantity is a multiple of 10, because the division of a multiple of 10 by 10 will always be an integer. This ensures that quantity is a multiple of 10.	BC	1
+4	169	1z0-071	D is correct for sure, I think that B has a typo.	D	1
+5	169	1z0-071	B has a typo , should be = 0		2
+6	169	1z0-071	BD is correct	BD	2
+7	169	1z0-071	C, D IS CORRECT	CD	1
+1	170	1z0-071	AB is correct	AB	1
+2	170	1z0-071	A: using index clause C: once index created, use is automatic with query	AC	1
+3	170	1z0-071	c. No, that statement is not necessarily true. If a query filters on an indexed column, the optimizer will decide whether or not to use the index based on factors such as the selectivity of the filter and the size of the table. In some cases, a full table scan may be more efficient than using an index.	AB	2
+4	170	1z0-071	AB are correct	AB	1
+5	170	1z0-071	https://www.examtopics.com/discussions/oracle/view/9439-exam-1z0-071-topic-1-question-300-discussion/		1
+1	171	1z0-071	/*A NOOK*/ select date'2019-01-01' + interval '0.5' day from dual; /*01867. 00000 - "the interval is invalid" *Cause: The character string you specified is not a valid interval. *Action: Please specify a valid interval.*/ /*B OK*/ select date'2019-01-01' + interval '720' MINUTE from dual; /*C NOOK*/ select date'2019-01-01' + interval '11:60' HOUR TO MINUTE from dual; /*ORA-01851: los minutos deben estar comprendidos entre 0 y 59 01851. 00000 - "minutes must be between 0 and 59"*/ /*D NOOK*/ select date'2019-01-01' + interval '12:00' HOUR TO SECOND from dual; /*ORA-01867: el intervalo no es válido 01867. 00000 - "the interval is invalid" *Cause: The character string you specified is not a valid interval.*/ /*E OK*/ select date'2019-01-01' + interval '0 12' DAY TO HOUR from dual; /*F OK*/ select date'2019-01-01' + interval '12' HOUR from dual;		8
+2	171	1z0-071	The correct answer is BEF		1
+3	171	1z0-071	BEF is true	BEF	1
+4	171	1z0-071	b e f are true	BEF	1
+5	171	1z0-071	BEF are correct ones	BEF	1
+6	171	1z0-071	BEF are correct	BEF	1
+1	172	1z0-071	AD is correct	AD	1
+2	172	1z0-071	AD correct see discussion linked below	AD	1
+3	172	1z0-071	https://www.examtopics.com/discussions/oracle/view/9425-exam-1z0-071-topic-1-question-230-discussion/		1
+1	173	1z0-071	CE is correct answer	CE	2
+1	174	1z0-071	You cannot truncate the parent table of an enabled foreign key constraint. You must disable the constraint before truncating the table. An exception is that you can truncate the table if the integrity constraint is self-referential.	C	1
+2	174	1z0-071	Answer is C. The key word is 'if' foreign contstraints will be be violated. Meaning, the TRUNCATE 'will' violate the foreign constraints.	C	1
+3	174	1z0-071	B correct answer should be B	B	1
+4	174	1z0-071	the exception to C is if the constraint is self referential which contradicts the user of 'never' in the statement	B	1
+5	174	1z0-071	https://www.examtopics.com/discussions/oracle/view/15064-exam-1z0-071-topic-1-question-268-discussion/	B	2
+6	174	1z0-071	The correct answer is B (Truncate operations drop and re-create the table, which is much faster than deleting rows one by one, particularly for large tables)	B	1
+1	175	1z0-071	TESTED : Correct answer is B NOCACHE --> NEXTVAL =2; INCREMENT BY 10 --> NEXTVAL =11; START WITH 11 --> ORA ERROR - CANNOT ALTER SEQUENCE STARTING NUMBER MINVALUE 11 --> ORA ERROR - MINVALUE CANNOT BE MADE TO EXCEED THE CURRENT VALUE CYCLE 11 --> ORA ERROR - SQL COMMAND NOT PROPERLY ENDED	B	1
+2	175	1z0-071	I think B is correct	B	2
+3	175	1z0-071	Tested twice. B		1
+4	175	1z0-071	Tested.	B	2
+5	175	1z0-071	I creating sequence - create sequence customer_seq cache 10; What I get from alter sequence customer_seq: A. NOCACHE – NEXTVAL 1 B. INCREMENT BY 10 - NEXTVAL 10. C. START WITH 11 - ORA-02283: cannot alter starting sequence number D. MINVALUE 11 - ORA-04007: MINVALUE cannot be made to exceed the current value E. CYCLE 11 - ORA-00933: SQL command not properly ended		2
+6	175	1z0-071	CORRECT C, FALSE B	C	1
+1	176	1z0-071	AC is the answer checked	AC	1
+2	176	1z0-071	AC is correct	AC	1
+1	177	1z0-071	PROMPT Enter table name &&x - The && (double ampersand) ensures that the value for the variable x is stored in the session after it is entered. The PROMPT statement is used to display a message for the user to input the value. SELECT employee_id FROM &x WHERE last_name = 'King'; The &x (single ampersand) refers to the variable x that was already defined by the && mechanism in the previous step. It does not prompt again because the variable is already stored.	D	1
+2	177	1z0-071	C. PROMPT Enter table name &x - SELECT employee_id FROM &&x WHERE last_name = ‘King’; An & prefix to an undefined substitution variable, which is referenced twice in the same query, will prompt for a value twice.	C	1
+3	177	1z0-071	C prompted twice, while D prompted only once.	D	3
+4	177	1z0-071	D, && performs an implicit DEFINE while & doesn't I thought & always prompts, even if there was && before it, but this question just made me realize this, as all other answers are wrong, including C.	D	1
+5	177	1z0-071	D is correct	D	1
+6	177	1z0-071	Test results: A and C: prompted twice B: did not prompt D: prompted once the first time and then no prompt on rerun Best answer: D	D	1
+7	177	1z0-071	C is correct	C	1
+8	177	1z0-071	C is correct	C	2
+9	177	1z0-071	Correct C	C	1
+10	177	1z0-071	C is the right answer tested	C	2
+11	177	1z0-071	D is correct. B will never show a prompt window.	D	1
+12	177	1z0-071	Tested D.		3
+1	178	1z0-071	create table customers (cust_last_name varchar2(10)) select * from customers; insert into customers values ('Anderson') insert into customers values('Ausson') select replace (replace(cust_last_name,'son',''),'An','O') from customers; -- + select replace (trim(trailing 'son' from cust_last_name),'An','O') from customers; -- trim should have only one character select replace (substr (cust_last_name,-3),'An','O') from customers; -- both values are 'son' select initcap(replace(trim('son' from cust_last_name),'An','O')) from customers; -- trim should have only one character		2
+2	178	1z0-071	A is the answer	A	1
+3	178	1z0-071	A is the answer		1
+1	179	1z0-071	EF should be the correct answer	EF	1
+2	179	1z0-071	E;F tested		4
+3	179	1z0-071	Tested column aliases cannot before the concatination unless you want to also inclunde them which means you need to add another ||	EF	3
+4	179	1z0-071	EF are correct. A is incorrect as there are single & double commas instead of single commas only. Others are obviously wrong.	EF	2
+5	179	1z0-071	E, F are right.		4
+1	180	1z0-071	BC is correct	BC	1
+2	180	1z0-071	https://www.examtopics.com/discussions/oracle/view/10416-exam-1z0-071-topic-1-question-292-discussion/	BC	1
+1	181	1z0-071	Answer are A & E.	AE	1
+2	181	1z0-071	CE is the correct answer https://docs.oracle.com/cd/B28359_01/server.111/b28318/datadict.htm#CNCPT1220		1
+1	182	1z0-071	only D, B not in case cust_credit_limit =1000.45		2
+2	182	1z0-071	BD is correct	BD	1
+3	182	1z0-071	BD is the correct answer	BD	1
+4	182	1z0-071	What is the point of using round?		2
+5	182	1z0-071	For option B, what if cust_credit_limit = 999.6?		3
+6	182	1z0-071	BD correct, since E didnt not search for the last name start with A/B, the condition is looking for lastname='A'		1
+7	182	1z0-071	BD tested	BD	4
+8	182	1z0-071	B D are correct	BD	2
+9	182	1z0-071	BD is correct	BD	3
+10	182	1z0-071	BD must be right	BD	3
+1	183	1z0-071	CD correct	CD	1
+2	183	1z0-071	CD is correct	CD	1
+1	184	1z0-071	AB is the correct answer	AB	1
+2	184	1z0-071	https://www.examtopics.com/discussions/oracle/view/20447-exam-1z0-071-topic-2-question-55-discussion/	AB	2
+3	184	1z0-071	correct A,B,C - https://docs.oracle.com/database/121/SQLRF/expressions014.htm#SQLRF52093		1
+4	194	1z0-071	I'm seeing a lot of debate here about the security, but what about data lock? nothing indicates that the HR committed the update, thus; shouldn't the row be locked?	D	2
+5	194	1z0-071	C gives ORA-41900	D	1
+6	194	1z0-071	D is correct. ALICE needs SELECT privileges also	D	2
+7	194	1z0-071	Tested, C is correct, i updated row as sys user and deleted as test user, it was stuck in scrip runner, as soon as I commited in sys session delete did happen in test user session	C	2
+8	194	1z0-071	https://www.examtopics.com/discussions/oracle/view/22160-exam-1z0-071-topic-2-question-65-discussion/	D	1
+1	185	1z0-071	B,E create table products (prod_id char(2), prod_name char(4), exp_date timestamp(6)); create table new_products (prod_id char(4), prod_name varchar2(10), exp_date DATE); /*A NOOK 01789. 00000 - "query block has incorrect number of result columns"*/ SELECT prod_id FROM products UNION ALL SELECT prod_id, prod_name FROM new_products; /*B OK.*/ SELECT prod_id, exp_date FROM products UNION ALL SELECT prod_id, NULL FROM new_products; /*C NOOK 01789. 00000 - "query block has incorrect number of result columns"*/ SELECT * FROM products MINUS SELECT prod_id FROM new_products; /*D NOOK 01790. 00000 - "expression must have same datatype as corresponding expression"*/ SELECT prod_id, prod_name FROM products INTERSECT SELECT 100, prod_name FROM new_products; /*E OK*/ SELECT * FROM products UNION SELECT * FROM new_products;		6
+2	185	1z0-071	BE correct	BE	1
+3	185	1z0-071	BE is correct D is not correct since the data types does not match	BE	1
+4	185	1z0-071	B, E is correct; but D also executes successfully!!		1
+5	185	1z0-071	BE correct. Please update these answers	BE	2
+6	185	1z0-071	BE tested	BE	2
+7	185	1z0-071	BE correct		2
+8	185	1z0-071	BE Correct. Tested Thanks Santi.	BE	3
+1	186	1z0-071	Answers are: A, D, E.	ADE	1
+1	187	1z0-071	A - is correct, because INSERT FIRST evaluates conditions in order and inserts a row into the first matching target only. So a source row never gets inserted into more than one table with INSERT FIRST. C - is correct because it describes what INSERT ALL does. One row from the source can be inserted into multiple target tables. E - "is not Correct" --> The word “always” makes this statement false. Also, Multitable INSERT statements use a SELECT to generate source rows. And the SELECT can be a subquery, but it can also be a direct table or view.	AC	1
+2	187	1z0-071	CD is correct	CE	1
+3	187	1z0-071	CE are correct B I think is correct as well?	CE	3
+1	188	1z0-071	--B WRONG --select avg(salary) from emp group by dept_id having avg(salary) > 1000; --C WRONG --select last_name from emp where upper(last_name) like 'A%'; --D WRONG --Having is Used for Agg Functions. Single-row functions do not require grouping.		2
+2	188	1z0-071	For me A is correct.	A	1
+3	188	1z0-071	B is the Answer.		1
+4	188	1z0-071	Example: select employee_id from employees where salary > (select avg(salary) from employees);	A	1
+5	188	1z0-071	A select EmployeeId, sum(amount) from Sales group by Employee where EmployeeId in ( select max(EmployeeId) from Employees)		2
+6	188	1z0-071	B is correct But I think C as well is correct	B	1
+7	188	1z0-071	I thought aggregate functions cannot be used in the WHERE clause?		4
+1	189	1z0-071	keyword SAVEPOINT is optional thus B,C	BC	1
+2	189	1z0-071	BC is correct as the word savepoint is optionnal.	BC	2
+3	189	1z0-071	BC is correct	BC	1
+4	189	1z0-071	BC is the correct answer since SAVEPOINT is optional in ROLLBACK there's no such thing as COMMIT TO SAVEPOINT	BC	1
+5	189	1z0-071	BD is correct answer.	BD	1
+6	189	1z0-071	All savepoints of the current transaction are deleted if you execute a COMMIT , or a ROLLBACK that does not name a savepoint.		1
+7	189	1z0-071	Voted for BC. SAVEPOINT word is optional, A rollbacks whole transaction, E is invalid as there's not such thing in COMMIT synthax.	BC	1
+8	189	1z0-071	E is invalid. BC is correct	BC	2
+1	190	1z0-071	DE is correct	DE	6
+2	190	1z0-071	D and E is correct. A produce an error B and C select highest salary based on department D and E select highest salary in the table		2
+3	190	1z0-071	I think DE is correct.	DE	1
+4	190	1z0-071	DE is correct answer. Tested		1
+5	190	1z0-071	DE is the correct answer	DE	1
+6	190	1z0-071	how is it not C & D? E doesn't make sense?		2
+7	190	1z0-071	DE tested		2
+8	190	1z0-071	E is wrong, you cant have Max(Max) an aggregate of aggregate Maybe B,C,E are correct but A,E are wrong	BC	1
+9	190	1z0-071	DE are correct answers	DE	2
+1	191	1z0-071	D is correct	D	2
+2	191	1z0-071	Admins, why so many questions are marked incorrectly?		2
+3	191	1z0-071	D should be the correct answer	D	1
+4	191	1z0-071	D tested		1
+5	191	1z0-071	D is correct	D	1
+6	191	1z0-071	D correct answer	D	1
+7	191	1z0-071	D correct	D	1
+8	191	1z0-071	C is invalid and returns the error : ORA-00979: not a GROUP BY expression	D	2
+1	192	1z0-071	A, B, D, and E require explicit data type conversion.	A	1
+2	192	1z0-071	A is the correct answer	A	2
+3	192	1z0-071	https://www.examtopics.com/discussions/oracle/view/13453-exam-1z0-071-topic-1-question-296-discussion/	A	1
+4	192	1z0-071	All executed without error.		2
+5	192	1z0-071	D is executed without conversion. A is the correct	A	1
+1	193	1z0-071	C,D,F correct https://docs.oracle.com/cd/E18283_01/server.112/e17120/tables013.htm	CDF	5
+2	193	1z0-071	Index cannot be created on external table	CDF	2
+3	193	1z0-071	CDF are true	CDE	1
+4	193	1z0-071	CDF are true		2
+5	193	1z0-071	I think C, D, F.		3
+1	194	1z0-071	UPDATE is DML and not a DDL, it does not implicitly commit the transaction. C. The DELETE command will wait for HR’s transaction to end then delete the row. ALICE’s DELETE command will wait for HR’s transaction to complete (either commit or rollback) and then delete the row.	C	1
+2	194	1z0-071	- When HR executes the UPDATE statement, Oracle places a row-level lock (also known as a TM lock) on the row with employee_id = 109. This lock prevents other sessions, including ALICE's, from modifying or deleting the same row until HR's transaction is either committed or rolled back. - ALICE’s DELETE command will detect the lock on the row with employee_id = 109 and wait for HR’s transaction to complete. - Once HR commits the update, the row is no longer locked. However: -Oracle’s Read Consistency Rule ensures that ALICE's session operates under the "view" of the data at the point in time when ALICE started her session (or query). -Since the row has been modified after ALICE’s session began, ALICE's DELETE will fail with an ORA-08177: Cannot serialize access for this transaction error, because the row has been changed by another committed transaction.	A	1
+3	194	1z0-071	D is correct. Alice needs Session previlages (not just Select).	D	1
+4	195	1z0-071	https://forums.oracle.com/ords/apexds/post/dml-operations-on-multiple-views-3747		1
+5	195	1z0-071	Should be C, D, E https://www.examtopics.com/discussions/oracle/view/20172-exam-1z0-071-topic-2-question-37-discussion/	CDE	1
+6	195	1z0-071	https://www.examtopics.com/discussions/oracle/view/20172-exam-1z0-071-topic-2-question-37-discussion/		1
+7	195	1z0-071	According to some forums I have checked, they suggest: C D F		1
+1	196	1z0-071	I think BD is correct!	BD	1
+2	196	1z0-071	BD tested		1
+3	196	1z0-071	BD is correct	BD	1
+4	196	1z0-071	This query will return expected result.	BD	1
+5	196	1z0-071	PLEASE UPDATE THESE ANSWERS, IT IS RIDICULOUS HOW MANY ARE INCORRECT	BD	1
+6	196	1z0-071	BD CORRECT	BD	1
+7	196	1z0-071	BD correct tested with the HR schema		1
+8	196	1z0-071	CD CORRECT	CD	1
+9	196	1z0-071	BD correct	BD	1
+10	196	1z0-071	BD are correct.	BD	1
+11	196	1z0-071	E is invalid BD is the correct answer	BD	2
+1	197	1z0-071	The answer is A.	A	1
+1	198	1z0-071	B & D seem to be correct.	BD	1
+2	198	1z0-071	BD correct!	BD	2
+1	199	1z0-071	I will choose BD	BD	6
+2	199	1z0-071	B & D are the most plausable.	BD	1
+3	199	1z0-071	BD is correct	BD	1
+4	199	1z0-071	BD, tested.		1
+5	199	1z0-071	BD is correct	BD	1
+6	199	1z0-071	Valid answers are BD	BD	3
+7	199	1z0-071	B,D correct	BD	2
+8	199	1z0-071	I agree BD		3
+1	200	1z0-071	A and E are both correct!	A	1
+2	200	1z0-071	What makes A incorrect?		1
+3	200	1z0-071	I think E is correct	E	1
+4	200	1z0-071	E is correct	E	1
+5	200	1z0-071	E Correct. create table a_test (c1 VARCHAR2(10), c2 NUMBER(10)); insert into a_test values ('123', 123); select * from a_test; commit; alter table a_test modify c1 VARCHAR2(5); alter table a_test modify c2 NUMBER(12,2); desc a_test; if alter table a_test modify c1 VARCHAR2(2); ORA-01441: cannot decrease column length because some value is too big		2
+6	200	1z0-071	E tested	E	1
+7	200	1z0-071	E is right answer. Column must be empty to change datatype.	E	4
+8	200	1z0-071	E is correct	E	4
+1	201	1z0-071	AE is correct	AE	2
+2	201	1z0-071	AE correct	AE	2
+3	201	1z0-071	AE Correct	AE	3
+4	201	1z0-071	AE Correct	AE	1
+5	201	1z0-071	A E are correct	AE	1
+6	201	1z0-071	AE is correct		1
+7	201	1z0-071	AE is correct	AE	3
+1	202	1z0-071	C and E correct. GRANT and TRUNCATE are DDL, ALTER SESSION is a DDL as well but ALTER SESSION does not cause Data Dictionary Changes because these changes are temporary and session-specific, once the session ends, the settings go back to default.	CE	1
+2	202	1z0-071	CE for me. A. does not affect data dictionary B. It is local change if you would connect again this won't be permanent C. Here you affect permision, therefor Data dictionary D. Affects nothing because it is just select E. Affects Data dictionary As for post in https://forums.oracle.com/ords/apexds/post/does-truncate-table-generate-undo-4231 Since TABLE TRUNCATE modifies metadata in the Data Dictionary and resets the High Water Mark of the object...	CE	1
+3	202	1z0-071	C and E correct , GRANT and TRUNCATE are DDL	CE	1
+4	202	1z0-071	C and E are correct		2
+5	202	1z0-071	Based on the documentation https://docs.oracle.com/en/database/oracle/oracle-database/21/cncpt/data-dictionary-and-dynamic-performance-views.html#GUID-497B355D-E8D6-4403-B83B-B94A8AE6934D The data dictionary contains metadata describing the contents of the database. For example, the data dictionary contains information such as the following: The definitions of every schema object in the database, including default values for columns and integrity constraint information The amount of space allocated for and currently used by the schema objects The names of Oracle Database users, privileges and roles granted to users, and auditing information related to users doesn't mention anything about truncate.	BC	1
+6	202	1z0-071	B modifies the parameter setting in NLS_SESSION_PARAMETERS. C modifies ALL_TAB_PRIVS_RECD and ALL_TAB_PRIVS_MADE. For E, I tried truncating a table with 55000 rows but the truncate had no impact on space related columns in ALL_TABLES.	BC	1
+7	202	1z0-071	CE in my opinion	CE	2
+8	202	1z0-071	C, E correct, GRANT and TRUNCATE are DDL, ALTER SESSION is not.	CE	1
+9	202	1z0-071	CE are correct	CE	1
+10	202	1z0-071	C, E are correct. Truncate is DDL and it modifies the data dictionary. https://forums.oracle.com/ords/apexds/post/why-is-truncate-ddl-and-not-dml-7859 https://forums.oracle.com/ords/apexds/post/does-truncate-table-generate-undo-4231		2
+11	202	1z0-071	B,C correct. https://docs.oracle.com/cd/B10501_01/server.920/a96524/c05dicti.htm	BC	2
+1	203	1z0-071	E is incorrect for more than one reason! BCD	BCD	1
+2	203	1z0-071	answer :CDE	BCD	2
+3	203	1z0-071	CDE is the correct answer	CDE	4
+4	203	1z0-071	BCDE all work as written. E will fail if you put a comma between order_id and invoice_id	BCD	1
+5	203	1z0-071	Tested	CDE	2
+6	203	1z0-071	answer :CDE		1
+7	203	1z0-071	CDE CORRECT. PLEASE HAVE A TRY: CREATE TABLE ORDERS_01 ( ORDER_ID NUMBER(38), ORDER_DATE DATE ); CREATE TABLE INVOICES_01 ( INVOICE_ID NUMBER(38), INVOICE_DATE DATE ); SELECT * FROM ORDERS_01 ORDER BY order_id INTERSECT SELECT * FROM INVOICES_01 ORDER BY invoice_id; SELECT * FROM ORDERS_01 UNION ALL SELECT * FROM INVOICES_01 ORDER BY ORDER_ID; SELECT order_id, order_date FROM ORDERS_01 UNION ALL SELECT invoice_id, invoice_date FROM INVOICES_01 ORDER BY order_id; SELECT * FROM ORDERS_01 MINUS SELECT * FROM INVOICES_01 ORDER BY 1; SELECT order_id invoice_id, order_date FROM ORDERS_01 MINUS SELECT invoice_id, invoice_date FROM INVOICES_01 ORDER BY invoice_id; SELECT * FROM ORDERS_01 ORDER BY order_id UNION SELECT * FROM INVOICES_01; SELECT order_id, order_date FROM ORDERS_01 INTERSECT SELECT invoice_id, invoice_date FROM INVOICES_01 ORDER BY invoice_id;	CDE	2
+8	203	1z0-071	BCD are correct	BCD	1
+9	203	1z0-071	I have checked that E is working, but I don't understand why.		1
+10	203	1z0-071	CDE are correct. B is wrong as this is subquery without SELECT * in the beginning.	CDE	2
+11	203	1z0-071	Answer is BCD E is wrong because 1) The first select has 3 columns and second select has only 2 columns which is wrong. 2) The first select selects column invoice_id from the second table which is wrong . 3) Order by invoice_id is wrong.		1
+12	203	1z0-071	CDE: Pruebas: /*A NOOK*/ SELECT * FROM orders ORDER BY order_id INTERSECT SELECT * FROM invoices ORDER BY invoice_id; /*B NOOK*/ (SELECT * FROM orders UNION ALL SELECT * FROM invoices) ORDER BY order_id; /*C OK*/ SELECT order_id, order_date FROM orders UNION ALL SELECT invoice_id, invoice_date FROM invoices ORDER BY order_id; /*D OK*/ SELECT * FROM orders MINUS SELECT * FROM invoices ORDER BY 1; /*E OK*/ SELECT order_id invoice_id, order_date FROM orders MINUS SELECT invoice_id, invoice_date FROM invoices ORDER BY invoice_id; /*F. NOOK */ SELECT * FROM orders ORDER BY order_id UNION SELECT * FROM invoices; /*G. NOOK*/ SELECT order_id, order_date FROM orders INTERSECT SELECT invoice_id, invoice_date FROM invoices ORDER BY invoice_id;		2
+1	204	1z0-071	CD is correct	CD	2
+2	204	1z0-071	CD is correct NULLIF can't have NULL in the first expression	CD	1
+3	204	1z0-071	CD ES CORRECTO YA ESTA VALIDADO	CD	2
+4	204	1z0-071	CD. For NULLIF you cannot specify the literal NULL for expr1 (1st parameter).	CD	1
+5	204	1z0-071	A is not valid The correct answer is CD	CD	3
+1	205	1z0-071	A is correct	A	6
+2	205	1z0-071	The answer is A. You need the NVL, otherwise the COUNT won't know what to count. Remember, NULL means unknown.		2
+3	205	1z0-071	A is correct	A	1
+4	205	1z0-071	A is correct	A	1
+5	205	1z0-071	A is correct. Need to convert to not NULL first.		1
+6	205	1z0-071	A is correct	A	1
+7	205	1z0-071	A is correct.	A	3
+1	206	1z0-071	The answer is D. 'Salary = ' can only equate to 1 or 0 lines.	D	1
+2	206	1z0-071	D is correct	D	1
+1	207	1z0-071	BDE is correct	BDE	1
+2	207	1z0-071	BDE correct	BDE	1
+3	207	1z0-071	BDE is correct	BDE	1
+4	207	1z0-071	BDE is correct	BDE	1
+5	207	1z0-071	why is option D right? It delete every rows from the table. It does not consider the condition "order_total < 1000."		1
+6	207	1z0-071	DELETE FROM TABLE_NAME. 'FROM' IS A OPTION WORD.	BDE	1
+7	207	1z0-071	a column can be dropped or it can be updated not deleted	BDE	1
+8	207	1z0-071	BDE is correct	BDE	1
+9	207	1z0-071	BDE is the correct answer	BDE	3
+1	208	1z0-071	A is the correct answer	A	10
+2	208	1z0-071	D is wrong because it’s using the alias in the were clause, but the where clause is executed first	A	1
+3	208	1z0-071	A is the correct	A	1
+4	208	1z0-071	A is correct	A	1
+5	208	1z0-071	A you can't use alias in where clause	A	1
+6	208	1z0-071	A should be correct	A	2
+7	208	1z0-071	100% A CORRECT. THE STATEMENT WILL EXECUTE THE 'WHERE' CONDITION FIRST BEFORE SELECT STATEMENT.		1
+8	208	1z0-071	E is the correct answer		1
+1	209	1z0-071	BD is the correct answer. You can test this : Create table hr.test_employees (emp_id number (5) primary key, Ename varchar2(15) not null, Email varchar2(40) unique, Address long, Resume clob, Department_id number(4) constraint emp_dept_id_fx references hr.departments(department_id) );	BD	8
+2	209	1z0-071	Only one LONG column is allowed per table. refer: https://docs.oracle.com/cd/A58617_01/server.804/a58241/ch5.htm#418225		1
+3	209	1z0-071	BD correct answer	BD	1
+4	209	1z0-071	Must be BD NOT NULL must be declared at column level and only one Long column is allowed	BD	1
+5	209	1z0-071	BD only one Long per table		1
+1	210	1z0-071	pls ignore the below information. it is for qsn:209		1
+2	210	1z0-071	Only one LONG column is allowed per table. refer: https://docs.oracle.com/cd/A58617_01/server.804/a58241/ch5.htm#418225		1
+3	210	1z0-071	B is correct	B	1
+4	210	1z0-071	B is correct	B	1
+5	210	1z0-071	B tested		2
+6	210	1z0-071	Can please explain?		1
+7	210	1z0-071	B is correct	B	4
+1	211	1z0-071	C tested		1
+2	211	1z0-071	Only 2 statements will be successfull: B - 27, MONTAG FEBRUAR, 2023 C - MONTAG, 27 FEBRUAR, 2023 Correct and needed answer is C.	C	3
+1	212	1z0-071	Its intresting...BOTH queries return the same result select prod_list, prod_name from products where prod_list = any (select prod_list from products) select prod_list, prod_name from products where prod_list <> any (select prod_list from products)	A	2
+2	212	1z0-071	'A' can not be correct. The subquery will list 10, 20, 30, 40 while the main query will return any product name that is not equal to any of the subquery list (<> ANY). So, A cannot be correct.		1
+3	212	1z0-071	Only A is correct	A	1
+4	212	1z0-071	E would be correct if it's NOT IN and <> ALL		2
+5	212	1z0-071	A is correct	A	1
+6	212	1z0-071	Maybe E is supposed to be using IN ..., then it would work.		1
+7	212	1z0-071	Answer is A and Using NOT IN or <> ANY will not give the same result. create table products ( prod_id number, prod_name varchar2(10), prod_list number) insert into products values( 101, 'Plate', 10); insert into products values( 102, 'Cup', 20); insert into products values( 103, 'Saucer', 30); insert into products values( 104, 'Knife', 40); insert into products values( 105, 'Fork', ''); select prod_name from products where prod_list not in (select prod_list from products) select prod_name from products where prod_list <> any (select prod_list from products)		1
+8	212	1z0-071	A is a correct answer Using NOT IN or <> ANY will not give the same result.	A	2
+1	213	1z0-071	The condition from subquery is same for all tables i.e. data from sub query comes with employee_id > 125 if the sal > 2000 then values will insert in Special_sal if the sal <2000 then values will insert in SAL_HISOTORY & MGR_HISTORY CHATGPT IS WRONG 100%. D is Correct		1
+2	213	1z0-071	In INSERT ALL we can have multiple INTO clauses under conditional statements. So both INTO statement will be executed under ELSE condition.	D	1
+5	231	1z0-071	Option A tested in DB. If the salary contain like the below example: id Salary 1 12000 2 15000 3 16000 4 16000 5 17000 in this case, with ties option return extra rows select id,salary from emp order by salary fetch first 3 rows with ties; o/p: 1 12000 2 15000 3 16000 4 16000		2
+3	213	1z0-071	Using chatgpt4, answer given is C. someone pls verify Expected Outcome Based on Conditions: For employee_id = 100 with salary = 25000: Meets SAL > 20000, so data is inserted into special_sal. Data is also inserted into mgr_history because the condition for the mgr_history table insertion doesn't depend on the salary. For employee_id = 110 with salary = 18000: Does not meet SAL > 20000, so data is inserted into sal_history. Data is also inserted into mgr_history regardless of the salary because there's no conditional logic preventing this in the provided statement. For employee_id = 120 with salary = 21000: Meets SAL > 20000, so data is inserted into special_sal. Data is also inserted into mgr_history regardless of the salary.	C	1
+4	213	1z0-071	C is correct you can CHATGPT		1
+5	213	1z0-071	D is correct	D	2
+1	214	1z0-071	Answer is BEF https://oracle-base.com/articles/misc/temporary-tables		5
+2	214	1z0-071	A GLOBAL TEMPORARY TABLE in Oracle cannot have a PUBLIC SYNONYM. Synonyms, especially public ones, are meant to provide a consistent and global alias to database objects. However, Global Temporary Tables (GTTs) have session-specific or transaction-specific data, and allowing a public synonym for such a table could lead to confusion or conflicts due to its session-dependent behavior.	BEF	1
+3	214	1z0-071	why BDE is the answer? Correct answer is BEF		1
+4	214	1z0-071	BEF is correct	BEF	2
+1	215	1z0-071	I think CE is correct	CE	1
+2	215	1z0-071	CE is correct	CE	1
+1	216	1z0-071	To calculate the number of days between 1st January 2019 and the current date (SYSDATE) in Oracle SQL, the following considerations apply: SYSDATE is a date data type, so arithmetic operations on dates can directly calculate the difference in days. String literals representing dates (like '01-JAN-2019') must be explicitly converted to date values using TO_DATE. Correct Answers: C. SELECT ROUND(SYSDATE - TO_DATE('01/JANUARY/2019')) FROM DUAL; This query works because TO_DATE('01/JANUARY/2019') converts the string to a date, and subtracting it from SYSDATE gives the number of days. The ROUND function rounds the result to the nearest whole number. E. SELECT SYSDATE - TO_DATE('01-JANUARY-2019') FROM DUAL; This query also works because it correctly converts '01-JANUARY-2019' to a date and subtracts it from SYSDATE, returning the exact number of days as a decimal.	CE	1
+2	216	1z0-071	C, E is correct	CE	1
+3	216	1z0-071	C is correct if you change the - operator between sysdate and to_date manually. i think there is a mistake.	CE	1
+4	216	1z0-071	https://www.examtopics.com/discussions/oracle/view/20180-exam-1z0-071-topic-2-question-44-discussion/		1
+5	216	1z0-071	The only working query is E all of the others are not working.	E	1
+1	217	1z0-071	ACF is correct	ACF	1
+2	217	1z0-071	ACF is correct. E is wrong		1
+3	217	1z0-071	ACE is correct	ACE	1
+4	217	1z0-071	ACF, I have tested on Oracle DB and it works	ACF	2
+5	217	1z0-071	The correct answer is ACE		1
+6	217	1z0-071	wrong img table https://www.examtopics.com/assets/media/exam-media/02818/0024900001.png		2
+7	217	1z0-071	https://www.examtopics.com/discussions/oracle/view/9440-exam-1z0-071-topic-1-question-301-discussion/		1
+1	218	1z0-071	Answer is A, E https://docs.oracle.com/en/database/oracle/oracle-database/21/sqlrf/CREATE-SYNONYM.html	AE	1
+2	218	1z0-071	Resource for Oracle synonyms: https://www.databasestar.com/oracle-synonym/	AE	1
+3	218	1z0-071	AE is correct	AE	1
+1	219	1z0-071	B is correct	B	1
+2	219	1z0-071	B GROUP BY cannot use alias	B	2
+1	220	1z0-071	C no doubts then its D not E This is a common misconception. If ord_seq.NEXTVAL is used in a DEFAULT clause, users do not need direct privileges on the sequence to insert into the table. The database evaluates the default on behalf of the user.	CD	2
+2	220	1z0-071	C for sure, then I am unsure D or E		1
+3	220	1z0-071	E is correct only if we assume that user doesn't insert ord_no explicitly. If he does than he doesn't need the select privilege on the sequence. In my oppinion only C is correct.		1
+4	220	1z0-071	Cannot be A because of 'cycle' specification.	CE	1
+5	220	1z0-071	would be A,E. we can insert ord_no explicitly.		2
+1	221	1z0-071	BCE be correct		1
+2	221	1z0-071	BCE should be correct	BCD	1
+3	221	1z0-071	ACE, B is false, it return only time zone name	AC	2
+4	221	1z0-071	BCE should be correct	BCE	1
+5	221	1z0-071	To test A, I inserted rows from 2 different session time zones into a table using sysdate. The individual session time zones for each user session were recorded in the different rows. E is confusing because while true, that is not the only data that is recorded.	ABC	1
+6	221	1z0-071	I will follow BCE too.	BCE	1
+7	221	1z0-071	https://www.examtopics.com/discussions/oracle/view/8426-exam-1z0-071-topic-1-question-262-discussion/	BCE	1
+8	221	1z0-071	I would say: BCE	BCE	2
+1	222	1z0-071	For C, the query optimizer usage is based on the setting of OPTIMIZER_USE_INVISIBLE_INDEXES	AE	2
+2	222	1z0-071	A, C are correct. E. The maintenance of entries in the index during data manipulation operations (INSERT, UPDATE, DELETE) is not impacted by the visibility of the index. Both VISIBLE and INVISIBLE indexes are updated accordingly to maintain data integrity and facilitate efficient data retrieval using indexes.		2
+1	223	1z0-071	CDF for sure		1
+2	223	1z0-071	"x > ANY (...)": The value must be greater than the smallest value in the list to evaluate to TRUE. "x < ANY (...)": The value must be smaller than the biggest value in the list to evaluate to TRUE. BDF is correct.		1
+3	223	1z0-071	BDF is correct	BDF	2
+4	223	1z0-071	BDF for me	BDF	1
+5	223	1z0-071	Both B and C are correct. < ANY means less than ANY, no matter highest or lowest. Another doubtful question		1
+6	223	1z0-071	BDF is correct	BDF	1
+7	223	1z0-071	I think BDF, because the answer C is the definition of < All not < Any. If it less than the lowest value, so, it less than all values from the subquery.		1
+8	223	1z0-071	BDF is correct	BDF	3
+9	223	1z0-071	I think CDF correct	CDF	4
+1	224	1z0-071	B. A relationship can be mandatory for both entities. Explanation: In an entity relationship, it is possible to define a relationship as mandatory for both entities. For example: A "Student" must be enrolled in a "Course" (mandatory for "Student"). A "Course" must have at least one "Student" (mandatory for "Course"). This is known as a mandatory participation constraint. E. A table name can be specified just once when selecting data from a table having a self-referencing relationship. Explanation: In a self-referencing relationship, a table refers to itself through a foreign key. When querying, you can use a single table name but must use aliases to differentiate between the parent and child references. SELECT e1.employee_id, e1.name AS manager_name, e2.name AS employee_name FROM employees e1 JOIN employees e2 ON e1.employee_id = e2.manager_id;	BE	1
+2	224	1z0-071	C IS NOT CORRECT WITH ''ONLY''.	BD	1
+3	224	1z0-071	I think many-to-many relationships are implemented using an associative table with foreign keys.	BC	2
+4	224	1z0-071	BD can be correct	BD	1
+5	224	1z0-071	D because A one-to-many relationship in one direction is a many-to-one relationship in the other direction. For example, if a customer can have many orders, then an order can have only one customer. Statement C, “A many-to-many relationship can be implemented only by using foreign keys,” is not correct because a many-to-many relationship cannot be implemented directly using foreign keys. Instead, it is typically implemented using a junction table (also known as a bridge table or associative table) that sits between the two tables representing the entities in the relationship.	BD	1
+1	225	1z0-071	AD is correct	AD	1
+2	225	1z0-071	AD is correct	AD	1
+1	226	1z0-071	If you haven't mentioned on commit preserve / Delete, the default behavior of system is to delete all the rows of GTT. So, once commit is complete, rows are deleted. Again, Insert command will copy all the rows from EMP which is 14 C is correct. Tested as well		2
+2	226	1z0-071	C is correct	C	2
+3	226	1z0-071	I think the default for GTT is 'on commit delete rows'. So after the commit there would be 0 rows but then after the next insert there would be 14.	C	1
+4	226	1z0-071	Tested. create table PRODUCTS (PROD_ID NUMBER, PROD_NAME VARCHAR2(50), PROD_CATEGORY VARCHAR2(50), PROD_MIN_PRICE NUMBER, PROD_UNIT_OF_MEASURE VARCHAR2(50)) INSERT into PRODUCTS VALUES(101,'Envoy','Hardware',6000,'Nos.') ; INSERT into PRODUCTS VALUES(102,'Y Box','Electronics',9000,'') ; INSERT into PRODUCTS VALUES(103,'DVD','Software/Other',2000,'Nos.') ; INSERT into PRODUCTS VALUES(104,'Documentation','Software/Other',4000,'') ; select * from PRODUCTS create global temporary table t_pro as select * from PRODUCTS insert into t_pro select * from PRODUCTS commit insert into t_pro select * from PRODUCTS select count(*) from t_pro	B	2
+1	227	1z0-071	I would say B and C - as the core features of SQL. Providing variable definition, as I would see it, a flavour added to the Oracle SQL dialect.	BC	1
+2	227	1z0-071	The two SQL features are: B. Processing sets of data. SQL is primarily designed for processing sets of data. It allows you to query, insert, update, and delete data in a relational database management system (RDBMS). SQL statements operate on sets of records, and you can use SQL to retrieve, manipulate, and manage data in databases. E. Providing variable definition capabilities. SQL supports variable definition capabilities through the use of variables and parameters. You can declare and use variables and parameters within SQL statements to store and manipulate data.		1
+3	227	1z0-071	My hesitation on this one is E. https://docs.oracle.com/en/database/oracle/oracle-database/19/sqpug/DEFINE.html		1
+1	228	1z0-071	C. All countries - countries with departments = countries with no departments	CD	1
+2	228	1z0-071	How are BD correct? Since B, C & D are only selecting country_id and country_name they only return a list of countries with no departments. Could someone please explain this		1
+3	228	1z0-071	BD correct	BD	2
+1	229	1z0-071	I think yall intentionally put the wrong answer! Constraints on Oracle tables include primary key, foreign key, check, and unique constraints. These constraints are used to ensure data integrity and consistency in a database.	ABCF	1
+2	229	1z0-071	ABEF seems correct	ABEF	1
+3	229	1z0-071	ABEF is correct	ABEF	1
+4	229	1z0-071	ABEF are corecct	ABEF	3
+5	229	1z0-071	For my opinion correct answers BCEF	BCEF	1
+6	229	1z0-071	maybe it's ABDEF ?		1
+7	229	1z0-071	A, B, E, F are true. https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/constraint.html#GUID-1055EA97-BA6F-4764-A15F-1024FD5B6DFE	ABEF	4
+1	230	1z0-071	D correct , you need permission to create synonym	D	1
+2	230	1z0-071	Why A is incorrect?		2
+3	230	1z0-071	I think D is correct as you need permission to create synonym	D	1
+4	230	1z0-071	D 2,3 only You need explicit permission to create synonym even in your own schema https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/CREATE-SYNONYM.html#GUID-A806C82F-1171-478E-A910-F9C6C42739B2	D	1
+5	230	1z0-071	B. 2, 3, and 4		1
+6	230	1z0-071	D is correct	D	2
+7	230	1z0-071	Tested, you cannot create synonyms nor views without premission even if you are trying to do it for a object in your schema or if you want to use your schema table as a underlying table for view.	D	2
+8	230	1z0-071	option D Since scott has privileges create session,table and unlimited table space, the user has not rights to create synonym unless he has create synonym privilege given to scott.		2
+9	230	1z0-071	User HR has the CREATE ANY TABLE privilege, which allows them to create a table in another user’s schema. In this case, HR successfully creates the products table in SCOTT’s schema. However, HR does not have the INSERT privilege on SCOTT’s products table, so statement 1 will fail. User SCOTT has the CREATE SESSION and CREATE TABLE privileges, which allow them to log in to the database and create tables in their own schema. Since the products table is in SCOTT’s schema, SCOTT can query and insert data into the table, so statements 2 and 3 will execute successfully. SCOTT also has the privilege to create a synonym in their own schema, so statement 4 will execute successfully.	B	2
+1	231	1z0-071	With Ties - Query would have returned one more row with an equal salary to the last row's salary if that salary number matches. In this case, it didn't so it returns 5 rows only.		1
+2	231	1z0-071	A tested. However, what is the meaning of WITH TIES then. If replacing with ONLY returns the same result.		1
+3	231	1z0-071	The WITH TIES returns additional rows with the same sort key as the LAST row fetched.	A	1
+4	231	1z0-071	A is correct	A	1
+6	231	1z0-071	A tested. CREATE TABLE EMP ( ID NUMBER(10), NAME VARCHAR2(10), SALARY NUMBER(10) ) INSERT INTO EMP VALUES (101, 'JOHN', 26000); INSERT INTO EMP VALUES (102, 'NEENA', 24000); INSERT INTO EMP VALUES (103, 'DEHAAN', 12000); INSERT INTO EMP VALUES (104, 'LEX', 17000); INSERT INTO EMP VALUES (105, 'BILL', 18000); INSERT INTO EMP VALUES (106, 'DANIEL', 26000); INSERT INTO EMP VALUES (107, 'BEN', 12000); INSERT INTO EMP VALUES (108, 'GEORGE', 25000); SELECT * FROM EMP ORDER BY SALARY FETCH FIRST 5 ROWS WITH TIES;	A	1
+7	231	1z0-071	A tested	A	1
+8	231	1z0-071	A is correct, checked in DB	A	1
+1	232	1z0-071	BF correct	BF	2
+2	232	1z0-071	BF tested	BF	1
+3	232	1z0-071	100% BF correct. Have a try. CREATE TABLE rate_list (rate NUMBER(6,2)); INSERT INTO rate_list VALUES (0.999); select * from rate_list; INSERT INTO rate_list VALUES (-.9); select * from rate_list; INSERT INTO rate_list VALUES (87654.556); select * from rate_list; INSERT INTO rate_list VALUES (-10); select * from rate_list; INSERT INTO rate_list VALUES (-99.99); select * from rate_list; INSERT INTO rate_list VALUES (0.551); select * from rate_list;	BF	2
+4	232	1z0-071	BF ARE CORRECT	BF	2
+5	232	1z0-071	B,F tested		2
+6	232	1z0-071	B and F are correct https://www.examtopics.com/discussions/oracle/view/8436-exam-1z0-071-topic-1-question-276-discussion/		2
+7	232	1z0-071	B, E is correct	BE	1
+1	233	1z0-071	BD , 15,20,10,15 result	BD	1
+2	233	1z0-071	15,20,10,15 is result		1
+3	233	1z0-071	BD is correct	BD	2
+4	233	1z0-071	Answer B,D		1
+5	233	1z0-071	BD tested SELECT ROUND (TRUNC (15.193, 1)) "Results" FROM DUAL; SELECT ROUND (15.193, -1) "Results" FROM DUAL; SELECT TRUNC (15.193, -1) "Results" FROM DUAL; SELECT TRUNC (ROUND (15.193, 1)) "Results" FROM DUAL;	BD	2
+6	233	1z0-071	B, D Correct tested in Oracle	BD	1
+7	233	1z0-071	Checked, B, D is correct	BD	1
+1	234	1z0-071	A is correct	A	1
+2	234	1z0-071	A tested	A	2
+1	235	1z0-071	A is correct	A	2
+2	235	1z0-071	A tested	A	1
+1	236	1z0-071	B is correct not A		2
+2	236	1z0-071	B is correct	B	2
+3	236	1z0-071	Tested, B is correct answer	B	1
+4	236	1z0-071	ORA-00905: missing keyword	B	1
+5	236	1z0-071	B is correct, I get error: “missing keyword” (no ON condition). All others execute sucessfully.	B	1
+1	237	1z0-071	Correct Answer: BC Tested A->The first select returns ORA-00904 D ->Wrong because both statement have d.* in the select list, so both will display departments with no employees E-> Wrong like D F -> Wrong like A	BC	2
+2	237	1z0-071	D E tested		1
+3	237	1z0-071	Actually, I think C & D are the correct answers		4
+4	237	1z0-071	B & C are the correct answers		3
+1	238	1z0-071	Answer are: A, D, F.	ADF	1
+2	238	1z0-071	https://docs.oracle.com/cd/B13789_01/server.101/b10759/statements_9016.htm#:~:text=This%20statement%20is%20a%20convenient,in%20the%20same%20MERGE%20statement.		1
+1	239	1z0-071	primary key and unique key columns are the same thing so answer could be A as well.		1
+2	239	1z0-071	Answers, C D E are correct.	CDE	1
+1	240	1z0-071	Answers: B & D are correct.	BD	1
+1	241	1z0-071	D & E, are correct.	DE	1
+1	242	1z0-071	D is object privilege to Directory object	ABC	1
+2	242	1z0-071	A. Query any table in a database. True. The ability to query any table across the database requires the SELECT ANY TABLE system privilege. This is a system-level permission and not specific to objects within a user's schema. B. Execute a procedure in another schema. True. To execute a procedure in another schema, a user would need the EXECUTE ANY PROCEDURE system privilege. While direct object privileges can be granted to execute a specific procedure, the system privilege is broader and not restricted to a single schema. C. Log in to a database instance. True. Logging in to a database instance requires the CREATE SESSION system privilege. This is a fundamental system privilege that grants the user the ability to connect to the database. Answer from GPT4	ABC	2
+3	242	1z0-071	https://docs.oracle.com/cd/A97630_01/server.920/a96540/statements_912a.htm#2073689		1
+4	242	1z0-071	D 'WARNING:The privileges needed to access files in a directory object are operating system specific. UTL_FILE directory object privileges give you read and write access to all files within the specified directory.'		2
+5	242	1z0-071	https://www.examtopics.com/discussions/oracle/view/8222-exam-1z0-071-topic-1-question-235-discussion/		1
+6	242	1z0-071	ACD is right i think	ACD	1
+7	242	1z0-071	C Log in to database - Create session system privilege		1
+8	242	1z0-071	B "Execute a procedure in another schema" This is an object privilege		1
+9	242	1z0-071	A READ ANY TABLE system privilege allows a user to query tables, views, or materialized views in any schema in the database.		1
+1	243	1z0-071	- A: Grants the CREATE SEQUENCE system privilege to both the manager and emp roles. It is valid to specify multiple roles or users in a single GRANT statement. - B: CREATE TABLE is a system privilege, and privileges can be granted to roles. - C: CREATE ANY SESSION is not a valid privilege in Oracle. It should be CREATE SESSION instead - D: This syntax is valid. - E: CREATE TABLE is a system privilege, and SELECT is an object privilege. System and object privileges cannot be granted in the same GRANT statement	AD	1
+2	243	1z0-071	can grant system and object privileges in same grant statement	AB	1
+3	243	1z0-071	This command grants the CREATE TABLE privilege and SELECT privilege on the HR.EMPLOYEES table to the MANAGER role. This is valid syntax, as it grants both a system privilege and an object privilege to a role. That's by A,E is correct		1
+4	243	1z0-071	A,E is correct answers.		2
+1	244	1z0-071	D and E is correct	DE	2
+2	244	1z0-071	D, E are correct	DE	1
+3	244	1z0-071	DE are correct	DE	1
+1	245	1z0-071	Logic has to be higher to lower otherwise condition will not address 2nd row D is correct select last_name, hire_date, Case When sysdate - to_yminterval ('20-0') >= hire_date then 'Older than 20 years Employees' When sysdate - to_yminterval ('10-0') >= hire_date then 'Older than 10 years Employees' When sysdate - to_yminterval ('5-0') >= hire_date then 'Older than 5 years Employees' Else 'New Employees' END as "Employees Duration" from emp order by "Employees Duration" desc ;		2
+2	245	1z0-071	Correct answer is D SELECT e.last_name, hire_date, sysdate, (CASE WHEN (sysdate -TO_YMINTERVAL('15-0')) >= hire_date THEN '15 years of service' WHEN (sysdate -TO_YMINTERVAL('10-0')) >= hire_date THEN '10 years of service' WHEN (sysdate - TO_YMINTERVAL('5-0')) >= hire_date THEN '5 years of service' ELSE '<5 years of service' END) AS years FROM employees ORDER BY hire_date	D	4
+3	245	1z0-071	I think answer is B.	B	1
+1	246	1z0-071	B. Alter Table XYZ Read only D. Alter Table XYZ Rename to ABC F. ALTER TABLE employees ADD CONSTRAINT emp_pk PRIMARY KEY (employee_id); ----- E. You cant drop all columns from table with Drop. you can drop multiple.		3
+2	246	1z0-071	https://stackoverflow.com/questions/64758577/alter-table-sql-oracle-12c#:~:text=Which%20three%20actions%20can%20you,3%2D%20Rename%20a%20table. Answer BDF	BDF	3
+1	247	1z0-071	A is incorrect because of the word "always".	DEF	1
+2	247	1z0-071	But based on the scheme ans, id D is correct , then A should be correct!	AEF	1
+3	247	1z0-071	Yes, you can create a table in ORACLE without specifying the length in CHAR column. D is right.		1
+4	247	1z0-071	you can't create a table in ORACLE without specifying the length in CHAR column		1
+5	247	1z0-071	If you do not specify a qualifier, the value of the NLS_LENGTH_SEMANTICS parameter of the session creating the column defines the length semantics, unless the table belongs to the schema SYS, in which case the default semantics is BYTE.		1
+6	247	1z0-071	DEF for me, CHAR default is 1 byte, we can use: CREATE TABLE tmp (col CHAR);	DEF	3
+7	247	1z0-071	Answer is A,E,F	AEF	2
+1	248	1z0-071	- UPDATE can be granted only on tables and views - ALTER is valid for tables and sequences but not views. - REFERENCES can be granted only on tables and views.	ADE	1
+2	248	1z0-071	Select can be given to all.	ADE	1
+3	248	1z0-071	A. TRUE B. FALSE. Only Table C. True. Can also be granted on sequences D. False. Trick question as alter is system privilege. Alter can be granted on both table and sequences. E. TRUE F. False. Insert can be granted to table and synonym		2
+4	248	1z0-071	ACE is correct		1
+1	249	1z0-071	Answer A,E	AE	1
+1	250	1z0-071	Answers C & D are correct.	CD	1
+1	251	1z0-071	ADE correct.		2
+2	251	1z0-071	A,D,E is correct. Tested. Feel free to try SELECT 'abc' AS "customer_id", Sysdate as "date", 10+100 Dues FROM DUAL; {ASS SELECT 'abc' AS 'customer_id', Sysdate as date, 10+100 'Dues' FROM DUAL; Fail because single quote for alias and not double quote on date. Alias cannot be in a single quote and date must be in a double quote as date is saved as a datatype SELECT 'abc' AS "customer_id", Sysdate as DATE, 10+100 "Dues" FROM DUAL; FAIL. No double quote for date SELECT 'abc' AS "customer_id", Sysdate as TRANS_DATE, 10+100 "Dues AMOUNT" FROM DUAL; PASS SELECT 'abc' CUSTID, Sysdate TRANS_DATE, 10+100 Dues FROM DUAL; PASS		4
+3	251	1z0-071	IT works 1) with as keyword , 2) with double quote 3) with out ANY quote but NOT WITH SINGLE QUOTE. Tested.	DE	1
+4	251	1z0-071	Based on the question, A, E and E are correct. Single quotes aren't allowed for column names, and DATE requires double quotes since DATE is a key word.	AD	1
+5	251	1z0-071	A, D, E are correct	AD	3
+1	252	1z0-071	A,C and D	ACD	1
+2	252	1z0-071	B, First C, and E are correct.	BCE	1
+3	252	1z0-071	CCD second C alter any table privs		3
+4	252	1z0-071	But A is also not correct "You can specify WITH GRANT OPTION only when granting to a user or to PUBLIC, not when granting to a role. "		3
+5	252	1z0-071	ACD for me E is not correct http://www.dba-oracle.com/t_with_grant_admin_privileges.htm	ACD	1
+1	253	1z0-071	A and C	AC	2
+2	253	1z0-071	AB right	AB	1
+3	253	1z0-071	A, C are correct	AC	2
+4	253	1z0-071	AC is correct.		2
+5	253	1z0-071	AB for me	AB	2
+1	254	1z0-071	You cannot alter view. You can only alter tables or sequences. SELECT - tables, views, sequences ALTER - tables, sequences all other - tables, views	D	1
+1	255	1z0-071	WHY C IS INCORRECT?	DFG	1
+2	255	1z0-071	Answers are DFG in terms of G option ... The PUBLIC role is automatically granted to all users, providing a set of default privileges that every user in the database has.		1
+3	255	1z0-071	A , D and F		1
+4	255	1z0-071	Please ignore my previous answer. D:Who Can Grant Schema Object Privileges? A user automatically has all object privileges for schema objects contained in his or her schema. A user can grant any object privilege on any schema object he or she owns to any other user or role. If the grant includes the GRANT OPTION (of the GRANT command), the grantee can further grant the object privilege to other users; otherwise, the grantee can use the privilege but cannot grant it to other users. https://docs.oracle.com/cd/A58617_01/server.804/a58227/ch18.htm F: https://docs.oracle.com/cd/A97630_01/server.920/a96521/privs.htm#:~:text=A%20role%20groups%20several%20privileges,to%20help%20in%20database%20administration. G: https://docs.oracle.com/cd/A97630_01/server.920/a96521/privs.htm#:~:text=Because%20PUBLIC%20is%20accessible%20to,requires%20the%20privilege%20or%20role.	DFG	3
+5	255	1z0-071	A. System privileges always set privileges for an entire database. Partially True: System privileges are designed to grant a user abilities that are applicable across the database, such as creating tables or executing any procedure. However, the scope of "entire database" can vary depending on the specific system privilege. Some system privileges are more granular and allow actions on specific types of objects across the database. D. A user has all object privileges for every object in their schema by default. True: In Oracle, users inherently have all privileges on objects they own, which includes the ability to select, insert, update, delete, and execute (for procedures and functions), among other actions on those objects. F. A role can contain a combination of several privileges and roles. True: This is one of the primary purposes of roles in Oracle Database. They can group together various system and object privileges as well as other roles for easier and more efficient privilege management. From GPT4	ADF	1
+1	256	1z0-071	Sorry, my correct: A. is incorrect - the WHERE clause does not come after HAVING clause B. is technically incorrect, as the HAVING clause comes after the GROUP BY, however, in Oracle SQL, this can work and will produce the correct answer. C: is incorrect - cannot use an aggregated function straight in the WHERE clause D. Correct.		1
+2	256	1z0-071	A. is incorrect - the WHERE clause does not come after HAVING clause B. is technically incorrect, as the HAVING clause comes after the GROUP BY, however, in Oracle SQL, this cannot work and will produce the correct answer. C: is incorrect - cannot use an aggregated function straight in the WHERE clause D. Correct.	D	1
+1	257	1z0-071	D. It cannot be used to pass on privileges to PUBLIC by the grantee. F. It can be used to pass on privileges to other users by the grantee.	DF	1
+2	257	1z0-071	WHAT ABOUT D , THAT ALSO CORRECT SEEMS,	D	1
+3	257	1z0-071	B is the right answer as per this website https://docs.oracle.com/cd/B10500_01/server.920/a96521/privs.htm#21327 this website has same wording Specifying the GRANT OPTION Specify WITH GRANT OPTION to enable the grantee to grant the object privileges to other users and roles. The user whose schema contains an object is automatically granted all associated object privileges with the GRANT OPTION. This special privilege allows the grantee several expanded privileges: The grantee can grant the object privilege to any users in the database, with or without the GRANT OPTION, or to any role in the database. If both of the following are true, the grantee can create views on the table and grant the corresponding privileges on the views to any user or role in the database. The grantee receives object privileges for the table with the GRANT OPTION. The grantee has the CREATE VIEW or CREATE ANY VIEW system privilege.		1
+4	257	1z0-071	Specify WITH GRANT OPTION to enable the grantee to grant the object privileges to other users and roles. The user whose schema contains an object is automatically granted all associated object privileges with the GRANT OPTION. This special privilege allows the grantee several expanded privileges: The grantee can grant the object privilege to any users in the database, with or without the GRANT OPTION, or to any role in the database. If both of the following are true, the grantee can create views on the table and grant the corresponding privileges on the views to any user or role in the database. The grantee receives object privileges for the table with the GRANT OPTION. The grantee has the CREATE VIEW or CREATE ANY VIEW system privilege. The GRANT OPTION is not valid when granting an object privilege to a role. Oracle prevents the propagation of object privileges through roles so that grantees of a role cannot propagate object privileges received by means of roles.	BF	2
+5	257	1z0-071	A is wrong - only object privileges https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/GRANT.html	F	1
+6	257	1z0-071	A. It can be used for system and object privileges. This option allows the grantee to further grant the privilege or role to another user or role, unless the role is a GLOBAL role, which includes both system and object privileges . F. It can be used to pass on privileges to other users by the grantee. When a user is granted privileges or a role with the WITH GRANT OPTION, they can then grant those same privileges or roles to other users or roles. This does not apply to roles, as roles cannot be granted WITH GRANT OPTION .	AF	1
+1	258	1z0-071	Aggregate Functions Rule: You cannot nest aggregate functions like MAX(AVG()) or AVG(MAX()).	B	1
+1	259	1z0-071	https://docs.oracle.com/cd/A84870_01/doc/server.816/a76989/ch26.htm This example selects the current value of the employee sequence: SELECT empseq.currval FROM DUAL;	B	1
+1	260	1z0-071	A. SALES1 is created with 55,000 rows. The `WHERE 1=1` condition is always true, so it selects **all rows** from `sales`. Since `sales` has **55,000 rows**, `sales1` will also have **55,000 rows**. B. SALES1 has NOT NULL constraints on any selected columns which had those constraints in the SALES table. Oracle preserves `NOT NULL` constraints** during CTAS. These are the **only constraints** that are automatically copied over. Other constraints like `PRIMARY KEY`, `UNIQUE`, `CHECK`, and `FOREIGN KEY` are **not** retained.	AB	1
+1	261	1z0-071	A and D are correct.	AD	1
+1	263	1z0-071	C and E are right answers. (Original query is cross join/cartesian product).	CE	1
+2	263	1z0-071	C and E		2
+3	263	1z0-071	Answers are C and E.	CE	1
+1	265	1z0-071	B. USING can never be used with a full outer join. Use ON instead for full outer jon.	AB	1
+2	265	1z0-071	No, la cláusula USING no puede usarse directamente en un NATURAL JOIN en Oracle. El NATURAL JOIN realiza la unión basándose en todas las columnas con el mismo nombre y tipo de dato entre las tablas, sin necesidad de especificar la condición de unión explícitamente. La cláusula USING se utiliza en un JOIN convencional para especificar las columnas que se utilizarán en la unión, pero no reemplaza la necesidad de especificar la condición de unión.	AC	1
+3	265	1z0-071	A. It is used to specify an equijoin of columns that have the same name in both tables. C. It can never be used with a natural join.	AC	1
+4	265	1z0-071	CORRECT ANS IS A,C.	AC	1
+1	266	1z0-071	ANS IS C D E, CAUSE, CURRECT TIME STAMP IS INCULDED WITH CURRENT DATA WHICH BASED ON THE SECESSION TIME.	CD	1
+1	268	1z0-071	B, C and E are correct.	BCE	1
+1	269	1z0-071	D. CREATE INDEX price_idx ON products (price); E. ALTER TABLE products DROP UNUSED COLUMNS; F. ALTER TABLE products SET UNUSED (expiry_date);	DEF	1
+2	269	1z0-071	WE CAN DROP THE UNUSED COLUMNS SINCE IT DOESNOT CHANGE THE STRUCTURE THE DATA STRUCTURE	CDE	2
+3	269	1z0-071	Since the columns are already set as unused u can drop them. U cant set the columns to unused for a read only table	CDE	1
+1	270	1z0-071	A, D, F and G are correct.	ADFG	1
+1	272	1z0-071	Answer is CD E is wrong. Oracle does **not have an `INDEX` object privilege**. You can’t grant someone the ability to index a table via an `INDEX` privilege—it doesn’t exist. Only `CREATE ANY INDEX` or CREATE INDEX applies.	CD	1
+2	272	1z0-071	o create an index on a table in another schema in your own schema, you must either own the table or have been granted the INDEX object privilege on that table, or possess the CREATE ANY INDEX system privilege docs.oracle.com . In our scenario the table isn’t owned by the user, so the user needs either the object privilege (GRANT INDEX ON table_name TO user) or the CREATE ANY INDEX privilege. Having either of those will satisfy the privilege requirement to create the index. (If the user already has CREATE ANY INDEX, that covers it; if not, the table’s owner can grant the INDEX privilege on that specific table.)	DE	1
+1	273	1z0-071	Can anyone please explain why option E is the right answer here? why not C?		1
+\.
+
+
+--
+-- Data for Name: browserless_exams; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.browserless_exams (name, company) FROM stdin;
+1z0-071	Oracle
+\.
+
+
+--
+-- Data for Name: browserless_questions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.browserless_questions (number, exam, text) FROM stdin;
+1	1z0-071	Examine the description of the PROMOTIONS table:\n/assets/media/exam-media/04351/0000200001.png\nYou want to display the unique promotion costs in each promotion category.\nWhich two queries can be used? (Choose two.)\n
+2	1z0-071	Examine the description of the PRODUCTS table:\n/assets/media/exam-media/04351/0000300001.png\nWhich three queries use valid expressions? (Choose three.)\n
+3	1z0-071	What is true about non-equijoin statement performance? (Choose two.)\n
+4	1z0-071	Which two are true? (Choose two.)\n
+5	1z0-071	Which three statements are true about Oracle synonyms? (Choose three.)\n
+6	1z0-071	Which two are true? (Choose two.)\n
+7	1z0-071	Examine these SQL statements which execute successfully:\n/assets/media/exam-media/04351/0000600001.png\nWhich two statements are true after execution? (Choose two.)\n
+8	1z0-071	Examine this SQL statement:\n/assets/media/exam-media/04351/0000700001.png\nWhich two are true? (Choose two.)\n
+9	1z0-071	Which two statements are true about TRUNCATE and DELETE? (Choose two.)\n
+10	1z0-071	The STORES table has a column START_DATE of data type DATE, containing the date the row was inserted.\nYou only want to display details of rows where START_DATE is within the last 25 months.\nWhich WHERE clause can be used?\n
+11	1z0-071	Which three are true about scalar subquery expressions? (Choose three.)\n
+12	1z0-071	Examine this query:\n/assets/media/exam-media/04351/0000900001.png\nWhich two methods should you use to prevent prompting for a hire date value when this query is executed? (Choose two.)\n
+13	1z0-071	You need to allow user ANDREW to:\n1. Modify the TITLE and ADDRESS columns of your CUSTOMERS table.\n2. GRANT that permission to other users.\nWhich statement will do this?\n
+14	1z0-071	You own table DEPARTMENTS, referenced by views, indexes, and synonyms.\nExamine this command which executes successfully:\nDROP TABLE departments PURGE;\nWhich three statements are true? (Choose three.)\n
+15	1z0-071	Which three statements are true about Structured Query Language (SQL)? (Choose three.)\n
+16	1z0-071	Which two statements are true about Oracle synonyms? (Choose two.)\n
+17	1z0-071	Which is true about the ROUND, TRUNC and MOD functions?\n
+18	1z0-071	Which two are true about transactions in the Oracle Database? (Choose two.)\n
+19	1z0-071	Examine the description of the MEMBERS table:\n/assets/media/exam-media/04351/0001200001.png\nExamine the partial query:\nSELECT city, last_name AS lname FROM members ...;\nYou want to display all cities that contain the string AN. The cities must be returned in ascending order, with the last names further sorted in descending order.\nWhich two clauses must you add to the query? (Choose two.)\n
+20	1z0-071	Examine this partial command:\n/assets/media/exam-media/04351/0001300001.png\nWhich two clauses are required for this command to execute successfully? (Choose two.)\n
+21	1z0-071	Which two are true about unused columns? (Choose two.)\n
+22	1z0-071	Which two are true about the precedence of operators and conditions? (Choose two.)\n
+23	1z0-071	In your session, the NLS_DATE_FORMAT is DD-MM-YYYY.\nThere are 86400 seconds in a day.\nExamine this result:\n\nDATE -\n-----------\n02-JAN-2020\nWhich statement returns this?\n
+24	1z0-071	Examine the data in the INVOICES table:\n/assets/media/exam-media/04351/0001600001.png\nExamine the data in the CURRENCIES table:\n/assets/media/exam-media/04351/0001600002.png\nWhich query returns the currencies in CURRENCIES that are not present in INVOICES?\nA.\n/assets/media/exam-media/04351/0001600003.png\nB.\n/assets/media/exam-media/04351/0001600004.png\nC.\n/assets/media/exam-media/04351/0001600005.png\nD.\n/assets/media/exam-media/04351/0001700001.png\n
+25	1z0-071	The SALES table has columns PROD_ID and QUANTITY_SOLD of data type NUMBER.\nWhich two queries execute successfully? (Choose two.)\n
+26	1z0-071	Which three statements are true about single-row functions? (Choose three.)\n
+27	1z0-071	Which two statements are true about *_TABLES views? (Choose two.)\n
+28	1z0-071	Which two statements are true about conditional INSERT ALL? (Choose two.)\n
+29	1z0-071	Which two statements are true about the COUNT function? (Choose two.)\n
+30	1z0-071	The EMPLOYEES table contains columns EMP_ID of data type NUMBER and HIRE_DATE of data type DATE.\nYou want to display the date of the first Monday after the completion of six months since hiring.\nThe NLS_TERRITORY parameter is set to AMERICA in the session and, therefore, Sunday is the first day of the week.\nWhich query can be used?\n
+31	1z0-071	Which three statements are true about GLOBAL TEMPORARY TABLES? (Choose three.)\n
+32	1z0-071	Which two statements are true about the SET VERIFY ON command? (Choose two.)\n
+33	1z0-071	Examine this list of requirements for a sequence:\n1. Name: EMP_SEQ\n2. First value returned: 1\n3. Duplicates are never permitted.\n4. Provide values to be inserted into the EMPLOYEES.EMPLOYEE_ID column.\n5. Reduce the chances of gaps in the values.\nWhich two statements will satisfy these requirements? (Choose two.)\n
+34	1z0-071	Which three queries execute successfully? (Choose three.)\n
+35	1z0-071	Which two are true about granting object privileges on tables, views, and sequences? (Choose two.)\n
+36	1z0-071	Examine the description of the BOOKS table:\n/assets/media/exam-media/04351/0002200001.png\nThe table has 100 rows.\nExamine this sequence of statements issued in a new session:\nINSERT INTO books VALUES ('ADV112', 'Adventures of Tom Sawyer', NULL, NULL);\nSAVEPOINT a;\nDELETE FROM books;\nROLLBACK TO SAVEPOINT a;\nROLLBACK;\nWhich two statements are true? (Choose two.)\n
+37	1z0-071	Which two statements are true about an Oracle database? (Choose two.)\n
+38	1z0-071	Examine the data in the EMP table:\n/assets/media/exam-media/04351/0002400001.png\nYou execute this query:\n/assets/media/exam-media/04351/0002400002.jpg\nWhy does an error occur?\n
+39	1z0-071	Which two actions can you perform with object privileges? (Choose two.)\n
+40	1z0-071	No user-defined locks are used in your database.\nWhich three are true about Transaction Control Language (TCL)? (Choose three.)\n
+41	1z0-071	Examine the description of the EMPLOYEES table:\n/assets/media/exam-media/04351/0002500001.png\nWhich two queries return rows for employees whose manager works in a different department? (Choose two.)\nA.\n/assets/media/exam-media/04351/0002600001.png\nB.\n/assets/media/exam-media/04351/0002600002.png\nC.\n/assets/media/exam-media/04351/0002600003.png\nD.\n/assets/media/exam-media/04351/0002700001.png\nE.\n/assets/media/exam-media/04351/0002700002.png\n
+42	1z0-071	Which three are true about dropping columns from a table? (Choose three.)\n
+43	1z0-071	Which three statements are true about views in an Oracle Database? (Choose three.)\n
+44	1z0-071	You start a session and execute these commands successfully:\n/assets/media/exam-media/04351/0002900001.png\nWhich two are true? (Choose two.)\n
+45	1z0-071	Examine this statement:\n/assets/media/exam-media/04351/0002900002.png\nWhich two statements are true? (Choose two.)\n
+46	1z0-071	Which two are true about external tables that use the ORACLE_DATAPUMP access driver? (Choose two.)\n
+47	1z0-071	Examine the description of the EMPLOYEES table:\n/assets/media/exam-media/04351/0003100001.png\nWhich statement will fail?\nA.\n/assets/media/exam-media/04351/0003100002.png\nB.\n/assets/media/exam-media/04351/0003100003.png\nC.\n/assets/media/exam-media/04351/0003100004.png\nD.\n/assets/media/exam-media/04351/0003200001.png\n
+48	1z0-071	Examine the data in the NEW_EMPLOYEES table:\n/assets/media/exam-media/04351/0003200002.png\nExamine the data in the EMPLOYEES table:\n/assets/media/exam-media/04351/0003200003.png\nYou want to:\n1. Update existing employee details in the EMPLOYEES table with data from the NEW_EMPLOYEES table.\n2. Add new employee details from the NEW_EMPLOYEES table to the EMPLOYEES table.\nWhich statement will do this?\nA.\n/assets/media/exam-media/04351/0003300001.png\nB.\n/assets/media/exam-media/04351/0003300002.png\nC.\n/assets/media/exam-media/04351/0003300003.png\nD.\n/assets/media/exam-media/04351/0003300004.png\n
+49	1z0-071	Examine the description of the EMPLOYEES table:\n/assets/media/exam-media/04351/0003400001.png\nFor each employee in department 90 you want to display:\n1. their last name\n2. the number of complete weeks they have been employed\nThe output must be sorted by the number of weeks, starting with the longest serving employee first.\nWhich statement will accomplish this?\nA.\n/assets/media/exam-media/04351/0003400002.png\nB.\n/assets/media/exam-media/04351/0003400003.png\nC.\n/assets/media/exam-media/04351/0003400004.png\nD.\n/assets/media/exam-media/04351/0003500001.png\n
+50	1z0-071	Examine the description of the PRODUCT_DETAILS table:\n/assets/media/exam-media/04351/0003500002.png\nWhich two statements are true? (Choose two.)\n
+51	1z0-071	Examine the description of the EMPLOYEES table:\n/assets/media/exam-media/04351/0003600001.png\nWhich two queries will result in an error? (Choose two.)\nA.\n/assets/media/exam-media/04351/0003600002.png\nB.\n/assets/media/exam-media/04351/0003600003.png\nC.\n/assets/media/exam-media/04351/0003600004.png\nD.\n/assets/media/exam-media/04351/0003600005.png\nE.\n/assets/media/exam-media/04351/0003700001.png\nF.\n/assets/media/exam-media/04351/0003700002.png\n
+52	1z0-071	You create a table named 123.\nWhich statement runs successfully?\n
+53	1z0-071	Which two statements are true regarding indexes? (Choose two.)\n
+54	1z0-071	Which two are true about queries using set operators (UNION, UNION ALL, INTERSECT and MINUS)? (Choose two.)\n
+55	1z0-071	BOOK_SEQ is an existing sequence in your schema.\nWhich two CREATE TABLE commands are valid? (Choose two.)\nA.\n/assets/media/exam-media/04351/0003900001.png\nB.\n/assets/media/exam-media/04351/0003900002.png\nC. C.\n/assets/media/exam-media/04351/0003900003.png\nD.\n/assets/media/exam-media/04351/0003900004.png\nE.\n/assets/media/exam-media/04351/0003900005.png\n
+56	1z0-071	Which three statements are true about multiple row subqueries? (Choose three.)\n
+57	1z0-071	Which three actions can you perform on an existing table containing data? (Choose three.)\n
+58	1z0-071	Which two statements are true about selecting related rows from two tables based on an Entity Relationship Diagram (ERD)? (Choose two.)\n
+59	1z0-071	Which three statements about roles are true? (Choose three.)\n
+60	1z0-071	The INVOICE table has a QTY_SOLD column of data type NUMBER and an INVOICE_DATE column of data type DATE.\nNLS_DATE_FORMAT is set to DD-MON-RR.\nWhich two are true about data type conversions involving these columns in query expressions? (Choose two.)\n
+61	1z0-071	Which three statements are true about inner and outer joins? (Choose three.)\n
+62	1z0-071	Which statement will execute successfully?\nA.\n/assets/media/exam-media/04351/0004200001.png\nB.\n/assets/media/exam-media/04351/0004300001.png\nC.\n/assets/media/exam-media/04351/0004300002.png\nD.\n/assets/media/exam-media/04351/0004300003.png\n
+63	1z0-071	Examine the description of the EMPLOYEES table:\n/assets/media/exam-media/04351/0004300004.png\nWhich two queries return all rows for employees whose salary is greater than the average salary in their department? (Choose two.)\nA.\n/assets/media/exam-media/04351/0004400001.png\nB.\n/assets/media/exam-media/04351/0004400002.png\nC.\n/assets/media/exam-media/04351/0004400003.png\nD.\n/assets/media/exam-media/04351/0004400004.png\nE.\n/assets/media/exam-media/04351/0004400005.png\n
+64	1z0-071	Which three statements are true about the Oracle join and ANSI join syntax? (Choose three.)\n
+65	1z0-071	Which two are true about the NVL, NVL2, and COALESCE functions? (Choose two.)\n
+66	1z0-071	Examine this statement:\n/assets/media/exam-media/04351/0004600001.png\nWhat is returned upon execution?\n
+67	1z0-071	Examine this statement:\n/assets/media/exam-media/04351/0004600002.png\nWhat is returned upon execution?\n
+68	1z0-071	Which two statements execute successfully? (Choose two.)\nA.\n/assets/media/exam-media/04351/0004700001.png\nB.\n/assets/media/exam-media/04351/0004700002.png\nC.\n/assets/media/exam-media/04351/0004700003.png\nD.\n/assets/media/exam-media/04351/0004700004.png\nE.\n/assets/media/exam-media/04351/0004700005.png\n
+69	1z0-071	An Oracle Database session has an uncommitted transaction in progress which updated 5000 rows in a table.\nIn which three situations does the transaction complete thereby committing the updates? (Choose three.)\n
+70	1z0-071	Which two are true about using constraints? (Choose two.)\n
+71	1z0-071	Examine this statement:\n/assets/media/exam-media/04351/0004900001.png\nOn which two columns of the table will an index be created automatically? (Choose two.)\n
+72	1z0-071	Examine this partial query:\n/assets/media/exam-media/04351/0005000001.jpg\nExamine this output:\n/assets/media/exam-media/04351/0005000002.png\nWhich GROUP BY clause must be added so the query returns the results shown?\n
+73	1z0-071	Examine the description of the EMPLOYEES table:\n/assets/media/exam-media/04351/0005100001.png\nWhich statement will execute successfully, returning distinct employees with non-null first names?\n
+74	1z0-071	Examine the description of the BRICKS table:\n/assets/media/exam-media/04351/0005200001.png\nExamine the description of the BRICKS_STAGE table:\n/assets/media/exam-media/04351/0005200002.png\nWhich two queries execute successfully? (Choose two.)\nA.\n/assets/media/exam-media/04351/0005200003.png\nB.\n/assets/media/exam-media/04351/0005200004.png\nC.\n/assets/media/exam-media/04351/0005200005.png\nD.\n/assets/media/exam-media/04351/0005300001.png\nE.\n/assets/media/exam-media/04351/0005300002.png\n
+75	1z0-071	Table EMPLOYEES contains columns including EMPLOYEE_ID, JOB_ID and SALARY.\nOnly the EMPLOYEE_ID column is indexed.\nRows exist for employees 100 and 200.\nExamine this statement:\n/assets/media/exam-media/04351/0005300003.png\nWhich two statements are true? (Choose two.)\n
+76	1z0-071	Examine these two queries and their output:\nSELECT deptno, dname FROM dept;\n/assets/media/exam-media/04351/0005400001.png\nSELECT emame, job, deptno FROM emp ORDER BY deptno;\n/assets/media/exam-media/04351/0005500001.png\nNow examine this query:\n/assets/media/exam-media/04351/0005500002.png\nHow many rows will be displayed?\n
+77	1z0-071	You want to return the current date and time from the user session, with a data type of TIMESTAMP WITH TIME ZONE.\nWhich function will do this?\n
+78	1z0-071	You have been tasked to create a table for a banking application.\nOne of the columns must meet three requirements:\n1) Be stored in a format supporting date arithmetic without using conversion functions\n2) Store a loan period of up to 10 years\n3) Be used for calculating interest for the number of days the loan remains unpaid\nWhich data type should you use?\n
+79	1z0-071	Which two are true about a SQL statement using SET operators such as UNION? (Choose two.)
+80	1z0-071	Which two are true about queries using set operators such as UNION? (Choose two.)
+81	1z0-071	Examine this business rule:\n\nEach student can work on multiple projects and each project can have multiple students.\n\nYou must design an Entity Relationship (ER) model for optimal data storage and allow for generating reports in this format:\n\nSTUDENT_ID FIRST_NAME LAST_NAME PROJECT_ID PROJECT_NAME PROJECT_TASK\n\nWhich two statements are true? (Choose two.)
+82	1z0-071	Which three are key components of an Entity Relationship Model? (Choose three.)
+83	1z0-071	Examine the data in the ORDERS table:\n\nhttps://img.examtopics.com/1z0-071/image1.png\n\nExamine the data in the INVOICES table:\n\nhttps://img.examtopics.com/1z0-071/image2.png\n\nExamine this query:\n\nhttps://img.examtopics.com/1z0-071/image3.png
+84	1z0-071	Which two will execute successfully? (Choose two.)
+85	1z0-071	Which three statements are true about a self join? (Choose three.)
+86	1z0-071	You execute this query:\n\nSELECT TO_CHAR(NEXT_DAY(LAST_DAY(SYSDATE), 'MON'), 'dd "Monday for" fmMonth rrrr')\nFROM DUAL;\n\nWhat is the result?
+87	1z0-071	Which two statements are true about the WHERE and HAVING clauses in a SELECT statement? (Choose two.)
+88	1z0-071	Which two are true about global temporary tables? (Choose two.)
+89	1z0-071	Which three are true about privileges? (Choose three.)
+90	1z0-071	Examine the description of the EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image4.png\n\nWhich two statements will insert a row into the EMPLOYEES table? (Choose two.)
+91	1z0-071	Examine this command:\n\nTRUNCATE TABLE test;\n\nTable truncated.\n\nWhich two are true? (Choose two.)
+92	1z0-071	You issued this command:\n\nDROP TABLE hr.employees;\n\nWhich three statements are true? (Choose three.)
+93	1z0-071	Examine this statement:\n\nhttps://img.examtopics.com/1z0-071/image5.png\n\nIdentify three ORDER BY clauses, any one of which will complete the query successfully. (Choose three.)
+94	1z0-071	Which two statements are true about views? (Choose two.)
+95	1z0-071	Examine the description of the EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image6.png\n\nWhich two statements will run successfully? (Choose two.)
+96	1z0-071	Which two are true about unused columns? (Choose two.)
+97	1z0-071	Examine the data in the CUST_NAME column of the CUSTOMERS table:\n\nhttps://img.examtopics.com/1z0-071/image7.png\n\nYou want to display the CUST_NAME values where the last name starts with Mc or MC.\n\nWhich two WHERE clauses give the required result? (Choose two.)
+98	1z0-071	Which is the default column or columns for sorting output from compound queries using SET operators such as INTERSECT in a SQL statement?
+99	1z0-071	Which two statements are true about the ORDER BY clause? (Choose two.)
+100	1z0-071	Examine the BRICKS table:\n\nhttps://img.examtopics.com/1z0-071/image8.png\n\nYou write this query:\n\nhttps://img.examtopics.com/1z0-071/image9.png\n\nHow many rows will the query return?
+101	1z0-071	Examine this query:\n\nSELECT INTERVAL ‘100’ MONTH DURATION FROM DUAL;\n\nWhat will be the output?
+102	1z0-071	Examine this query:\n\nSELECT TRUNC(ROUND(156.00,-2),-1) FROM DUAL;\n\nWhat is the result?
+103	1z0-071	You want to write a query that prompts for two column names and the where condition each time it is executed in a session but only prompts for the table name the first time it is executed.\n\nThe variables used in your query are never undefined in your session.\n\nWhich query can be used?\n
+104	1z0-071	Which three statements are true about indexes and their administration in an Oracle database? (Choose three.)
+105	1z0-071	Examine this description of the EMP table:\n\nhttps://img.examtopics.com/1z0-071/image15.png\n\nYou execute this query:\n\nhttps://img.examtopics.com/1z0-071/image16.png\n\nWhat is the result?
+106	1z0-071	Which two are true about virtual columns? (Choose two.)
+107	1z0-071	A session's NLS_DATE_FORMAT is set to DD Mon YYYY.\n\nWhich two queries return the value 1 Jan 2019? (Choose two.)
+108	1z0-071	Examine this SQL statement:\n\nhttps://img.examtopics.com/1z0-071/image17.png\n\nWhich two are true? (Choose two.)
+109	1z0-071	Examine this constraint information:\n\nhttps://img.examtopics.com/1z0-071/image18.png\n\nWhich three statements are true? (Choose three.)
+110	1z0-071	Which two are true about creating tables in an Oracle database? (Choose two.)
+111	1z0-071	Examine this partial statement:\n\nSELECT ename, sal, comm FROM emp\n\nNow examine this output:\n\nhttps://img.examtopics.com/1z0-071/image19.png\n\nWhich ORDER BY clause will generate the displayed output?
+112	1z0-071	Examine the description of the CUSTOMERS table:\n\nhttps://img.examtopics.com/1z0-071/image20.png\n\nWhich two SELECT statements will return these results: (Choose two.)\n\nhttps://img.examtopics.com/1z0-071/image21.png
+113	1z0-071	The PRODUCT_INFORMATION table has a UNIT_PRICE column of data type NUMBER(8,2).\n\nEvaluate this SQL statement:\n\nSELECT TO_CHAR(unit_price, '$9,999') FROM product_information;\n\nWhich two statements are true about the output? (Choose two.)
+114	1z0-071	Which two statements are true about Oracle databases and SQL? (Choose two.)
+115	1z0-071	Which statement is true about TRUNCATE and DELETE?
+116	1z0-071	Which two statements are true? (Choose two.)
+117	1z0-071	Examine these statements executed in a single Oracle session:\n\nhttps://img.examtopics.com/1z0-071/image22.png\n\nWhich three statements are true? (Choose three.)
+118	1z0-071	Which is true about the & and && prefixes with substitution variables? (Choose all that apply.)
+119	1z0-071	Which statement will return a comma-separated list of employee names in alphabetical order for each department in the EMP table?
+120	1z0-071	Examine the data in the COLORS table:\n\nhttps://img.examtopics.com/1z0-071/image27.png\n\nExamine the data in the BRICKS table:\n\nhttps://img.examtopics.com/1z0-071/image28.png\n\nWhich two queries return all the rows from COLORS? (Choose two.)
+121	1z0-071	Which two queries execute successfully? (Choose two.)
+122	1z0-071	Examine these statements which execute successfully:\n\nhttps://img.examtopics.com/1z0-071/image34.png\n\nExamine the result:\n\nhttps://img.examtopics.com/1z0-071/image35.png\n\nIf LOCALTIMESTAMP was selected at the same time, what would it return?
+123	1z0-071	Examine these statements which execute successfully:\n\nhttps://img.examtopics.com/1z0-071/image36.png\n\nWhich two are true? (Choose two.)
+124	1z0-071	Which two are true about granting privileges on objects? (Choose two.)
+125	1z0-071	Examine the description of the EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image37.png\n\nWhich two queries will execute successfully? (Choose two.)
+126	1z0-071	Which two statements are true about the rules of precedence for operators? (Choose two.)
+127	1z0-071	Examine data in the BRICKS table:\n\nhttps://img.examtopics.com/1z0-071/image38.png\n\nExamine the BOXES table:\n\nhttps://img.examtopics.com/1z0-071/image39.png\n\nWhich two queries only return CUBE? (Choose two.)
+128	1z0-071	Which two statements will return the names of the three employees with the lowest salaries? (Choose two.)
+129	1z0-071	Examine this query which executes successfully:\n\nhttps://img.examtopics.com/1z0-071/image50.png\n\nWhat will be the result?
+130	1z0-071	Which three statements are true about sequences in a single instance Oracle database? (Choose three.)
+131	1z0-071	Examine this description of the PRODUCTS table:\n\nhttps://img.examtopics.com/1z0-071/image51.png\n\nYou successfully execute this command:\n\nCREATE TABLE new_prices (prod_id NUMBER(2), price NUMBER(8,2))\n\nWhich two statements execute without errors? (Choose two.)
+132	1z0-071	The CUSTOMERS table has a CUST_CREDIT_LIMIT column of data type number.\n\nWhich two queries execute successfully? (Choose two.)
+133	1z0-071	Examine this statement which executes successfully:\n\nhttps://img.examtopics.com/1z0-071/image56.png\n\nWhich statement will violate the CHECK constraint?
+134	1z0-071	Which two are true about rollbacks? (Choose two.)
+135	1z0-071	Which three statements are true about dropping and unused columns in an Oracle database? (Choose three.)
+136	1z0-071	Which three actions can you perform by using the ORACLE_DATAPUMP access driver? (Choose three.)
+137	1z0-071	Which statement is true about aggregate functions?
+138	1z0-071	Which three are true about multitable INSERT statements? (Choose three.)
+139	1z0-071	Which three statements are true regarding single row subqueries? (Choose three.)
+140	1z0-071	In your session NLS_DATE_FORMAT is set to DD-MON-RR.\n\nWhich two queries display the year as four digits? (Choose two.)
+141	1z0-071	Which two are true about savepoints? (Choose two.)
+142	1z0-071	Examine these statements executed in a single Oracle session:\n\nhttps://img.examtopics.com/1z0-071/image61.png\n\nWhich three statements are true? (Choose three.)
+143	1z0-071	The ORDERS table has a column ORDER_DATE of data type DATE.\n\nThe default display format for a date is DD-MON-RR.\n\nWhich two WHERE conditions demonstrate the correct usage of conversion functions? (Choose two.)
+144	1z0-071	Examine this query:\n\nhttps://img.examtopics.com/1z0-071/image62.png\n\nWhat is the result?
+145	1z0-071	Which two object privileges can be restricted to a subset of columns in a table? (Choose two.)
+146	1z0-071	Examine the description of the BOOKS table:\n\nhttps://img.examtopics.com/1z0-071/image63.png\n\nExamine these requirements:\n\n1. Display book titles for books purchased before January 17, 2007 costing less than 500 or more than 1000.\n2. Sort the titles by date of purchase, starting with the most recently purchased book.\n\nWhich two queries can be used? (Choose two.)
+147	1z0-071	View the Exhibit and examine the description of the tables.\n\nYou execute this SQL statement:\n\nhttps://img.examtopics.com/1z0-071/image69.png\n\nWhich three statements are true? (Choose three.)
+148	1z0-071	Which three statements are true about an ORDER BY clause? (Choose three.)
+149	1z0-071	Examine the description of EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image70.png\n\nWhich three queries return all rows for which SALARY + COMMISSION is greater than 20000? (Choose three.)
+150	1z0-071	Examine the description of EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image71.png\n\nThe session time zone is the same as the database server.\n\nWhich two statements will list only the employees who have been working with the company for more than five years? (Choose two.)
+151	1z0-071	Which two queries return the string Hello! We're ready? (Choose two.)
+152	1z0-071	Which three statements are true about the DESCRIBE command? (Choose three.)
+153	1z0-071	Which two statements are true about dropping views? (Choose two.)
+154	1z0-071	Which two are true about the MERGE statement? (Choose two.)
+155	1z0-071	Which two statements are true regarding non-equijoins? (Choose two.)
+156	1z0-071	Examine the description of the PRODUCTS table which contains data:\n\nhttps://img.examtopics.com/1z0-071/image72.png\n\nWhich two are true? (Choose two.)
+157	1z0-071	Examine this query:\nSELECT SUBSTR(SYSDATE, 1, 5) "Result" FROM DUAL;\n\nWhich statement is true?
+158	1z0-071	Which statement is true about the INTERSECT operator used in compound queries?
+159	1z0-071	You currently have an active transaction in your session and have been granted SELECT access to\nV$TRANSACTION.\n\nExecuting:\n\nSELECT xid, status FROM v$transaction;\n\nin your session returns:\n\nhttps://img.examtopics.com/1z0-071/image73.png\n\nIn which three situations will re-executing this query still return a row but with a different XID, indicating a new transaction has started? (Choose three.)
+160	1z0-071	Which two statements are true about a full outer join? (Choose two.)
+161	1z0-071	Which two statements are true about a self join? (Choose two.)
+162	1z0-071	Examine the description of the CUSTOMERS table:\n\nhttps://img.examtopics.com/1z0-071/image74.png\n\nWhich two statements will do an implicit conversion? (Choose two.)
+163	1z0-071	Which two statements are true about CURRENT_TIMESTAMP? (Choose two.)
+164	1z0-071	Examine the description of the CUSTOMERS table:\n\nhttps://img.examtopics.com/1z0-071/image75.png\n\nYou want to display details of all customers who reside in cities starting with the letter D followed by at least two characters.\n\nWhich query can be used?
+165	1z0-071	Which two are true about using the FOR UPDATE clause in a SELECT statement? (Choose two.)
+166	1z0-071	You must find the number of employees whose salary is lower than employee 110.\n\nWhich statement fails to do this?
+167	1z0-071	Examine this statement which returns the name of each employee and their manager:\n\nhttps://img.examtopics.com/1z0-071/image80.png\n\nYou want to extend the query to include employees with no manager. What must you add before JOIN to do this?
+168	1z0-071	Which two are true about constraints? (Choose two.)
+169	1z0-071	Examine the ORDER_ITEMS table:\n\nhttps://img.examtopics.com/1z0-071/image81.png\n\nWhich two queries return rows where QUANTITY is a multiple of ten? (Choose two.)
+170	1z0-071	Which two statements are true about indexes and their administration in an Oracle database? (Choose two.)
+171	1z0-071	Examine this incomplete query:\n\nSELECT DATE '2019-01-01' +FROM DUAL;\n\nWhich three clauses can replace
+172	1z0-071	Which two are true about the data dictionary? (Choose two.)
+173	1z0-071	Which two statements are true about the DUAL table: (Choose two.)
+174	1z0-071	Which statement is true about TRUNCATE and DELETE?
+175	1z0-071	Examine these statements and the result:\n\nhttps://img.examtopics.com/1z0-071/image82.png\n\nNow examine this command:\n\nhttps://img.examtopics.com/1z0-071/image83.png\n\nWhat must replace MISSING CLAUSE for CUSTOMER_SEQ.NEXTVAL to return 11?
+176	1z0-071	Examine the description of the ORDER_ITEMS table:\n\nhttps://img.examtopics.com/1z0-071/image84.png\n\nExamine this incomplete query:\n\nhttps://img.examtopics.com/1z0-071/image85.png\n\nWhich two can replaceso the query completes successfully?
+177	1z0-071	Which set of commands will prompt only once for the name of the table to use in the query?
+178	1z0-071	The CUSTOMERS table has a CUST_LAST_NAME column of data type VARCHAR2.\n\nThe table has two rows whose CUST_LAST_NAME values are Anderson and Ausson.\n\nWhich query produces output for CUST_LAST_NAME containing Oder for the first row and Aus for the second?
+179	1z0-071	Examine the description of the PRODUCT_STATUS table:\n\nhttps://img.examtopics.com/1z0-071/image86.png\n\nThe STATUS column contains the values IN STOCK or OUT OF STOCK for each row. Which two queries will execute successfully?
+180	1z0-071	Which two statements are true about INTERVAL data types?
+181	1z0-071	Which two statements are true about the data dictionary?
+182	1z0-071	Examine the description of the CUSTOMERS table:\n\nhttps://img.examtopics.com/1z0-071/image87.png\n\nYou need to display last names and credit limits of all customers whose last name starts with A or B in lower or upper case, and whose credit limit is below 1000.\nExamine this partial query:\n\nSELECT cust_last_name, cust_credit_limit FROM customers\n\nWhich two WHERE conditions give the required result?
+183	1z0-071	Which two statements are true about substitution variables?
+184	1z0-071	Which two are true about scalar subquery expressions?
+185	1z0-071	Examine the description PRODUCTS table:\n\nhttps://img.examtopics.com/1z0-071/image88.png\n\nExamine the description of the NEW_PRODUCTS table:\n\nhttps://img.examtopics.com/1z0-071/image89.png\n\nWhich two queries execute successfully?
+186	1z0-071	Which three statements are true about Data Manipulation Language (DML)?
+187	1z0-071	Which two are true about multitable INSERT statements?
+188	1z0-071	Which statement is true about using functions in WHERE and HAVING?
+189	1z0-071	You execute these commands:\n\nhttps://img.examtopics.com/1z0-071/image90.png\n\nWhich two, used independently, can replaceso the query returns 1?
+190	1z0-071	Examine the description of the EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image91.png\n\nWhich two queries return the highest salary in the table?
+191	1z0-071	Examine this data in the EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image92.png\n\nWhich statement will execute successfully?
+192	1z0-071	Examine the description of the EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image93.png\n\nNLS_DATE_FORMAT is set to DD-MON-YY.\n\nWhich query requires explicit data type conversion?
+193	1z0-071	Which three statements are true about external tables? (Choose three.)
+194	1z0-071	Table HR.EMPLOYEES contains a row where the EMPLOYEE_ID is 109.\n\nUser ALICE has no privileges to access HR.EMPLOYEES.\n\nUser ALICE starts a session.\n\nUser HR starts a session and successfully executes these statements:\n\nGRANT DELETE ON employees TO alice;\n\nUPDATE employees SET salary = 24000 WHERE employee_id = 109;\n\nIn her existing session ALICE then executes:\n\nDELETE FROM hr.employees WHERE employee_id = 109;\n\nWhat is the result?
+195	1z0-071	Which three statements are true about performing DML operations on a view with no INSTEAD OF triggers defined? (Choose three.)
+196	1z0-071	In the PROMOTIONS table, the PROMO_BEGIN_DATE column is of data type DATE and the default date format is DD-MON-RR.\n\nWhich two statements are true about expressions using PROMO_BEGIN_DATE contained in a query? (Choose two.)
+197	1z0-071	You have the privileges to create any type of synonym.\n\nWhich statement will create a synonym called EMP for the HCM.EMPLOYEE_RECORDS table that is accessible to all users?
+198	1z0-071	Which two statements are true about the ORDER BY clause when used with a SQL statement containing a SET operator such as UNION?
+199	1z0-071	Which two statements are true about the results of using the INTERSECT operator in compound queries? (Choose two.)
+200	1z0-071	Examine these statements:\n\nhttps://img.examtopics.com/1z0-071/image94.png\n\nWhich is true about modifying the columns in ALTER_TEST?
+201	1z0-071	You and your colleague Andrew have these privileges on the EMPLOYEE_RECORDS table:\n\n1. SELECT\n2. INSERT\n3. UPDATE\n4. DELETE\n\nYou connect to the database instance and perform an update to some of the rows in EMPLOYEE_RECORDS, but do not commit yet.\n\nAndrew connects to the database instance and queries the table.\n\nNo other users are accessing the table.\n\nWhich two statements are true at this point? (Choose two.)
+202	1z0-071	Which two statements cause changes to the data dictionary? (Choose two.)
+203	1z0-071	Examine the description of the ORDERS table:\n\nhttps://img.examtopics.com/1z0-071/image95.png\n\nExamine the description of the INVOICES table:\n\nhttps://img.examtopics.com/1z0-071/image96.png\n\nWhich three statements execute successfully? (Choose three.)
+204	1z0-071	Which two queries execute successfully? (Choose two.)
+205	1z0-071	Examine the description of the PRODUCT_INFORMATION table:\n\nhttps://img.examtopics.com/1z0-071/image97.png\n\nWhich query retrieves the number of products with a null list price?
+206	1z0-071	Examine this partial statement:\n\nhttps://img.examtopics.com/1z0-071/image98.png\n\nWhich is true?
+207	1z0-071	The ORDERS table has a primary key constraint on the ORDER_ID column.\n\nThe ORDER_ITEMS table has a foreign key constraint on the ORDER_ID column, referencing the primary key of the ORDERS table.\n\nThe constraint is defined with ON DELETE CASCADE.\n\nThere are rows in the ORDERS table with an ORDER_TOTAL of less than 1000.\n\nWhich three DELETE statements execute successfully? (Choose three.)
+208	1z0-071	Examine the description of the CUSTOMERS table:\n\nhttps://img.examtopics.com/1z0-071/image99.png\n\nFor customers whose income level has a value, you want to display the first name and due amount as 5% of their credit limit. Customers whose due amount is null should not be displayed.\n\nWhich query should be used?
+209	1z0-071	Examine this statement:\n\nhttps://img.examtopics.com/1z0-071/image100.png\n\nWhich two things must be changed for it to execute successfully? (Choose two.)
+210	1z0-071	Which statement executes successfully?
+211	1z0-071	The SYSDATE function displays the current Oracle Server date as:\n\n21-MAY-19\n\n\nYou wish to display the date as -\n\n\nMONDAY, 21 MAY, 2019 -\n\nWhich statement will do this?
+212	1z0-071	Examine this query and its output:\n\nhttps://img.examtopics.com/1z0-071/image101.png\n\nExamine this query with an incomplete WHERE clause:\n\nhttps://img.examtopics.com/1z0-071/image102.png\n\nWhich two are true about operators that can be used in the WHERE clause? (Choose two.)
+213	1z0-071	Examine this statement which executes successfully:\n\nhttps://img.examtopics.com/1z0-071/image103.png\n\nWhich is true?
+214	1z0-071	Which three statements are true about GLOBAL TEMPORARY TABLES? (Choose three.)
+215	1z0-071	Examine the description of the BOOKS_TRANSACTIONS table:\n\nhttps://img.examtopics.com/1z0-071/image104.png\n\nExamine this partial SQL statement:\n\nSELECT * FROM books_transactions\n\nWhich two WHERE conditions give the same result? (Choose two.)
+216	1z0-071	You need to calculate the number of days from 1st January 2019 until today.\n\nDates are stored in the default format of DD-MON-RR.\n\nWhich two queries give the required output? (Choose two.)
+217	1z0-071	Examine this description of the PRODUCTS table:\n\nhttps://img.examtopics.com/1z0-071/image105.png\n\nRows exist in this table with data in all the columns. You put the PRODUCTS table in read-only mode.\n\nWhich three commands execute successfully on PRODUCTS? (Choose three.)
+218	1z0-071	Which two statements are true about Oracle synonyms? (Choose two.)
+219	1z0-071	Examine the description of the EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image106.png\n\nYou write this failing statement:\n\nhttps://img.examtopics.com/1z0-071/image107.png\n\nWhich clause causes the error?
+220	1z0-071	Evaluate these commands which execute successfully:\n\nhttps://img.examtopics.com/1z0-071/image108.png\n\nWhich two statements are true about the ORD_ITEMS table and the ORD_SEQ sequence? (Choose two.)
+221	1z0-071	Which three statements are true about time zones, date data types, and timestamp data types in an Oracle database? (Choose three.)
+222	1z0-071	Which two statements about INVISIBLE indexes are true? (Choose two.)
+223	1z0-071	Which three are true about subqueries? (Choose three.)
+224	1z0-071	Which two statements are true about Entity Relationships? (Choose two.)
+225	1z0-071	Which two are true about self joins? (Choose two.)
+226	1z0-071	Examine these statements and results:\n\nhttps://img.examtopics.com/1z0-071/image109.png\n\nHow many rows are retrieved by the last query?
+227	1z0-071	Which two are SQL features? (Choose two.)
+228	1z0-071	Examine the description of the COUNTRIES table:\n\nhttps://img.examtopics.com/1z0-071/image110.png\n\nExamine the description of the DEPARTMENTS table:\n\nhttps://img.examtopics.com/1z0-071/image111.png\n\nExamine the description of the LOCATIONS table:\n\nhttps://img.examtopics.com/1z0-071/image112.png\n\nWhich two queries will return a list of countries with no departments? (Choose two.)
+229	1z0-071	Which four statements are true about constraints on Oracle tables? (Choose four.)
+230	1z0-071	User HR has CREATE SESSION, CREATE ANY TABLE and UNLIMITED TABLESPACE privileges.\n\nUser SCOTT has CREATE SESSION, CREATE TABLE and UNLIMITED TABLESPACE privileges.\n\nHR successfully executes this statement:\n\nhttps://img.examtopics.com/1z0-071/image117.png\n\nHR attempts to execute:\n\n1. INSERT INTO scott.products VALUES (1, 'LAPTOP');\n\nSCOTT attempts to execute:\n\n2. SELECT * FROM products;\n3. INSERT INTO scott.products VALUES (2, 'HDD');\n4. CREATE SYNONYM prod FOR products;\n\nWhich will execute successfully?
+231	1z0-071	Examine the contents of the EMP table:\n\nhttps://img.examtopics.com/1z0-071/image118.png\n\nExamine this query that executes successfully:\n\nhttps://img.examtopics.com/1z0-071/image119.png\n\nWhat is the result?
+232	1z0-071	You create a table by using this command:\n\nCREATE TABLE rate_list (rate NUMBER(6,2));\n\nWhich two are true about executing statements? (Choose two.)
+233	1z0-071	Examine this list of queries:\n\nhttps://img.examtopics.com/1z0-071/image120.png\n\nWhich two statements are true? (Choose two.)
+234	1z0-071	Examine the data in the EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image121.png\n\nWhich statement will compute the total annual compensation for each employee?
+235	1z0-071	Examine the data in the PRODUCTS table:\n\nhttps://img.examtopics.com/1z0-071/image122.png\n\nExamine these queries:\n\nhttps://img.examtopics.com/1z0-071/image123.png\n\nWhich queries generate the same output?
+236	1z0-071	Which statement fails to execute successfully?
+237	1z0-071	Examine these statements which execute successfully:\n\nhttps://img.examtopics.com/1z0-071/image128.png\n\nBoth statements display departments ordered by their average salaries.\n\nWhich two are true? (Choose two.)
+238	1z0-071	Which three are true about the MERGE statement? (Choose three.)
+239	1z0-071	Which three statements are true about defining relations between tables in a relational database? (Choose three.)
+240	1z0-071	Which two join conditions in a FROM clause are non-equijoins? (Choose two.)
+241	1z0-071	Which two statements are true regarding the UNION and UNION ALL operators? (Choose two.)
+242	1z0-071	Which three actions can you perform only with system privileges? (Choose three.)
+243	1z0-071	1. MANAGER is an existing role with no privileges or roles.\n2. EMP is an existing role containing the CREATE TABLE privilege.\n3. EMPLOYEES is an existing table in the HR schema.\n\nWhich two commands execute successfully? (Choose two.)
+244	1z0-071	Which two statements will convert the string Hello World to ello world? (Choose two.)
+245	1z0-071	Examine the description of the EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image129.png\n\nExamine these requirements:\n\n1.\tDisplay the last name, date of hire and the number of years of service for each employee.\n2.\tIf the employee has been employed 5 or more years but less than 10, display “5+ years of service”.\n3.\tIf the employee has been employed 10 or more years but less than 15, display “10+ years of service”.\n4.\tIf the employee has been employed 15 or more years, display “15+ years of service”.\n5.\tIf none of these conditions matches, display “<5 years of service”.\n6.\tSort the results by the HIRE_DATE column.\n\nWhich statement satisfies all the requirements?
+246	1z0-071	Which three actions can you perform by using the ALTER TABLE command? (Choose three.)
+247	1z0-071	Which three statements are true about built-in data types? (Choose three.)
+248	1z0-071	Which three are true about granting object privileges on tables, views, and sequences? (Choose three.)
+249	1z0-071	Examine the description of the CUSTOMERS table:\n\nhttps://img.examtopics.com/1z0-071/image134.png\n\nCUSTNO is the PRIMARY KEY.\n\nYou must determine if any customers’ details have been entered more than once using a different CUSTNO, by listing all duplicate names.\n\nWhich two methods can you use to get the required result? (Choose two.)
+250	1z0-071	Which two statements are true regarding a SAVEPOINT? (Choose two.)
+251	1z0-071	Examine the description of the TRANSACTIONS table:\n\nhttps://img.examtopics.com/1z0-071/image135.png\n\nWhich two SQL statements execute successfully? (Choose two.)
+252	1z0-071	Which three are true about system and object privileges? (Choose three.)
+253	1z0-071	Which two statements are true about external tables? (Choose two.)
+254	1z0-071	Examine this schema information:\n\n1. EMPLOYEES.DEPARTMENT_ID has a foreign key referencing DEPARTMENTS.DEPARTMENT_ID.\n2. EMP_VIEW is based on the EMPLOYEES and DEPARTMENTS tables.\n3. EMP_VIEW has columns EMPLOYEE_ID, EMPLOYEE_NAME and DEPARTMENT_NAME.\n\nYou must add a new column, MANAGER_ID, from the EMPLOYEES table, to the view,  showing each employee’s manager.\n\nWhich statement will do this?
+255	1z0-071	Which three are true about privileges and roles? (Choose three.)
+256	1z0-071	Examine the description of the EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image136.png\n\nExamine these requirements:\n\n1. Display the manager id and salary of the lowest paid employee for that manager.\n2. Exclude anyone whose manager is not known.\n3. Exclude any managers where the minimum salary is 6000 or less.\n4. Sort the output by minimum salary with the highest salary shown first.\n\nWhich statement will do this?
+257	1z0-071	Which two are true about the WITH GRANT OPTION clause? (Choose two.)
+258	1z0-071	Examine the description of the EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image141.png\n\nWhich query is valid?
+259	1z0-071	Which statement will return the last sequence number generated by the EMP_SEQ sequence?
+260	1z0-071	Examine the description of the SALES table:\n\nhttps://img.examtopics.com/1z0-071/image142.png\n\nThe SALES table has 55,000 rows.\n\nExamine this statement:\n\nhttps://img.examtopics.com/1z0-071/image143.png\n\nWhich two statements are true? (Choose two.)
+261	1z0-071	Which two statements are true about single row functions? (Choose two.)
+262	1z0-071	Examine the data in the ORDERS table:\n\nhttps://img.examtopics.com/1z0-071/image144.png\n\nExamine the data in the INVOICES table:\n\nhttps://img.examtopics.com/1z0-071/image145.png\n\nExamine this query:\n\nhttps://img.examtopics.com/1z0-071/image146.png\n\nWhich three rows will it return? (Choose three.)
+263	1z0-071	Examine this query:\n\n\nSELECT * FROM bricks, colors -\n\nWhich two statements are true? (Choose two.)
+264	1z0-071	Examine the description of the EMPLOYEES table:\n\nhttps://img.examtopics.com/1z0-071/image147.png\n\nExamine this query:\n\nhttps://img.examtopics.com/1z0-071/image148.png\n\nWhich line produces an error?
+265	1z0-071	Which two are true about the USING clause when joining tables? (Choose two.)
+266	1z0-071	Which two statements are true about date/time functions in a session where\n\nNLS_DATE_FORMAT is set to DD-MON-YYYY HH24:MI:SS? (Choose two.)
+267	1z0-071	You execute this command:\n\nALTER TABLE employees SET UNUSED (department_id);\n\nWhich two are true? (Choose two.)
+268	1z0-071	Which three are true about the CREATE TABLE command? (Choose three.)
+269	1z0-071	Examine this description of the PRODUCTS table:\n\nhttps://img.examtopics.com/1z0-071/image149.png\n\nRows exist in this table with data in all the columns. You put the PRODUCTS table in read-only mode.\n\nWhich three commands execute successfully on PRODUCTS? (Choose three.)
+270	1z0-071	Which four statements are true regarding primary and foreign key constraints and the effect they can have on table data? (Choose four.)
+271	1z0-071	Examine this statement:\n\nhttps://img.examtopics.com/1z0-071/image150.png\n\nWhich two are true? (Choose two.)
+272	1z0-071	Which two are true to create an index in your own schema for a table owned by another schema? (Choose two.)
+273	1z0-071	Examine the description of the EMPLOYEES table:\n/assets/media/exam-media/04351/0002500001.png\nWhich two queries return rows for employees whose manager works in a different department? (Choose two.)\nA.\n/assets/media/exam-media/04351/0002600001.png\nB.\n/assets/media/exam-media/04351/0002600002.png\nC.\n/assets/media/exam-media/04351/0002600003.png\nD.\n/assets/media/exam-media/04351/0002700001.png\nE.\n/assets/media/exam-media/04351/0002700002.png\n
 \.
 
 
@@ -3308,6 +7262,383 @@ COPY public.exams (name, company) FROM stdin;
 
 
 --
+-- Data for Name: market_depth_raw; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.market_depth_raw ("Ticker", "MMBuy", "MMSell", "AI1-Average", "AI1-Previous", "AI1-AskAmt", "AI1-AskPrice", "AI1-AskAvail", "AI1-BidAmt", "AI1-BidPrice", "AI1-BidAvail", "CI1-Average", "CI1-Previous", "CI1-AskAmt", "CI1-AskPrice", "CI1-AskAvail", "CI1-BidAmt", "CI1-BidPrice", "CI1-BidAvail", "CI2-Average", "CI2-Previous", "CI2-AskAmt", "CI2-AskPrice", "CI2-AskAvail", "CI2-BidAmt", "CI2-BidPrice", "CI2-BidAvail", "NC1-Average", "NC1-Previous", "NC1-AskAmt", "NC1-AskPrice", "NC1-AskAvail", "NC1-BidAmt", "NC1-BidPrice", "NC1-BidAvail", "NC2-Average", "NC21-Previous", "NC2-AskAmt", "NC2-AskPrice", "NC2-AskAvail", "NC2-BidAmt", "NC2-BidPrice", "NC2-BidAvail", "IC1-Average", "IC1-Previous", "IC1-AskAmt", "IC1-AskPrice", "IC1-AskAvail", "IC1-BidAmt", "IC1-BidPrice", "IC1-BidAvail") FROM stdin;
+AAR	\N	\N	20000.00	20000.00	27.0000	20000.00	350	66.0000	18000.00	318	19900.00	19900.00	39.0000	19900.00	52	\N	\N	0	20000.00	20000.00	\N	\N	0	\N	\N	0	17144.33	16000.00	74.0000	17900.00	882	98.0000	16000.00	244	6777.08	\N	3.0000	16200.00	3	\N	\N	0	17884.41	18400.00	6.0000	18400.00	6	1.0000	17000.00	5
+ABH	\N	\N	50788.64	50700.00	62.0000	54200.00	1532	100.0000	50300.00	1242	58000.00	58000.00	80.0000	58000.00	370	94.0000	51100.00	221	53000.00	53000.00	10.0000	55000.00	10	\N	\N	0	50900.00	50900.00	32.0000	50900.00	1682	14.0000	49000.00	1022	24111.88	\N	27.0000	65000.00	27	\N	\N	0	52100.00	52100.00	57.0000	54500.00	830	250.0000	52100.00	730
+ACS	\N	\N	150000.00	150000.00	58.0000	159000.00	72	10.0000	140000.00	10	161300.57	160000.00	3.0000	165000.00	29	6.0000	160000.00	38	74706.55	\N	\N	\N	0	\N	\N	0	169000.00	169000.00	8.0000	159000.00	45	10.0000	150000.00	10	124000.00	124000.00	\N	\N	0	\N	\N	0	159000.00	159000.00	18.0000	159000.00	20	1.0000	151000.00	5
+ADE	\N	\N	64100.00	64100.00	24.0000	64100.00	202	20.0000	47000.00	1434	69375.00	70000.00	32.0000	70000.00	243	2.0000	42500.00	107	43000.00	43000.00	4.0000	47000.00	4	\N	\N	0	62000.00	62000.00	41.0000	62000.00	317	18.0000	45500.00	514	21239.53	\N	26.0000	60000.00	26	\N	\N	0	59956.24	61600.00	31.0000	61600.00	543	6.0000	42000.00	1002
+ADR	70000.00	\N	71300.00	71300.00	5.0000	125000.00	55	46.0000	71300.00	166	107055.93	110000.00	20.0000	110000.00	114	50.0000	85000.00	150	60000.00	60000.00	\N	\N	0	\N	\N	0	70069.20	70000.00	19.0000	100000.00	69	1.0000	71000.00	111	29140.78	\N	\N	\N	0	\N	\N	0	82500.01	85000.00	10.0000	150000.00	10	50.0000	72200.00	180
+ADS	\N	\N	130290.75	132000.00	5.0000	132000.00	123	2.0000	116000.00	17	141138.32	125000.00	2.0000	125000.00	6	10.0000	104000.00	23	250000.00	250000.00	\N	\N	0	\N	\N	0	136500.00	138000.00	9.0000	139000.00	42	10.0000	113000.00	23	55163.27	\N	1.0000	128000.00	1	\N	\N	0	165000.00	165000.00	75.0000	165000.00	106	3.0000	125000.00	24
+AEF	\N	\N	6400.00	6400.00	7.0000	8670.00	975	315.0000	6400.00	2335	15000.00	15000.00	377.0000	15000.00	502	44.0000	7000.00	1042	40.00	40.00	76.0000	9000.00	113	\N	\N	0	7000.00	7000.00	39.0000	9800.00	937	36.0000	7000.00	1300	10000.00	10000.00	6.0000	10000.00	290	\N	\N	0	6580.00	6580.00	300.0000	6690.00	2349	184.0000	4250.00	3000
+AEN	\N	\N	2240000.00	2240000.00	1.0000	2230000.00	3	\N	\N	0	2065577.60	2180000.00	2.0000	2150000.00	7	\N	\N	0	990267.00	\N	\N	\N	0	\N	\N	0	2000000.00	2000000.00	1.0000	2290000.00	2	2.0000	1200000.00	4	990267.00	\N	\N	\N	0	\N	\N	0	2500000.00	2500000.00	1.0000	2600000.00	1	\N	\N	0
+AFP	\N	\N	30000.00	30000.00	\N	\N	0	\N	\N	0	30000.00	30000.00	\N	\N	0	\N	\N	0	134412.70	\N	\N	\N	0	\N	\N	0	30000.00	30000.00	\N	\N	0	16.0000	40000.00	16	134412.70	\N	\N	\N	0	\N	\N	0	35000.00	35000.00	\N	\N	0	3.0000	35000.00	3
+AFR	\N	\N	26623.82	27000.00	8.0000	28000.00	19	100.0000	22000.00	277	25000.00	25000.00	12.0000	25000.00	12	41.0000	20500.00	193	9504.30	\N	\N	\N	0	\N	\N	0	21000.00	21000.00	\N	\N	0	10.0000	18000.00	30	9504.30	\N	\N	\N	0	\N	\N	0	20200.00	20200.00	7.0000	25000.00	7	13.0000	20200.00	33
+AGS	\N	\N	490000.00	490000.00	2.0000	490000.00	3	\N	\N	0	480000.00	480000.00	4.0000	480000.00	5	\N	\N	0	500000.00	500000.00	\N	\N	0	\N	\N	0	719124.14	795000.00	1.0000	800000.00	1	2.0000	450000.00	2	222767.28	\N	\N	\N	0	\N	\N	0	799000.00	799000.00	1.0000	799000.00	2	\N	\N	0
+AHP	\N	\N	14500.00	14500.00	200.0000	13000.00	1592	\N	\N	0	14500.00	14500.00	58.0000	14500.00	179	\N	\N	0	5713.72	\N	\N	\N	0	\N	\N	0	12959.44	12500.00	97.0000	12000.00	2711	10.0000	9510.00	209	5713.72	\N	\N	\N	0	\N	\N	0	20000.00	20000.00	\N	\N	0	\N	\N	0
+AIR	200000.00	\N	200000.00	200000.00	4.0000	220000.00	4	100.0000	200000.00	100	200000.00	200000.00	20.0000	209000.00	341	100.0000	200000.00	100	91179.59	\N	\N	\N	0	\N	\N	0	200000.00	200000.00	50.0000	201000.00	309	100.0000	200000.00	100	91179.59	\N	\N	\N	0	\N	\N	0	200000.00	200000.00	26.0000	210000.00	30	100.0000	200000.00	100
+AL	\N	\N	1310.00	1310.00	20.0000	1320.00	58948	25.0000	1310.00	137096	1350.00	1350.00	1000.0000	1420.00	16785	4.0000	1280.00	13781	1280.00	1280.00	43.0000	1350.00	10796	3000.0000	1100.00	9007	1600.00	1600.00	1967.0000	1600.00	59763	5.0000	1450.00	19421	699.22	1100.00	2000.0000	1000.00	12139	\N	\N	0	1400.00	1400.00	87.0000	1400.00	13300	20.0000	1240.00	2574
+ALE	\N	\N	1350.00	1350.00	12.0000	1370.00	37962	3544.0000	1350.00	15336	1160.00	1160.00	278.0000	1200.00	17684	1676.0000	1160.00	2026	1700.00	1700.00	640.0000	1700.00	840	\N	\N	0	1360.00	1360.00	952.0000	1370.00	42887	1843.0000	1350.00	8777	1490.00	1490.00	1922.0000	1490.00	2311	50.0000	1200.00	64	1340.00	1340.00	527.0000	1340.00	31713	776.0000	1240.00	5971
+ALG	80.00	\N	281.00	281.00	8964.0000	320.00	55910	6.0000	281.00	19657	349.00	349.00	2142.0000	349.00	21160	2379.0000	300.00	4115	350.00	350.00	1467.0000	350.00	1467	\N	\N	0	256.00	256.00	2135.0000	299.00	29366	1252.0000	256.00	3637	316.00	316.00	\N	\N	0	1000.0000	200.00	1000	341.00	341.00	686.0000	341.00	13465	200.0000	260.00	7737
+ALO	42.00	\N	252.00	252.00	145.0000	330.00	100135	3874.0000	252.00	66576	350.00	350.00	2235.0000	350.00	23449	24.0000	335.00	22772	201.20	182.00	347.0000	299.00	30828	517.0000	182.00	11835	373.00	373.00	140.0000	373.00	107618	146.0000	369.00	35666	260.84	290.00	1900.0000	290.00	3397	500.0000	200.00	500	324.00	324.00	100.0000	324.00	71979	400.0000	292.00	46835
+ALR	\N	\N	1400.00	1400.00	9.0000	1390.00	3045	120.0000	700.00	250	3210.00	3210.00	1486.0000	3210.00	2370	\N	\N	0	1345.41	\N	\N	\N	0	\N	\N	0	3150.00	3150.00	1246.0000	3150.00	7987	1000.0000	1000.00	1000	1345.41	\N	\N	\N	0	\N	\N	0	3690.00	3690.00	554.0000	3690.00	3603	\N	\N	0
+AMM	61.00	\N	160.00	160.00	941.0000	160.00	57466	4596.0000	120.00	22697	145.00	145.00	20734.0000	145.00	86752	2098.0000	122.00	136451	135.00	135.00	7577.0000	135.00	7577	350.0000	110.00	2350	189.00	189.00	9.0000	189.00	70143	3800.0000	174.00	48301	160.00	160.00	800.0000	160.00	800	200.0000	140.00	5985	175.00	175.00	835.0000	195.00	63424	7412.0000	162.00	28028
+ANZ	\N	\N	73626.71	\N	1.0000	125000.00	1	\N	\N	0	73626.71	\N	1.0000	120000.00	1	\N	\N	0	73626.71	\N	\N	\N	0	\N	\N	0	73626.71	\N	\N	\N	0	\N	\N	0	70600.55	\N	\N	\N	0	\N	\N	0	73626.71	\N	\N	\N	0	\N	\N	0
+APT	\N	\N	13936.53	13900.00	87.0000	13900.00	1915	\N	\N	0	19800.00	19800.00	132.0000	19800.00	173	\N	\N	0	6945.84	\N	\N	\N	0	\N	\N	0	16500.00	16500.00	405.0000	16500.00	517	\N	\N	0	6945.84	\N	\N	\N	0	\N	\N	0	2000.00	2000.00	\N	\N	0	\N	\N	0
+AR	83.00	\N	559.41	544.00	83.0000	544.00	20719	200.0000	512.00	41507	670.00	670.00	616.0000	670.00	10079	200.0000	501.00	14712	450.00	450.00	\N	\N	0	1000.0000	350.00	2000	648.00	648.00	2867.0000	648.00	17276	308.0000	520.00	13223	700.00	700.00	550.0000	700.00	2300	400.0000	200.00	500	716.77	723.00	3388.0000	723.00	33943	142.0000	600.00	1951
+ARP	\N	\N	10000.00	10000.00	4.0000	9500.00	103	\N	\N	0	10000.00	10000.00	5.0000	10000.00	5	\N	\N	0	4648.62	\N	\N	\N	0	\N	\N	0	8500.00	8500.00	34.0000	8500.00	37	\N	\N	0	4648.62	\N	\N	\N	0	\N	\N	0	13000.00	13000.00	\N	\N	0	\N	\N	0
+ASE	\N	\N	54000.00	54000.00	1.0000	54000.00	1921	10.0000	51000.00	1559	54327.68	55000.00	116.0000	55000.00	1471	6.0000	45200.00	606	55000.00	55000.00	21.0000	55000.00	21	10.0000	33000.00	10	50500.00	50500.00	8.0000	50500.00	1351	13.0000	47000.00	358	60000.00	60000.00	16.0000	60000.00	16	\N	\N	0	45100.00	45100.00	52.0000	53500.00	625	176.0000	45100.00	474
+AST	\N	\N	2649.49	3190.00	40.0000	3190.00	6845	100.0000	2200.00	2365	3700.00	3700.00	2387.0000	3700.00	6382	132.0000	3000.00	632	1776.40	\N	100.0000	10000.00	100	\N	\N	0	3784.24	3990.00	314.0000	3990.00	7330	50.0000	3400.00	2623	2000.00	2000.00	100.0000	4740.00	100	\N	\N	0	3650.00	3650.00	109.0000	3650.00	2372	100.0000	1500.00	100
+ATA	\N	\N	30800.00	30800.00	2.0000	30800.00	396	100.0000	27900.00	794	31656.25	32000.00	38.0000	32000.00	366	4.0000	22000.00	379	28000.00	28000.00	\N	\N	0	\N	\N	0	28000.00	28000.00	9.0000	28000.00	914	95.0000	27200.00	1264	38000.00	38000.00	24.0000	38000.00	24	\N	\N	0	29219.73	28700.00	2.0000	28700.00	318	62.0000	26000.00	116
+ATP	\N	\N	50000.00	50000.00	5.0000	50000.00	48	2.0000	41000.00	2	30000.00	30000.00	\N	\N	0	\N	\N	0	12377.30	\N	\N	\N	0	\N	\N	0	40000.00	40000.00	\N	\N	0	50.0000	40000.00	50	12377.30	\N	\N	\N	0	\N	\N	0	25000.00	25000.00	\N	\N	0	40.0000	27200.00	40
+AU	\N	\N	2430.00	2430.00	9.0000	2890.00	7293	20.0000	2430.00	4660	1610.00	1610.00	51.0000	2540.00	2699	115.0000	1610.00	4030	950.00	950.00	10.0000	2200.00	10	\N	\N	0	2552.73	2580.00	11.0000	2580.00	11832	114.0000	2020.00	3077	998.00	998.00	51.0000	1700.00	102	\N	\N	0	2524.79	2310.00	58.0000	3910.00	2205	759.0000	2310.00	2427
+AUO	137.00	\N	477.00	477.00	687.0000	599.00	31055	684.0000	477.00	8624	369.46	390.00	241.0000	390.00	2354	2000.0000	260.00	4692	300.00	300.00	\N	\N	0	\N	\N	0	389.00	389.00	48.0000	389.00	59264	1000.0000	330.00	15069	280.00	280.00	\N	\N	0	\N	\N	0	425.00	425.00	2934.0000	425.00	25319	600.0000	225.00	3803
+AWF	\N	\N	5700.00	5700.00	9.0000	5700.00	22	25.0000	4500.00	114	5680.00	5680.00	50.0000	5680.00	498	20.0000	4000.00	20	2951.99	\N	\N	\N	0	\N	\N	0	5000.00	5000.00	51.0000	12000.00	51	3.0000	5000.00	173	2951.99	\N	5.0000	5950.00	5	\N	\N	0	6796.72	6000.00	13.0000	7400.00	40	\N	\N	0
+AWH	\N	\N	19559.17	19500.00	78.0000	19500.00	368	\N	\N	0	24500.00	24500.00	198.0000	24500.00	208	388.0000	15800.00	488	8430.92	\N	100.0000	30000.00	100	\N	\N	0	21286.70	25000.00	18.0000	25000.00	82	5.0000	20000.00	277	8430.92	\N	\N	\N	0	\N	\N	0	25000.00	25000.00	\N	\N	0	\N	\N	0
+BAC	\N	\N	3408.06	3500.00	633.0000	3500.00	1393	295.0000	3100.00	1815	3200.00	3200.00	703.0000	3200.00	703	500.0000	2800.00	1600	1280.91	\N	\N	\N	0	\N	\N	0	3400.00	3400.00	482.0000	3400.00	1628	230.0000	2600.00	4060	1280.91	\N	10.0000	2250.00	10	\N	\N	0	3109.51	3500.00	136.0000	3500.00	136	40.0000	2650.00	1770
+BAI	\N	\N	16021.73	14700.00	14.0000	16200.00	2278	372.0000	14700.00	372	14834.55	16000.00	1.0000	15000.00	333	50.0000	14000.00	70	6821.51	\N	\N	\N	0	\N	\N	0	17000.00	17000.00	76.0000	17000.00	232	500.0000	14500.00	500	6821.51	\N	\N	\N	0	\N	\N	0	16266.67	16300.00	6.0000	16200.00	52	\N	\N	0
+BBH	750.00	2900.00	2900.00	2900.00	100.0000	2900.00	2117	593.0000	2890.00	1977	2890.00	2890.00	100.0000	2900.00	9475	1000.0000	2880.00	2979	2900.00	2900.00	154.0000	2900.00	154	200.0000	2800.00	252	2900.00	2900.00	100.0000	2900.00	4140	1220.0000	2890.00	4520	3000.00	3000.00	488.0000	3000.00	1014	124.0000	2000.00	135	2900.00	2900.00	100.0000	2900.00	15263	844.0000	2890.00	3075
+BCO	\N	\N	774.42	775.00	1610.0000	775.00	29617	1670.0000	750.00	15981	765.79	880.00	2143.0000	880.00	5814	1500.0000	710.00	8510	660.00	660.00	400.0000	1000.00	400	200.0000	780.00	200	760.00	760.00	990.0000	766.00	17237	480.0000	692.00	12543	640.00	640.00	\N	\N	0	\N	\N	0	803.32	806.00	160.0000	848.00	6153	1232.0000	680.00	5196
+BDE	850.00	2700.00	2700.00	2700.00	100.0000	2700.00	100	1079.0000	2690.00	3566	2670.00	2670.00	1181.0000	2690.00	1281	990.0000	2670.00	3412	2700.00	2700.00	190.0000	2800.00	190	10.0000	879.00	32	2690.00	2690.00	100.0000	2700.00	2518	517.0000	2690.00	6618	2700.00	2700.00	71.0000	2700.00	279	90.0000	1800.00	90	2700.00	2700.00	100.0000	2700.00	101	461.0000	2690.00	1594
+BE	\N	\N	2569.51	2200.00	681.0000	2800.00	13161	300.0000	1950.00	11440	1900.00	1900.00	335.0000	2490.00	1523	292.0000	1900.00	2975	2900.00	2900.00	42.0000	2900.00	142	\N	\N	0	2390.00	2390.00	2833.0000	2400.00	10896	1000.0000	2000.00	10015	1700.00	1700.00	18.0000	1700.00	18	\N	\N	0	2366.88	2990.00	6.0000	2980.00	236	22.0000	2000.00	2642
+BEA	84.00	\N	300.00	300.00	15.0000	320.00	20582	9427.0000	300.00	24756	378.14	383.00	1173.0000	383.00	13683	548.0000	330.00	13106	250.00	250.00	\N	\N	0	\N	\N	0	498.02	499.00	1543.0000	499.00	1851	601.0000	320.00	15704	250.00	250.00	16.0000	400.00	16	757.0000	250.00	757	320.00	320.00	60.0000	349.00	2454	1167.0000	320.00	30454
+BER	\N	\N	739.00	739.00	473.0000	739.00	29934	1494.0000	450.00	23495	899.00	899.00	107.0000	899.00	1107	2000.0000	353.00	18945	400.00	400.00	\N	\N	0	\N	\N	0	598.00	598.00	1400.0000	598.00	30194	1500.0000	452.00	17248	117.55	\N	50.0000	551.00	50	\N	\N	0	492.75	353.00	154.0000	797.00	5500	3000.0000	325.00	5000
+BFP	\N	\N	26000.00	26000.00	8.0000	25000.00	8	\N	\N	0	25000.00	25000.00	\N	\N	0	\N	\N	0	20233.02	\N	\N	\N	0	\N	\N	0	24000.00	24000.00	\N	\N	0	\N	\N	0	20224.42	\N	\N	\N	0	\N	\N	0	25000.00	25000.00	\N	\N	0	\N	\N	0
+BFR	\N	\N	5200.00	5200.00	\N	\N	0	83.0000	4500.00	83	7199.85	6100.00	50.0000	8000.00	87	30.0000	6100.00	280	2515.46	\N	\N	\N	0	\N	\N	0	6112.44	5000.00	3.0000	6500.00	3	19.0000	5000.00	243	2515.46	\N	\N	\N	0	\N	\N	0	4000.00	4000.00	\N	\N	0	46.0000	4000.00	46
+BGC	\N	\N	840.00	840.00	269.0000	840.00	19500	160.0000	681.00	17616	793.84	850.00	400.0000	849.00	964	500.0000	660.00	2457	600.00	600.00	\N	\N	0	\N	\N	0	731.50	800.00	2896.0000	800.00	5926	1980.0000	610.00	16506	500.00	500.00	200.0000	675.00	200	\N	\N	0	749.09	745.00	3284.0000	740.00	11834	19.0000	652.00	770
+BGO	\N	\N	4306.70	4310.00	126.0000	4310.00	12199	790.0000	3410.00	8342	3366.45	3960.00	57.0000	3960.00	2973	168.0000	2430.00	2308	2000.00	2000.00	70.0000	3000.00	70	\N	\N	0	2660.00	2660.00	45.0000	3100.00	8009	375.0000	2660.00	5711	2100.00	2100.00	70.0000	2800.00	167	3.0000	2100.00	100	3568.80	3620.00	40.0000	3630.00	2492	5.0000	1800.00	355
+BGS	\N	\N	214000.00	214000.00	1.0000	214000.00	9	2.0000	60000.00	2	228000.00	228000.00	3.0000	220000.00	5	\N	\N	0	87625.20	\N	\N	\N	0	\N	\N	0	250000.00	250000.00	1.0000	220000.00	2	\N	\N	0	87625.20	\N	\N	\N	0	\N	\N	0	219514.71	220000.00	1.0000	219000.00	19	\N	\N	0
+BHP	\N	\N	5760.00	5760.00	46.0000	5770.00	1111	6.0000	5520.00	1862	5790.00	5790.00	45.0000	5790.00	917	36.0000	4020.00	1085	1500.00	1500.00	\N	\N	0	\N	\N	0	5360.00	5380.00	8.0000	5380.00	11556	10.0000	5150.00	3550	4750.00	5000.00	31.0000	5000.00	150	\N	\N	0	6000.00	6000.00	23.0000	6000.00	836	30.0000	4660.00	365
+BID	\N	\N	70000.00	70000.00	24.0000	69900.00	238	\N	\N	0	60000.00	60000.00	53.0000	80000.00	53	\N	\N	0	24575.12	\N	\N	\N	0	\N	\N	0	55000.00	55000.00	3.0000	70000.00	253	\N	\N	0	24575.12	\N	49.0000	70000.00	49	\N	\N	0	80000.00	80000.00	7.0000	80000.00	13	\N	\N	0
+BL	\N	\N	6822.52	6870.00	144.0000	6880.00	901	1.0000	6010.00	945	7940.00	7940.00	18.0000	7940.00	279	3.0000	5100.00	29	4500.00	4500.00	\N	\N	0	\N	\N	0	8029.36	9000.00	473.0000	9000.00	512	140.0000	4360.00	402	2986.70	\N	10.0000	7500.00	10	\N	\N	0	7491.62	6880.00	149.0000	6880.00	494	4.0000	6400.00	16
+BLE	\N	\N	2907.63	2990.00	213.0000	2990.00	2111	95.0000	1750.00	595	2250.00	2250.00	208.0000	2250.00	2490	33.0000	1000.00	33	1804.34	\N	\N	\N	0	\N	\N	0	2090.00	2090.00	196.0000	2090.00	3361	255.0000	1400.00	1393	1804.34	\N	10.0000	2300.00	10	\N	\N	0	2200.00	2200.00	44.0000	2200.00	682	\N	\N	0
+BMF	\N	\N	32000.00	32000.00	70.0000	32000.00	663	112.0000	28000.00	612	32500.00	32500.00	10.0000	33000.00	385	\N	\N	0	10946.03	\N	\N	\N	0	5.0000	22000.00	5	30132.27	31000.00	191.0000	31000.00	521	11.0000	26500.00	71	60000.00	60000.00	29.0000	60000.00	29	\N	\N	0	31000.00	31000.00	5.0000	31000.00	413	1.0000	20000.00	1
+BND	\N	\N	230.00	230.00	209.0000	230.00	209	\N	\N	0	325.00	325.00	135.0000	325.00	135	\N	\N	0	270.15	\N	\N	\N	0	\N	\N	0	323.00	323.00	\N	\N	0	10.0000	150.00	10	500.00	500.00	\N	\N	0	\N	\N	0	155.00	155.00	\N	\N	0	\N	\N	0
+BOR	\N	\N	450.00	450.00	556.0000	450.00	21499	120.0000	300.00	5120	320.00	320.00	578.0000	320.00	2584	200.0000	230.00	2826	300.00	300.00	\N	\N	0	300.0000	225.00	300	320.00	320.00	2174.0000	320.00	50467	20.0000	300.00	11382	350.00	350.00	100.0000	280.00	512	50.0000	130.00	250	350.00	350.00	83.0000	349.00	2868	2000.0000	205.00	2001
+BOS	\N	\N	5122.02	7000.00	155.0000	7000.00	2181	167.0000	3900.00	614	5700.00	5700.00	\N	\N	0	500.0000	4200.00	1488	3250.00	3250.00	\N	\N	0	\N	\N	0	5967.43	6000.00	707.0000	6000.00	707	500.0000	4300.00	4065	1909.17	\N	50.0000	4350.00	50	\N	\N	0	6806.81	6200.00	37.0000	7000.00	37	40.0000	5900.00	630
+BPT	\N	\N	6727.29	6750.00	150.0000	5850.00	156	\N	\N	0	4380.00	4380.00	\N	\N	0	\N	\N	0	2208.17	\N	\N	\N	0	\N	\N	0	10000.00	10000.00	555.0000	10000.00	1651	\N	\N	0	2208.17	\N	\N	\N	0	\N	\N	0	8657.95	10000.00	24.0000	10000.00	34	\N	\N	0
+BR1	\N	\N	824000.00	824000.00	9.0000	824000.00	30	1.0000	700000.00	1	969000.00	969000.00	1.0000	967000.00	11	2.0000	680000.00	4	1300000.00	1300000.00	\N	\N	0	\N	\N	0	935000.00	935000.00	1.0000	935000.00	5	1.0000	500000.00	1	254764.78	\N	\N	\N	0	\N	\N	0	949000.00	949000.00	\N	\N	0	1.0000	450000.00	1
+BR2	\N	\N	950000.00	950000.00	1.0000	996000.00	10	1.0000	900000.00	1	950000.00	950000.00	1.0000	975000.00	6	\N	\N	0	1300000.00	1300000.00	\N	\N	0	\N	\N	0	1155176.03	1160000.00	4.0000	1070000.00	9	\N	\N	0	341875.33	\N	\N	\N	0	\N	\N	0	1200000.00	1200000.00	1.0000	1300000.00	1	\N	\N	0
+BRM	\N	\N	247.63	255.00	2000.0000	255.00	29866	1700.0000	201.00	3360	303.49	307.00	481.0000	307.00	12802	800.0000	265.00	2100	320.00	320.00	321.0000	320.00	1201	1000.0000	91.00	1000	270.00	270.00	3064.0000	270.00	20269	400.0000	190.00	18980	250.00	250.00	\N	\N	0	\N	\N	0	183.45	150.00	649.0000	324.00	3548	\N	\N	0
+BRO	\N	\N	6860.00	6860.00	363.0000	6870.00	3273	71.0000	2210.00	584	8990.00	8990.00	135.0000	8990.00	372	500.0000	2800.00	1028	2500.00	2500.00	\N	\N	0	\N	\N	0	4500.00	4500.00	\N	\N	0	108.0000	4000.00	2614	830.05	\N	\N	\N	0	\N	\N	0	5312.03	8000.00	50.0000	7500.00	362	200.0000	2400.00	1262
+BRP	\N	\N	4680.79	7000.00	12.0000	8000.00	12	\N	\N	0	4000.00	4000.00	\N	\N	0	\N	\N	0	2661.34	\N	\N	\N	0	\N	\N	0	5500.00	5500.00	\N	\N	0	\N	\N	0	2661.34	\N	\N	\N	0	\N	\N	0	6340.00	6340.00	\N	\N	0	\N	\N	0
+BRS	\N	\N	550000.00	550000.00	1.0000	573000.00	7	1.0000	400000.00	4	600000.00	600000.00	3.0000	588000.00	5	1.0000	475000.00	1	128580.32	\N	\N	\N	0	\N	\N	0	579000.00	579000.00	1.0000	579000.00	2	1.0000	350000.00	2	128580.32	\N	\N	\N	0	\N	\N	0	590000.00	590000.00	1.0000	999000.00	2	1.0000	400000.00	6
+BSC	\N	\N	47043.67	50800.00	73.0000	50800.00	1195	100.0000	45100.00	172	46000.00	46000.00	100.0000	54000.00	760	\N	\N	0	14494.90	\N	\N	\N	0	\N	\N	0	52000.00	52000.00	191.0000	52000.00	391	\N	\N	0	14494.90	\N	1.0000	52000.00	1	\N	\N	0	50864.73	54700.00	55.0000	54700.00	255	5.0000	30000.00	5
+BSE	425.00	1900.00	1900.00	1900.00	100.0000	1900.00	56099	2826.0000	1890.00	11367	1900.00	1900.00	100.0000	1900.00	88986	92.0000	1890.00	4500	1913.52	2000.00	100.0000	2000.00	100	3.0000	1600.00	65	1900.00	1900.00	100.0000	1900.00	26106	577.0000	1890.00	13696	2000.00	2000.00	985.0000	2000.00	2121	202.0000	1000.00	202	1900.00	1900.00	100.0000	1900.00	75715	495.0000	1890.00	4278
+BSU	\N	\N	556074.87	\N	\N	\N	0	\N	\N	0	850000.00	850000.00	\N	\N	0	\N	\N	0	556074.87	\N	\N	\N	0	\N	\N	0	556074.87	\N	\N	\N	0	\N	\N	0	556074.87	\N	\N	\N	0	\N	\N	0	556074.87	\N	\N	\N	0	\N	\N	0
+BTA	500.00	1800.00	1800.00	1800.00	100.0000	1800.00	100	76.0000	1720.00	2204	1790.00	1790.00	3644.0000	1790.00	3744	6.0000	1660.00	687	1590.00	1590.00	4.0000	1590.00	304	200.0000	1580.00	203	1790.00	1790.00	4057.0000	1790.00	6237	181.0000	1560.00	7635	1900.00	1900.00	53.0000	1900.00	672	10.0000	1800.00	94	1800.00	1800.00	100.0000	1800.00	101	250.0000	1710.00	774
+BTS	\N	\N	800.00	800.00	18.0000	800.00	30773	1000.0000	500.00	4239	863.05	900.00	3000.0000	1000.00	3200	1000.0000	600.00	12190	100.35	\N	\N	\N	0	\N	\N	0	680.00	680.00	4133.0000	680.00	17662	52.0000	500.00	4341	529.00	529.00	\N	\N	0	\N	\N	0	500.00	500.00	566.0000	500.00	6843	1000.0000	300.00	1000
+BWH	\N	\N	7980.00	7980.00	22.0000	7950.00	50	\N	\N	0	9000.00	9000.00	19.0000	9000.00	19	\N	\N	0	3005.04	\N	\N	\N	0	\N	\N	0	8000.00	8000.00	1.0000	8990.00	6	120.0000	3320.00	193	3005.04	\N	\N	\N	0	\N	\N	0	7500.00	7500.00	383.0000	7500.00	1383	\N	\N	0
+BWS	\N	\N	26933.65	27800.00	12.0000	27800.00	747	90.0000	23000.00	405	26839.95	27000.00	\N	\N	0	3.0000	27000.00	3	30000.00	30000.00	\N	\N	0	5.0000	22000.00	5	29999.31	30900.00	4.0000	30900.00	335	2.0000	27200.00	336	8600.37	\N	1.0000	23000.00	1	\N	\N	0	29927.03	30000.00	78.0000	30000.00	78	2.0000	25800.00	34
+C	225.00	\N	1190.00	1190.00	1818.0000	1190.00	120387	166.0000	1180.00	37006	1160.00	1160.00	5633.0000	1160.00	63967	150.0000	1090.00	22885	1300.00	1300.00	175.0000	1450.00	1729	17.0000	1300.00	1081	1280.00	1280.00	287.0000	1280.00	75043	138.0000	1260.00	59157	941.25	1080.00	316.0000	1080.00	5283	1600.0000	800.00	1600	1100.00	1100.00	1838.0000	1100.00	52129	1708.0000	1020.00	46008
+CA	\N	\N	1219.94	1500.00	\N	\N	0	290.0000	300.00	290	1001.49	1200.00	2.0000	3900.00	417	60.0000	300.00	170	101.00	101.00	\N	\N	0	\N	\N	0	839.93	750.00	16.0000	1240.00	326	15.0000	203.00	3245	991.34	\N	15.0000	1000.00	15	\N	\N	0	959.29	1500.00	243.0000	1500.00	243	2.0000	350.00	173
+CAF	\N	\N	1880.00	1880.00	737.0000	1890.00	18083	24.0000	1750.00	7667	1750.00	1750.00	273.0000	1750.00	24021	5.0000	1670.00	3933	1000.00	1000.00	246.0000	1700.00	1208	3.0000	1000.00	103	1970.00	1970.00	204.0000	1970.00	4606	20.0000	1700.00	8925	1550.00	1550.00	237.0000	1550.00	237	500.0000	1000.00	500	2400.00	2400.00	1174.0000	2400.00	5366	500.0000	1910.00	3963
+CAP	\N	\N	290.00	290.00	921.0000	289.00	10907	1000.0000	220.00	4586	290.00	290.00	650.0000	317.00	4817	1035.0000	290.00	2035	142.10	\N	\N	\N	0	\N	\N	0	334.70	347.00	80.0000	347.00	17128	4855.0000	275.00	12057	142.10	\N	100.0000	500.00	100	\N	\N	0	330.00	330.00	100.0000	295.00	578	1000.0000	101.00	1100
+CBL	91000.00	\N	91624.58	93000.00	8.0000	93000.00	23	10.0000	91200.00	226	91100.00	91100.00	\N	\N	0	78.0000	91100.00	178	91000.00	91000.00	\N	\N	0	\N	\N	0	120000.00	120000.00	4.0000	98000.00	166	10.0000	91300.00	292	92000.00	92000.00	\N	\N	0	\N	\N	0	91100.00	91100.00	10.0000	95000.00	60	72.0000	91100.00	172
+CBM	63000.00	\N	65819.15	65000.00	9.0000	74600.00	47	23.0000	65000.00	153	66801.62	63000.00	12.0000	69900.00	388	100.0000	63000.00	100	29533.97	\N	\N	\N	0	\N	\N	0	67063.98	69900.00	76.0000	69900.00	182	8.0000	63100.00	108	29533.97	\N	5.0000	69900.00	5	\N	\N	0	63100.00	63100.00	1.0000	69800.00	1	50.0000	63100.00	150
+CBS	42000.00	\N	42000.00	42000.00	289.0000	42900.00	559	100.0000	42000.00	100	43800.00	43800.00	29.0000	43800.00	396	100.0000	42000.00	100	17919.90	\N	2.0000	49000.00	7	\N	\N	0	42276.48	42000.00	85.0000	45000.00	189	100.0000	42000.00	100	17919.90	\N	10.0000	43000.00	10	\N	\N	0	42000.00	42000.00	10.0000	48900.00	60	100.0000	42000.00	100
+CBU	\N	\N	480000.00	480000.00	101.0000	700000.00	101	10.0000	410000.00	50	490000.00	490000.00	1.0000	699000.00	61	10.0000	400000.00	10	174192.88	\N	\N	\N	0	\N	\N	0	650000.00	650000.00	15.0000	640000.00	169	10.0000	410000.00	49	174192.88	\N	\N	\N	0	\N	\N	0	500000.00	500000.00	130.0000	700000.00	130	10.0000	410000.00	60
+CC	650000.00	\N	650000.00	650000.00	\N	\N	0	100.0000	650000.00	100	650000.00	650000.00	1.0000	700000.00	1	100.0000	650000.00	100	331160.12	\N	\N	\N	0	\N	\N	0	650000.00	650000.00	5.0000	750000.00	5	100.0000	650000.00	100	331160.12	\N	\N	\N	0	\N	\N	0	650000.00	650000.00	\N	\N	0	100.0000	650000.00	100
+CCD	80000.00	\N	80000.00	80000.00	50.0000	81000.00	300	100.0000	80000.00	100	80000.00	80000.00	3.0000	84700.00	496	100.0000	80000.00	100	27594.74	\N	\N	\N	0	\N	\N	0	80082.48	80000.00	917.0000	80300.00	1429	100.0000	80000.00	100	27594.74	\N	\N	\N	0	\N	\N	0	80000.00	80000.00	3.0000	85000.00	13	100.0000	80000.00	100
+CD	\N	\N	20000.00	20000.00	107.0000	23900.00	117	100.0000	10000.00	100	25000.00	25000.00	99.0000	25000.00	99	10.0000	20000.00	10	7893.70	\N	\N	\N	0	\N	\N	0	19365.99	20000.00	10.0000	21000.00	59	10.0000	17000.00	10	7893.70	\N	10.0000	13200.00	10	\N	\N	0	25000.00	25000.00	\N	\N	0	\N	\N	0
+CF	\N	\N	9000.00	9000.00	200.0000	11200.00	1448	14.0000	9000.00	921	10041.93	9700.00	1.0000	10600.00	579	97.0000	9700.00	1120	5000.00	5000.00	26.0000	9000.00	26	\N	\N	0	9990.00	9990.00	\N	\N	0	2.0000	9040.00	2041	7850.00	7850.00	\N	\N	0	\N	\N	0	8880.00	8880.00	35.0000	10000.00	35	5.0000	8880.00	1156
+CHA	\N	\N	98800.00	98800.00	100.0000	72000.00	392	5.0000	35000.00	138	69000.00	69000.00	1.0000	69000.00	10	5.0000	30000.00	5	21001.50	\N	\N	\N	0	\N	\N	0	40000.00	40000.00	1.0000	66000.00	25	5.0000	30000.00	5	21001.50	\N	\N	\N	0	\N	\N	0	12500.00	12500.00	5.0000	120000.00	5	5.0000	30000.00	5
+CL	\N	\N	3750.00	3750.00	120.0000	3970.00	11784	1133.0000	3750.00	4733	3700.00	3700.00	210.0000	4440.00	21489	876.0000	3700.00	2176	4440.00	4440.00	99.0000	4600.00	509	180.0000	2300.00	180	4691.33	4700.00	463.0000	4700.00	12116	295.0000	3910.00	3967	8000.00	8000.00	97.0000	8000.00	97	100.0000	4000.00	100	4000.00	4000.00	285.0000	4000.00	9150	48.0000	3960.00	4960
+CLI	51.00	\N	240.00	240.00	24398.0000	240.00	100524	48.0000	215.00	2654	221.00	221.00	188.0000	445.00	4810	98.0000	221.00	6910	170.00	170.00	180.0000	250.00	180	246.0000	170.00	2246	447.65	444.00	1743.0000	444.00	5673	36.0000	252.00	14696	375.00	375.00	1500.0000	300.00	1503	90.0000	200.00	90	200.00	200.00	731.0000	300.00	2731	2283.0000	200.00	6810
+COF	\N	\N	999.29	1000.00	282.0000	1000.00	48078	28.0000	955.00	22454	1100.00	1100.00	36.0000	1100.00	60302	550.0000	911.00	5570	1050.00	1050.00	455.0000	1050.00	655	\N	\N	0	979.00	979.00	3821.0000	979.00	71321	225.0000	940.00	8101	925.00	925.00	2717.0000	925.00	6261	2998.0000	750.00	3278	933.00	933.00	52.0000	933.00	10746	46.0000	924.00	33675
+COM	\N	\N	133685.55	135000.00	21.0000	135000.00	131	5.0000	123000.00	87	124490.32	125000.00	6.0000	125000.00	60	3.0000	117000.00	78	250000.00	250000.00	\N	\N	0	\N	\N	0	129000.00	129000.00	1.0000	129000.00	160	5.0000	122000.00	107	116000.00	116000.00	\N	\N	0	\N	\N	0	132689.02	142000.00	15.0000	142000.00	20	4.0000	111000.00	9
+COT	\N	\N	3679.88	3700.00	510.0000	3700.00	8534	9.0000	3640.00	3743	3500.00	3500.00	18.0000	3500.00	8093	23.0000	3450.00	523	3000.00	3000.00	\N	\N	0	\N	\N	0	4000.00	4000.00	80.0000	4000.00	16403	35.0000	3600.00	3055	6000.00	6000.00	20.0000	6000.00	20	\N	\N	0	3964.85	3970.00	1758.0000	3970.00	3448	40.0000	3150.00	1392
+CPU	\N	\N	1426422.52	\N	\N	\N	0	\N	\N	0	1426422.52	\N	\N	\N	0	\N	\N	0	1426422.52	\N	\N	\N	0	\N	\N	0	1426422.52	\N	\N	\N	0	\N	\N	0	1426422.52	\N	\N	\N	0	\N	\N	0	1426422.52	\N	\N	\N	0	\N	\N	0
+CQL	\N	\N	2257591.28	2290000.00	4.0000	2290000.00	10	\N	\N	0	1680000.00	1680000.00	1.0000	1690000.00	7	2.0000	1600000.00	2	1000000.00	1000000.00	\N	\N	0	\N	\N	0	2050000.00	2050000.00	2.0000	2000000.00	5	\N	\N	0	638520.44	\N	\N	\N	0	\N	\N	0	2100000.00	2100000.00	1.0000	2000000.00	4	\N	\N	0
+CQM	\N	\N	2200000.00	2200000.00	10.0000	1900000.00	13	1.0000	1000000.00	3	1730000.00	1730000.00	1.0000	1750000.00	5	2.0000	1450000.00	6	875000.00	875000.00	\N	\N	0	\N	\N	0	1500000.00	1500000.00	1.0000	1770000.00	2	1.0000	663000.00	3	484121.61	\N	\N	\N	0	\N	\N	0	1680000.00	1680000.00	4.0000	1680000.00	5	\N	\N	0
+CQS	\N	\N	1890000.00	1890000.00	2.0000	1880000.00	5	1.0000	860000.00	2	2000000.00	2000000.00	1.0000	2100000.00	1	1.0000	900000.00	4	800000.00	800000.00	\N	\N	0	1.0000	600000.00	1	1600000.00	1600000.00	1.0000	1900000.00	2	1.0000	950000.00	1	378967.37	\N	\N	\N	0	\N	\N	0	1000000.00	1000000.00	1.0000	2000000.00	1	1.0000	850000.00	1
+CQT	\N	\N	409000.00	409000.00	1.0000	410000.00	4	\N	\N	0	499000.00	499000.00	1.0000	497000.00	2	1.0000	300000.00	5	250000.00	250000.00	\N	\N	0	\N	\N	0	500000.00	500000.00	1.0000	510000.00	1	1.0000	102000.00	5	107765.77	\N	\N	\N	0	\N	\N	0	492000.00	492000.00	1.0000	493000.00	2	\N	\N	0
+CRU	200000.00	\N	200000.00	200000.00	1.0000	350000.00	3	100.0000	200000.00	100	200000.00	200000.00	1.0000	299000.00	2	100.0000	200000.00	100	139438.87	\N	\N	\N	0	\N	\N	0	269000.00	269000.00	7.0000	260000.00	31	1.0000	210000.00	101	139438.87	\N	\N	\N	0	\N	\N	0	139438.87	\N	\N	\N	0	100.0000	200000.00	100
+CST	\N	\N	2500.00	2500.00	92.0000	2500.00	92	1.0000	56.00	1	1900.00	1900.00	126.0000	1900.00	251	4.0000	100.00	4	2923.84	\N	\N	\N	0	\N	\N	0	1000.00	1000.00	4.0000	1000.00	112	\N	\N	0	2923.84	\N	\N	\N	0	\N	\N	0	2250.00	2250.00	87.0000	2250.00	87	\N	\N	0
+CTF	\N	\N	26639.53	28000.00	231.0000	28000.00	1096	10.0000	24000.00	10	37000.00	37000.00	111.0000	31900.00	312	30.0000	26000.00	315	16000.00	16000.00	\N	\N	0	\N	\N	0	27800.00	27800.00	11.0000	37800.00	489	20.0000	27800.00	749	20500.00	20500.00	10.0000	60000.00	10	\N	\N	0	34961.11	35000.00	10.0000	37900.00	95	30.0000	27000.00	350
+CU	\N	\N	1970.00	1970.00	14.0000	1970.00	21273	405.0000	1900.00	6838	2000.00	2000.00	336.0000	2180.00	4780	2.0000	1520.00	168	2250.00	2250.00	672.0000	2250.00	672	\N	\N	0	1525.53	1500.00	372.0000	1900.00	13170	1235.0000	1500.00	1235	3000.00	3000.00	59.0000	3000.00	59	50.0000	1000.00	50	2063.53	2070.00	102.0000	2070.00	7163	100.0000	1980.00	1749
+CUO	63.00	\N	325.00	325.00	476.0000	325.00	21266	165.0000	250.00	12565	446.99	450.00	498.0000	459.00	6910	100.0000	380.00	7164	163.33	163.00	222.0000	250.00	222	\N	\N	0	300.00	300.00	1300.0000	300.00	35017	4257.0000	250.00	10137	600.00	600.00	\N	\N	0	\N	\N	0	464.36	465.00	505.0000	465.00	10348	2000.0000	380.00	2861
+DA	\N	\N	70000.00	70000.00	17.0000	70000.00	17	7.0000	57000.00	67	57825.27	60000.00	58.0000	60000.00	78	3.0000	48000.00	43	45000.00	45000.00	\N	\N	0	\N	\N	0	60000.00	60000.00	30.0000	65000.00	30	4.0000	52500.00	56	26164.14	\N	\N	\N	0	\N	\N	0	80000.00	80000.00	35.0000	80000.00	35	\N	\N	0
+DCH	\N	\N	23000.00	23000.00	27.0000	23300.00	661	46.0000	23000.00	131	23000.00	23000.00	5.0000	24400.00	45	\N	\N	0	8996.76	\N	\N	\N	0	\N	\N	0	22000.00	22000.00	1.0000	24900.00	104	\N	\N	0	8996.76	\N	\N	\N	0	\N	\N	0	25400.00	25400.00	\N	\N	0	\N	\N	0
+DCL	\N	\N	8467.45	8470.00	1822.0000	8460.00	3544	50.0000	6000.00	50	8376.50	8380.00	26.0000	8380.00	330	50.0000	5500.00	50	3482.63	\N	\N	\N	0	\N	\N	0	7672.17	7990.00	65.0000	7990.00	1998	51.0000	6790.00	423	3482.63	\N	10.0000	6790.00	10	\N	\N	0	9946.67	9970.00	4.0000	9970.00	420	50.0000	7000.00	231
+DCM	\N	\N	5357.05	5400.00	966.0000	5500.00	4843	300.0000	5000.00	3979	5107.27	5110.00	702.0000	5900.00	770	172.0000	4700.00	3068	3500.00	3500.00	\N	\N	0	\N	\N	0	5572.21	5580.00	111.0000	5560.00	5472	100.0000	4700.00	2739	4900.00	4900.00	\N	\N	0	\N	\N	0	6366.67	6400.00	51.0000	6400.00	371	4997.0000	4000.00	5199
+DCS	\N	\N	2050.00	2050.00	104.0000	2240.00	10442	110.0000	2050.00	5210	2156.29	2050.00	246.0000	2450.00	1248	367.0000	2050.00	467	1500.00	1500.00	\N	\N	0	\N	\N	0	2350.00	2350.00	91.0000	2350.00	6810	100.0000	2150.00	4903	1840.00	1840.00	\N	\N	0	\N	\N	0	2631.78	2550.00	191.0000	2550.00	191	1000.0000	1950.00	5086
+DD	\N	\N	37000.00	37000.00	50.0000	38500.00	86	\N	\N	0	37000.00	37000.00	9.0000	38900.00	13	\N	\N	0	25000.00	25000.00	\N	\N	0	\N	\N	0	25000.00	25000.00	1.0000	40000.00	6	\N	\N	0	26664.98	\N	\N	\N	0	\N	\N	0	30000.00	30000.00	2.0000	40000.00	6	\N	\N	0
+DDT	\N	\N	5800.00	5800.00	188.0000	5800.00	6288	108.0000	5550.00	4886	6002.95	6010.00	305.0000	6010.00	4852	65.0000	5450.00	5854	4000.00	4000.00	\N	\N	0	10.0000	4810.00	1060	5800.00	5800.00	1092.0000	5800.00	7848	10.0000	5070.00	9190	6000.00	6000.00	45.0000	5900.00	345	\N	\N	0	5790.00	5790.00	155.0000	5790.00	2169	5.0000	4750.00	688
+DEC	\N	\N	38900.00	38900.00	9.0000	38900.00	1579	97.0000	25100.00	485	27988.50	32000.00	8.0000	31900.00	112	100.0000	25100.00	482	9363.13	\N	\N	\N	0	\N	\N	0	34382.52	34500.00	69.0000	34500.00	132	89.0000	24200.00	585	9363.13	\N	44.0000	40000.00	44	\N	\N	0	38000.00	38000.00	2.0000	56700.00	48	100.0000	23000.00	601
+DIS	\N	\N	12000.00	12000.00	92.0000	13000.00	184	10.0000	12000.00	10	17000.00	17000.00	1.0000	16000.00	60	5.0000	8000.00	5	9500.00	9500.00	\N	\N	0	\N	\N	0	17000.00	17000.00	58.0000	39000.00	78	\N	\N	0	20000.00	20000.00	4.0000	20000.00	4	\N	\N	0	20000.00	20000.00	24.0000	20000.00	24	\N	\N	0
+DOU	\N	\N	400000.00	400000.00	5.0000	399000.00	14	\N	\N	0	102013.57	\N	\N	\N	0	\N	\N	0	102013.57	\N	\N	\N	0	\N	\N	0	500000.00	500000.00	54.0000	500000.00	54	\N	\N	0	102013.57	\N	\N	\N	0	\N	\N	0	275000.00	275000.00	\N	\N	0	\N	\N	0
+DRF	\N	\N	6270.00	6270.00	32.0000	6270.00	1810	303.0000	5600.00	1803	15000.00	15000.00	35.0000	7440.00	40	100.0000	5000.00	100	3015.91	\N	\N	\N	0	\N	\N	0	7250.00	7250.00	16.0000	7300.00	16	88.0000	5800.00	388	3500.00	3500.00	\N	\N	0	\N	\N	0	6200.00	6200.00	5.0000	6500.00	5	\N	\N	0
+DV	\N	\N	13000.00	13000.00	7.0000	13000.00	119	\N	\N	0	11823.93	13000.00	36.0000	13000.00	86	\N	\N	0	15000.00	15000.00	\N	\N	0	\N	\N	0	11900.00	11900.00	2.0000	11900.00	270	\N	\N	0	12324.54	\N	\N	\N	0	\N	\N	0	14400.00	14400.00	4.0000	14400.00	9	\N	\N	0
+DW	19.00	121.00	121.00	121.00	100.0000	121.00	54100	20.0000	118.00	361960	121.00	121.00	100.0000	121.00	100	527.0000	120.00	268888	120.00	120.00	6673.0000	120.00	8215	7000.0000	106.00	9200	121.00	121.00	100.0000	121.00	233347	5167.0000	119.00	336130	119.67	120.00	4750.0000	120.00	26750	5000.0000	110.00	18156	119.00	119.00	6621.0000	119.00	205990	3943.0000	118.00	607233
+EBU	\N	\N	430000.00	430000.00	29.0000	430000.00	29	10.0000	240000.00	10	240000.00	240000.00	89.0000	430000.00	91	17.0000	240000.00	17	90558.97	\N	\N	\N	0	\N	\N	0	278000.00	278000.00	100.0000	430000.00	146	10.0000	260000.00	20	90558.97	\N	\N	\N	0	\N	\N	0	300000.00	300000.00	52.0000	430000.00	52	13.0000	260000.00	13
+EDC	8000.00	\N	8625.17	15000.00	4.0000	9000.00	48	200.0000	8020.00	1541	8000.00	8000.00	205.0000	8100.00	1238	100.0000	8000.00	100	11000.00	11000.00	\N	\N	0	\N	\N	0	9500.00	9500.00	174.0000	9500.00	394	100.0000	8000.00	100	8216.36	\N	\N	\N	0	\N	\N	0	8000.00	8000.00	\N	\N	0	100.0000	8000.00	100
+EES	\N	\N	50000.00	50000.00	48.0000	59900.00	1088	50.0000	50000.00	60	56533.35	57700.00	1.0000	57700.00	234	20.0000	54000.00	40	75000.00	75000.00	5.0000	65000.00	5	\N	\N	0	49600.00	49600.00	16.0000	60000.00	16	6.0000	49600.00	6	48435.50	\N	\N	\N	0	\N	\N	0	60000.00	60000.00	10.0000	50000.00	102	4.0000	17500.00	4
+ENG	\N	\N	866000.00	866000.00	12.0000	858000.00	66	\N	\N	0	810000.00	810000.00	1.0000	815000.00	19	\N	\N	0	367068.11	\N	\N	\N	0	\N	\N	0	868000.00	868000.00	1.0000	868000.00	19	\N	\N	0	367068.11	\N	\N	\N	0	\N	\N	0	900000.00	900000.00	1.0000	929000.00	22	\N	\N	0
+EPO	\N	\N	203.00	203.00	600.0000	208.00	499999	9650.0000	203.00	387332	215.00	215.00	7195.0000	215.00	291023	4400.0000	203.00	198388	225.00	225.00	5000.0000	260.00	5000	500.0000	100.00	500	229.63	230.00	4092.0000	230.00	220346	10000.0000	188.00	282580	200.00	200.00	3250.0000	200.00	13550	5000.0000	150.00	5000	205.00	205.00	7300.0000	205.00	167595	10000.0000	190.00	152925
+ES	\N	\N	2093.35	2100.00	590.0000	2100.00	1727	6.0000	1810.00	597	2000.00	2000.00	663.0000	2000.00	4298	6.0000	1600.00	206	1650.00	1650.00	100.0000	2000.00	100	\N	\N	0	2930.00	2930.00	99.0000	2930.00	13460	410.0000	2000.00	1275	1876.99	\N	20.0000	1440.00	20	\N	\N	0	4500.00	4500.00	41.0000	4500.00	1335	85.0000	2300.00	1156
+ETC	\N	\N	39900.00	39900.00	4.0000	39700.00	344	40.0000	20000.00	140	30000.00	30000.00	1.0000	30000.00	1	50.0000	20000.00	70	15000.00	15000.00	\N	\N	0	\N	\N	0	34137.72	40000.00	33.0000	40000.00	93	33.0000	15900.00	273	10273.10	\N	\N	\N	0	\N	\N	0	30000.00	30000.00	26.0000	30000.00	168	\N	\N	0
+EXO	\N	\N	388.00	388.00	109.0000	388.00	15931	1000.0000	343.00	17981	370.00	370.00	72.0000	370.00	2908	88.0000	360.00	8424	420.00	420.00	659.0000	420.00	1369	40.0000	310.00	40	375.00	375.00	58.0000	375.00	21081	5.0000	369.00	25250	306.87	300.00	43.0000	300.00	2944	400.0000	250.00	600	360.00	360.00	14.0000	360.00	16959	57.0000	359.00	5772
+F	\N	\N	1000.00	1000.00	415.0000	2900.00	1364	98.0000	353.00	298	1000.00	1000.00	116.0000	1000.00	116	\N	\N	0	1000.00	1000.00	181.0000	1000.00	181	\N	\N	0	1428.59	2000.00	5636.0000	2000.00	23115	4.0000	762.00	10985	222.22	\N	1000.0000	2900.00	8594	\N	\N	0	2029.86	2600.00	89.0000	1500.00	2521	20.0000	508.00	620
+FAL	\N	\N	2000.00	2000.00	11.0000	2030.00	6199	120.0000	2000.00	2944	2773.00	2800.00	1572.0000	2800.00	6174	500.0000	2050.00	2006	1026.64	\N	\N	\N	0	\N	\N	0	2800.00	2800.00	414.0000	2800.00	4319	200.0000	2500.00	5299	1026.64	\N	10.0000	2730.00	10	\N	\N	0	3700.00	3700.00	500.0000	3690.00	1399	1000.0000	1500.00	1000
+FAN	\N	\N	3125.58	3450.00	100.0000	3300.00	1537	100.0000	2400.00	2580	2849.16	2850.00	14.0000	2850.00	14	200.0000	2210.00	1670	972.26	\N	\N	\N	0	\N	\N	0	3190.00	3190.00	18.0000	3190.00	1463	193.0000	2210.00	2041	1000.00	1000.00	\N	\N	0	\N	\N	0	2765.87	3100.00	183.0000	3100.00	183	199.0000	2210.00	1202
+FC	\N	\N	5850.00	5850.00	256.0000	7490.00	1727	134.0000	5850.00	3343	7428.78	7900.00	45.0000	7890.00	1103	100.0000	6000.00	1466	2253.14	\N	\N	\N	0	\N	\N	0	6017.14	6390.00	482.0000	6390.00	4871	100.0000	5100.00	3227	2253.14	\N	\N	\N	0	\N	\N	0	9759.92	10000.00	11.0000	9980.00	160	500.0000	4700.00	520
+FE	\N	\N	1145.70	1150.00	6.0000	1150.00	35470	958.0000	1000.00	10137	1050.00	1050.00	102.0000	1050.00	20875	946.0000	820.00	9601	850.00	850.00	1309.0000	1200.00	1309	267.0000	850.00	1316	969.00	969.00	472.0000	969.00	27246	929.0000	901.00	9142	856.06	900.00	112.0000	900.00	1219	\N	\N	0	1030.00	1030.00	80.0000	1030.00	9437	5.0000	851.00	5924
+FEO	32.00	\N	153.00	153.00	155.0000	153.00	90515	6231.0000	125.00	19431	96.00	96.00	84.0000	100.00	57926	763.0000	96.00	20146	120.00	120.00	1000.0000	150.00	1000	2917.0000	120.00	3870	100.00	100.00	2.0000	100.00	82916	180.0000	81.00	42598	120.00	120.00	189.0000	120.00	6580	73.0000	80.00	73	110.00	110.00	38.0000	130.00	17518	130.0000	110.00	15659
+FET	\N	\N	3990.00	3990.00	72.0000	3990.00	8112	1000.0000	2350.00	4368	3450.00	3450.00	200.0000	3500.00	5277	182.0000	3450.00	1199	1760.80	\N	100.0000	10000.00	100	\N	\N	0	3200.00	3200.00	219.0000	3200.00	10130	834.0000	2400.00	1834	1760.80	\N	\N	\N	0	\N	\N	0	4300.00	4300.00	1424.0000	4000.00	5169	8.0000	1000.00	8
+FF	9.00	24.00	24.00	24.00	100.0000	24.00	622616	507.0000	23.90	471911	22.40	22.40	3941.0000	22.40	704497	57424.0000	21.00	287543	23.50	23.50	62804.0000	23.50	63585	95071.0000	23.00	123998	23.00	23.00	5358.0000	23.90	41676	1199.0000	23.00	440216	23.50	23.50	12000.0000	23.50	33000	1000.0000	21.00	20056	23.90	23.90	18119.0000	23.90	1098972	1500.0000	21.30	979109
+FFC	240000.00	\N	339309.89	339000.00	12.0000	340000.00	28	100.0000	240000.00	100	333747.21	333000.00	1.0000	334000.00	6	100.0000	240000.00	100	144217.29	\N	\N	\N	0	\N	\N	0	330000.00	330000.00	9.0000	330000.00	16	2.0000	280000.00	103	144217.29	\N	\N	\N	0	\N	\N	0	415833.14	420000.00	1.0000	430000.00	1	2.0000	300000.00	105
+FIM	\N	\N	3720.00	3720.00	520.0000	3720.00	21877	171.0000	2830.00	4901	3450.00	3450.00	325.0000	3450.00	8850	223.0000	3020.00	4723	5500.00	5500.00	240.0000	5500.00	240	100.0000	3350.00	150	3761.98	3640.00	140.0000	3630.00	11598	9.0000	3100.00	8411	2900.00	2900.00	100.0000	7000.00	100	100.0000	3000.00	100	3200.00	3200.00	41.0000	3200.00	15537	1951.0000	3020.00	8920
+FIR	\N	\N	1200000.00	1200000.00	1.0000	1280000.00	3	2.0000	950000.00	2	1100000.00	1100000.00	4.0000	1250000.00	9	1.0000	1100000.00	2	575129.16	\N	1.0000	1300000.00	1	\N	\N	0	969000.00	969000.00	1.0000	1100000.00	16	2.0000	870000.00	2	575129.16	\N	\N	\N	0	\N	\N	0	1050000.00	1050000.00	2.0000	1350000.00	4	1.0000	1050000.00	2
+FLO	\N	\N	21100.00	21100.00	254.0000	29500.00	508	1.0000	2110.00	1	28000.00	28000.00	11.0000	28000.00	61	\N	\N	0	10143.35	\N	\N	\N	0	\N	\N	0	19200.00	19200.00	10.0000	19200.00	337	\N	\N	0	10143.35	\N	\N	\N	0	\N	\N	0	3500.00	3500.00	42.0000	29000.00	135	\N	\N	0
+FLP	\N	\N	1382.14	1470.00	638.0000	1470.00	9888	100.0000	500.00	1874	749.00	749.00	412.0000	749.00	644	70.0000	551.00	887	800.00	800.00	234.0000	800.00	530	500.0000	300.00	500	649.00	649.00	333.0000	690.00	8440	860.0000	480.00	4030	850.00	850.00	54.0000	850.00	104	120.0000	600.00	120	800.00	800.00	13.0000	800.00	782	30.0000	506.00	670
+FLX	\N	\N	278.00	278.00	1004.0000	278.00	113785	124.0000	255.00	39044	254.37	255.00	5016.0000	255.00	87695	8370.0000	210.00	22158	350.00	350.00	100.0000	350.00	2100	\N	\N	0	249.00	249.00	954.0000	250.00	158652	155.0000	249.00	51553	300.00	300.00	1200.0000	300.00	2526	380.0000	100.00	380	255.68	245.00	718.0000	265.00	26730	340.0000	245.00	1861
+FOD	\N	\N	400.00	400.00	64.0000	975.00	195	7297.0000	400.00	7306	502.86	625.00	14.0000	625.00	629	500.0000	500.00	1000	290.00	290.00	\N	\N	0	\N	\N	0	553.15	685.00	96.0000	684.00	1425	475.0000	340.00	5452	420.00	420.00	\N	\N	0	372.0000	400.00	372	350.00	350.00	302.0000	455.00	1283	8942.0000	350.00	42339
+FSE	\N	\N	967629.06	997000.00	1.0000	997000.00	20	1.0000	800000.00	1	913548.34	850000.00	1.0000	987000.00	15	2.0000	850000.00	6	425346.38	\N	\N	\N	0	\N	\N	0	943000.00	943000.00	4.0000	943000.00	8	\N	\N	0	425346.38	\N	\N	\N	0	\N	\N	0	948578.87	959000.00	1.0000	959000.00	4	1.0000	650000.00	1
+FUN	\N	\N	160000.00	160000.00	17.0000	249000.00	21	\N	\N	0	140000.00	140000.00	30.0000	200000.00	33	\N	\N	0	59586.98	\N	\N	\N	0	\N	\N	0	165000.00	165000.00	212.0000	165000.00	214	\N	\N	0	59586.98	\N	\N	\N	0	\N	\N	0	150000.00	150000.00	\N	\N	0	\N	\N	0
+GAL	57.00	\N	400.00	400.00	610.0000	400.00	610	1926.0000	100.00	2636	172.00	172.00	1647.0000	245.00	12167	751.0000	171.00	23772	150.00	150.00	1161.0000	150.00	8728	\N	\N	0	274.00	274.00	796.0000	275.00	40827	60.0000	274.00	11594	215.00	215.00	1100.0000	215.00	1110	\N	\N	0	323.00	323.00	73.0000	323.00	32496	323.0000	160.00	67878
+GC	\N	\N	468.42	489.00	348.0000	489.00	23918	547.0000	410.00	9059	497.51	498.00	257.0000	498.00	4155	2000.0000	415.00	2896	153.66	\N	\N	\N	0	\N	\N	0	420.00	420.00	7.0000	430.00	14846	1660.0000	420.00	12810	350.00	350.00	\N	\N	0	30.0000	350.00	30	400.00	400.00	2428.0000	500.00	2904	480.0000	400.00	2570
+GCH	\N	\N	14500.00	14500.00	2.0000	14500.00	2	\N	\N	0	20000.00	20000.00	48.0000	16000.00	50	\N	\N	0	20162.33	\N	\N	\N	0	\N	\N	0	25000.00	25000.00	5.0000	40000.00	7	\N	\N	0	20162.33	\N	1.0000	20200.00	1	\N	\N	0	10000.00	10000.00	\N	\N	0	\N	\N	0
+GEN	\N	\N	240000.00	240000.00	1.0000	245000.00	17	1.0000	164000.00	1	200000.00	200000.00	7.0000	200000.00	13	\N	\N	0	251289.75	\N	\N	\N	0	\N	\N	0	240000.00	240000.00	1.0000	240000.00	5	1.0000	163000.00	1	251289.75	\N	\N	\N	0	\N	\N	0	210000.00	210000.00	3.0000	210000.00	3	5.0000	160000.00	5
+GIN	\N	\N	1800.00	1800.00	1197.0000	1940.00	7183	466.0000	1800.00	3221	1900.00	1900.00	21.0000	1900.00	5686	1661.0000	1610.00	3108	3000.00	3000.00	12.0000	3000.00	630	\N	\N	0	2015.11	1930.00	13.0000	1930.00	17418	175.0000	1800.00	3896	1300.00	1300.00	500.0000	3200.00	530	400.0000	1300.00	400	2000.00	2000.00	13.0000	2000.00	13572	8.0000	1850.00	1973
+GL	\N	\N	480.00	480.00	5237.0000	480.00	49231	1140.0000	376.00	142452	420.00	420.00	3859.0000	420.00	63924	100.0000	332.00	106110	700.00	700.00	3327.0000	400.00	3869	\N	\N	0	335.00	335.00	2115.0000	420.00	71697	271.0000	335.00	171637	390.00	390.00	215.0000	390.00	2214	23.0000	300.00	23	300.00	300.00	100.0000	365.00	31569	2800.0000	300.00	110944
+GNZ	\N	\N	8000.00	8000.00	\N	\N	0	\N	\N	0	32000.00	32000.00	1.0000	25000.00	21	\N	\N	0	43211.30	\N	\N	\N	0	\N	\N	0	150.00	150.00	\N	\N	0	\N	\N	0	43211.30	\N	\N	\N	0	\N	\N	0	43211.30	\N	10.0000	60000.00	10	\N	\N	0
+GRA	\N	\N	4638.43	5000.00	977.0000	5000.00	977	2.0000	4500.00	1208	5000.00	5000.00	951.0000	5000.00	951	2.0000	3500.00	772	4200.00	4200.00	\N	\N	0	\N	\N	0	4350.00	4350.00	690.0000	4350.00	6690	30.0000	3610.00	2003	3290.00	3290.00	\N	\N	0	\N	\N	0	9000.00	9000.00	661.0000	9000.00	699	75.0000	3110.00	3475
+GRN	86.00	\N	481.00	481.00	468.0000	481.00	97499	1000.0000	407.00	36228	499.00	499.00	81.0000	499.00	236	968.0000	400.00	23665	450.00	450.00	478.0000	499.00	759	\N	\N	0	639.00	639.00	236.0000	639.00	13901	200.0000	460.00	53803	395.00	395.00	79.0000	395.00	79	325.0000	350.00	544	598.00	598.00	386.0000	598.00	24962	243.0000	462.00	56384
+GV	\N	\N	2970.00	2970.00	13.0000	2970.00	637	1000.0000	2500.00	6158	2500.00	2500.00	95.0000	2790.00	3006	184.0000	2500.00	334	1032.55	\N	\N	\N	0	\N	\N	0	2463.90	2540.00	89.0000	2540.00	4972	587.0000	2100.00	1687	2440.00	2440.00	7.0000	2440.00	7	\N	\N	0	2000.00	2000.00	22.0000	4900.00	89	492.0000	2000.00	492
+GWS	\N	\N	11000000.00	11000000.00	1.0000	12400000.00	6	1.0000	10100000.00	1	11000000.00	11000000.00	1.0000	13000000.00	1	1.0000	11000000.00	1	5335433.85	\N	\N	\N	0	\N	\N	0	13000000.00	13000000.00	1.0000	13000000.00	2	\N	\N	0	5335433.85	\N	\N	\N	0	\N	\N	0	13000000.00	13000000.00	1.0000	13000000.00	1	2.0000	11000000.00	2
+H	50.00	\N	130.00	130.00	1188.0000	130.00	185047	2938.0000	129.00	172968	128.00	128.00	1111.0000	128.00	152514	74603.0000	125.00	136830	110.00	110.00	\N	\N	0	676.0000	110.00	5676	138.00	138.00	1600.0000	138.00	76053	40.0000	122.00	98247	154.06	155.00	600.0000	155.00	3100	500.0000	140.00	18897	110.00	110.00	6439.0000	117.00	223427	156.0000	110.00	291455
+H2O	10.00	\N	63.70	63.70	4440.0000	63.70	3185594	61619.0000	61.70	554535	63.70	63.70	14334.0000	63.80	145940	41927.0000	61.80	173602	65.00	65.00	9750.0000	65.00	38807	400.0000	52.10	40338	62.00	62.00	3987.0000	62.00	424316	13183.0000	60.00	460001	46.16	47.00	9000.0000	47.00	53700	20000.0000	41.00	27409	65.40	65.40	9882.0000	65.40	762658	2000.0000	63.30	157232
+HAB	\N	\N	146205.50	160000.00	\N	\N	0	10.0000	120000.00	10	120644.56	135000.00	7.0000	135000.00	7	30.0000	105000.00	48	53399.55	\N	\N	\N	0	\N	\N	0	127264.00	134000.00	\N	\N	0	10.0000	100000.00	10	53399.55	\N	\N	\N	0	\N	\N	0	125000.00	125000.00	\N	\N	0	20.0000	100000.00	20
+HAL	75.00	\N	375.00	375.00	1820.0000	375.00	55432	200.0000	320.00	88948	340.00	340.00	48.0000	430.00	75203	280.0000	340.00	8963	352.96	400.00	2950.0000	400.00	3200	500.0000	280.00	1963	350.00	350.00	800.0000	350.00	90246	50.0000	291.00	28644	336.61	350.00	1075.0000	350.00	1075	100.0000	250.00	100	318.00	318.00	47.0000	389.00	67026	950.0000	318.00	20839
+HAM	\N	\N	7000000.00	7000000.00	\N	\N	0	\N	\N	0	6900000.00	6900000.00	1.0000	5750000.00	1	\N	\N	0	2823502.44	\N	\N	\N	0	\N	\N	0	5750000.00	5750000.00	1.0000	5750000.00	2	\N	\N	0	2823502.44	\N	\N	\N	0	\N	\N	0	2823502.44	\N	\N	\N	0	\N	\N	0
+HCB	\N	\N	4180000.00	4180000.00	2.0000	4100000.00	7	\N	\N	0	4271520.88	4380000.00	1.0000	4380000.00	7	2.0000	3800000.00	3	1709085.34	\N	\N	\N	0	\N	\N	0	4000000.00	4000000.00	1.0000	4000000.00	6	\N	\N	0	1709085.34	\N	\N	\N	0	\N	\N	0	5000000.00	5000000.00	1.0000	4370000.00	1	\N	\N	0
+HCC	\N	\N	780.27	840.00	2849.0000	840.00	15019	1000.0000	720.00	9262	728.15	700.00	1850.0000	765.00	16804	1500.0000	700.00	2500	640.00	640.00	\N	\N	0	\N	\N	0	815.62	898.00	540.0000	898.00	3190	2000.0000	700.00	9740	620.00	620.00	200.0000	670.00	400	\N	\N	0	712.89	650.00	3870.0000	745.00	10093	970.0000	650.00	1470
+HCP	88.00	\N	459.00	459.00	1141.0000	459.00	101689	8000.0000	411.00	26351	411.00	411.00	62.0000	411.00	23264	4.0000	321.00	11689	350.00	350.00	\N	\N	0	\N	\N	0	401.00	401.00	390.0000	489.00	27439	984.0000	401.00	38758	325.00	325.00	\N	\N	0	514.0000	300.00	514	428.00	428.00	263.0000	428.00	20520	500.0000	405.00	106793
+HD	\N	\N	4380.00	4380.00	125.0000	4380.00	1196	10.0000	3850.00	293	4500.00	4500.00	30.0000	4490.00	350	30.0000	3900.00	1040	1599.62	\N	50.0000	4000.00	50	\N	\N	0	3880.00	3880.00	68.0000	3880.00	3502	114.0000	3400.00	1564	1599.62	\N	\N	\N	0	\N	\N	0	4459.62	4500.00	6.0000	4400.00	8	50.0000	3800.00	476
+HE	75.00	\N	205.00	205.00	67.0000	205.00	102332	15.0000	190.00	123506	290.00	290.00	913.0000	290.00	11514	20.0000	270.00	7859	350.00	350.00	213.0000	350.00	213	\N	\N	0	230.00	230.00	492.0000	230.00	93797	500.0000	126.00	31540	160.00	160.00	580.0000	250.00	580	200.0000	90.00	200	239.00	239.00	46.0000	239.00	24373	4.0000	225.00	13053
+HE3	\N	\N	500.00	500.00	392.0000	500.00	31146	1000.0000	220.00	2571	450.00	450.00	3978.0000	450.00	5245	1000.0000	440.00	6396	0.32	0.32	\N	\N	0	\N	\N	0	500.00	500.00	240.0000	500.00	4077	1400.0000	285.00	17466	500.00	500.00	20.0000	942.00	20	44.0000	500.00	454	480.00	480.00	1360.0000	480.00	6960	200.0000	350.00	5320
+HER	\N	\N	4300.00	4300.00	40.0000	4540.00	15307	303.0000	4300.00	12573	4000.00	4000.00	259.0000	4470.00	1936	2.0000	3810.00	5386	2000.00	2000.00	\N	\N	0	720.0000	3800.00	1220	4800.00	4800.00	246.0000	4800.00	9494	300.0000	4110.00	7430	2400.00	2400.00	\N	\N	0	200.0000	3000.00	400	4450.00	4450.00	44.0000	4450.00	6032	627.0000	3900.00	19387
+HEX	\N	\N	2000.00	2000.00	13403.0000	2000.00	20627	1.0000	80.00	1	200.00	200.00	70.0000	500.00	7169	\N	\N	0	41.14	\N	\N	\N	0	\N	\N	0	2000.00	2000.00	3306.0000	2000.00	3306	\N	\N	0	41.14	\N	\N	\N	0	\N	\N	0	2000.00	2000.00	1671.0000	2000.00	1671	\N	\N	0
+HHP	\N	\N	8000.00	8000.00	\N	\N	0	\N	\N	0	10000.00	10000.00	5.0000	8900.00	5	\N	\N	0	3360.40	\N	\N	\N	0	\N	\N	0	5000.00	5000.00	58.0000	5000.00	61	\N	\N	0	3360.40	\N	\N	\N	0	\N	\N	0	10000.00	10000.00	\N	\N	0	\N	\N	0
+HMS	\N	\N	2050.00	2050.00	764.0000	2050.00	33450	12.0000	1900.00	6483	1820.00	1820.00	5032.0000	1900.00	16813	148.0000	1820.00	1148	3400.00	3400.00	94.0000	3400.00	113	\N	\N	0	1820.00	1820.00	8.0000	1820.00	9509	1392.0000	1810.00	4779	2063.90	2300.00	197.0000	2300.00	734	\N	\N	0	1930.00	1930.00	1068.0000	1930.00	8001	200.0000	1650.00	4603
+HNZ	\N	\N	75000.00	75000.00	\N	\N	0	\N	\N	0	90000.00	90000.00	29.0000	90000.00	29	\N	\N	0	99221.11	\N	\N	\N	0	\N	\N	0	99221.11	\N	\N	\N	0	\N	\N	0	99120.10	\N	\N	\N	0	\N	\N	0	99221.11	\N	\N	\N	0	\N	\N	0
+HOG	\N	\N	7210.00	7210.00	105.0000	9990.00	109	92.0000	7210.00	401	9958.04	10400.00	13.0000	10400.00	174	\N	\N	0	3905.03	\N	\N	\N	0	\N	\N	0	18000.00	18000.00	10.0000	16000.00	30	\N	\N	0	500.00	500.00	19.0000	7500.00	19	\N	\N	0	9700.00	9700.00	5.0000	15000.00	5	\N	\N	0
+HOP	\N	\N	3500.00	3500.00	182.0000	3500.00	2332	5.0000	3220.00	6785	3700.00	3700.00	106.0000	3700.00	1724	5.0000	3210.00	2478	2400.00	2400.00	\N	\N	0	\N	\N	0	4080.00	4080.00	119.0000	4080.00	2695	21.0000	3030.00	7109	2620.00	2620.00	\N	\N	0	\N	\N	0	3820.00	3820.00	73.0000	3820.00	2630	50.0000	3500.00	1450
+HPC	\N	\N	39900.00	39900.00	15.0000	38000.00	425	100.0000	35000.00	400	35000.00	35000.00	\N	\N	0	96.0000	35000.00	116	13101.50	\N	\N	\N	0	\N	\N	0	38900.00	38900.00	20.0000	38900.00	240	100.0000	35000.00	158	28000.00	28000.00	\N	\N	0	\N	\N	0	40000.00	40000.00	10.0000	40000.00	20	10.0000	36000.00	110
+HPR	\N	\N	1300000.00	1300000.00	1.0000	2000000.00	1	\N	\N	0	1440000.00	1440000.00	1.0000	1370000.00	5	\N	\N	0	1750000.00	1750000.00	\N	\N	0	\N	\N	0	1700000.00	1700000.00	1.0000	1490000.00	4	1.0000	1250000.00	1	743176.26	\N	\N	\N	0	\N	\N	0	1490000.00	1490000.00	1.0000	1490000.00	2	\N	\N	0
+HSE	\N	\N	16400.00	16400.00	214.0000	16400.00	2920	1.0000	15500.00	900	16500.00	16500.00	388.0000	16500.00	1204	50.0000	16000.00	113	17500.00	17500.00	67.0000	17500.00	113	\N	\N	0	16400.00	16400.00	12.0000	16300.00	835	250.0000	13200.00	1049	16000.00	16000.00	2.0000	16000.00	2	30.0000	5000.00	30	17091.67	17500.00	33.0000	17500.00	260	474.0000	13700.00	775
+HSS	\N	\N	3420.00	3420.00	863.0000	3420.00	2620	6.0000	2670.00	2116	3090.00	3090.00	971.0000	3090.00	1520	4.0000	2910.00	1635	2500.00	2500.00	\N	\N	0	2000.0000	2000.00	2000	3240.00	3240.00	869.0000	3240.00	4045	29.0000	2710.00	3909	2500.00	2500.00	210.0000	2500.00	230	\N	\N	0	3370.00	3370.00	8.0000	3370.00	1118	30.0000	2900.00	1079
+HTE	\N	\N	4490000.00	4490000.00	1.0000	4000000.00	4	1.0000	2000000.00	2	4350000.00	4350000.00	1.0000	4350000.00	3	\N	\N	0	1699123.80	\N	\N	\N	0	\N	\N	0	4300000.00	4300000.00	1.0000	4000000.00	6	\N	\N	0	1699123.80	\N	\N	\N	0	\N	\N	0	5000000.00	5000000.00	1.0000	5000000.00	1	\N	\N	0
+HYR	\N	\N	4050000.00	4050000.00	1.0000	4050000.00	4	\N	\N	0	3440000.00	3440000.00	3.0000	3440000.00	4	\N	\N	0	1418066.88	\N	\N	\N	0	\N	\N	0	5000000.00	5000000.00	1.0000	4000000.00	5	\N	\N	0	1418066.88	\N	\N	\N	0	\N	\N	0	2870000.00	2870000.00	\N	\N	0	\N	\N	0
+I	\N	\N	1643.20	2100.00	736.0000	2100.00	1538	50.0000	760.00	1150	1782.90	1790.00	278.0000	1790.00	708	1700.0000	1300.00	7197	1500.00	1500.00	100.0000	1000.00	100	\N	\N	0	2240.00	2240.00	179.0000	2240.00	1827	79.0000	1100.00	4046	1110.00	1110.00	\N	\N	0	30.0000	1000.00	30	2340.00	2340.00	273.0000	2340.00	519	500.0000	702.00	700
+IDC	11000.00	\N	11139.40	11000.00	59.0000	11100.00	845	100.0000	11000.00	100	11000.00	11000.00	2096.0000	11100.00	2205	100.0000	11000.00	100	10324.98	\N	\N	\N	0	\N	\N	0	11011.94	11000.00	73.0000	11100.00	2938	100.0000	11000.00	100	10324.98	\N	10.0000	15400.00	10	\N	\N	0	11016.16	11000.00	84.0000	11100.00	179	100.0000	11000.00	100
+IMM	\N	\N	100000.00	100000.00	11.0000	125000.00	20	\N	\N	0	135000.00	135000.00	3.0000	135000.00	35	6.0000	110000.00	16	68316.59	\N	\N	\N	0	\N	\N	0	137500.00	140000.00	\N	\N	0	8.0000	90000.00	13	68316.59	\N	\N	\N	0	\N	\N	0	100000.00	100000.00	\N	\N	0	7.0000	100000.00	7
+IND	\N	\N	5556.32	5560.00	192.0000	5530.00	2275	5.0000	3910.00	1073	4500.00	4500.00	2.0000	4500.00	703	100.0000	3500.00	100	1977.51	\N	\N	\N	0	\N	\N	0	4790.00	4790.00	78.0000	4790.00	5271	472.0000	4000.00	2066	5000.00	5000.00	24.0000	7000.00	24	\N	\N	0	3723.17	4040.00	31.0000	4970.00	569	10.0000	3000.00	11
+INS	\N	\N	199.00	199.00	19720.0000	199.00	724242	2500.0000	177.00	274916	200.00	200.00	23891.0000	200.00	376119	50.0000	190.00	288654	200.00	200.00	3780.0000	200.00	13780	\N	\N	0	183.00	183.00	3845.0000	183.00	454395	4626.0000	162.00	316836	185.00	185.00	3582.0000	190.00	22317	1000.0000	100.00	1000	200.00	200.00	122003.0000	200.00	299141	301.0000	180.00	271214
+JUI	\N	\N	2.00	2.00	98.0000	25000.00	99	284.0000	2.00	384	40000.00	40000.00	29.0000	100000.00	309	500.0000	1.00	500	1102.27	\N	280.0000	100000.00	280	\N	\N	0	1.00	1.00	1.0000	99000.00	1	1.0000	1.00	2	1102.27	\N	\N	\N	0	\N	\N	0	30000.00	30000.00	118.0000	30000.00	121	\N	\N	0
+KOM	\N	\N	1180.00	1180.00	1583.0000	1180.00	24316	66.0000	962.00	8009	1000.00	1000.00	5.0000	1000.00	24507	2779.0000	921.00	8148	1300.00	1300.00	361.0000	1600.00	761	412.0000	1300.00	1412	1070.00	1070.00	836.0000	1070.00	47895	9633.0000	1020.00	44099	1389.05	1300.00	145.0000	1300.00	145	1000.0000	1200.00	4050	999.00	999.00	339.0000	998.00	31419	41.0000	970.00	22956
+KR	\N	\N	130.00	130.00	8498.0000	131.00	39154	2000.0000	100.00	2000	50.00	50.00	565.0000	118.00	50046	\N	\N	0	133.33	\N	13725.0000	110.00	14045	\N	\N	0	138.00	138.00	4900.0000	138.00	61823	\N	\N	0	133.33	\N	\N	\N	0	\N	\N	0	151.00	151.00	1000.0000	99.00	29639	\N	\N	0
+KRE	\N	\N	15000.00	15000.00	502.0000	15000.00	639	\N	\N	0	15000.00	15000.00	150.0000	13900.00	1434	\N	\N	0	15423.41	\N	\N	\N	0	\N	\N	0	13800.00	13800.00	27.0000	12500.00	1642	\N	\N	0	15423.41	\N	50.0000	12000.00	50	\N	\N	0	15000.00	15000.00	22.0000	15000.00	22	\N	\N	0
+KV	\N	\N	32500.00	32500.00	496.0000	32500.00	1898	100.0000	31000.00	735	33000.00	33000.00	98.0000	33000.00	298	9.0000	26100.00	683	30000.00	30000.00	\N	\N	0	\N	\N	0	31800.00	31800.00	291.0000	31800.00	1568	176.0000	27800.00	1610	34000.00	34000.00	11.0000	34000.00	11	\N	\N	0	30500.00	30500.00	121.0000	30500.00	486	20.0000	28800.00	829
+LBH	\N	\N	6100.00	6100.00	171.0000	6100.00	5858	30.0000	5130.00	3082	6027.32	6090.00	17.0000	6090.00	3869	50.0000	4510.00	361	6000.00	6000.00	46.0000	6000.00	46	\N	\N	0	5945.83	5950.00	29.0000	5950.00	4742	2.0000	4510.00	1637	5920.98	6000.00	488.0000	6000.00	2732	82.0000	4000.00	82	6676.67	6700.00	38.0000	6700.00	429	10.0000	5310.00	1086
+LC	\N	\N	7930.00	7930.00	49.0000	7930.00	191	100.0000	7500.00	790	7720.00	7720.00	77.0000	7720.00	1095	100.0000	7000.00	595	3180.05	\N	24.0000	9000.00	64	\N	\N	0	7365.87	8000.00	952.0000	8000.00	2356	100.0000	7500.00	1529	3180.05	\N	10.0000	5000.00	165	\N	\N	0	7990.00	7990.00	4.0000	7990.00	692	100.0000	6000.00	130
+LCB	\N	\N	800000.00	800000.00	1.0000	819000.00	25	1.0000	640000.00	6	753138.46	730000.00	3.0000	856000.00	12	\N	\N	0	352370.59	\N	\N	\N	0	\N	\N	0	599528.31	500000.00	1.0000	750000.00	17	1.0000	317000.00	3	352370.59	\N	\N	\N	0	\N	\N	0	828000.00	828000.00	1.0000	827000.00	12	1.0000	501000.00	1
+LCR	\N	\N	4000.00	4000.00	15.0000	4000.00	56	100.0000	1800.00	100	3500.00	3500.00	11.0000	6000.00	11	10.0000	3300.00	110	2948.66	\N	53.0000	7370.00	53	\N	\N	0	5790.00	5790.00	40.0000	5790.00	42	35.0000	2120.00	93	2948.66	\N	\N	\N	0	\N	\N	0	7000.00	7000.00	35.0000	6500.00	167	\N	\N	0
+LD	\N	\N	11911.91	11700.00	165.0000	12200.00	1793	91.0000	11700.00	540	12000.00	12000.00	13.0000	12000.00	13	98.0000	10000.00	140	5116.13	\N	\N	\N	0	\N	\N	0	13500.00	13500.00	55.0000	13500.00	95	62.0000	11000.00	115	5116.13	\N	\N	\N	0	\N	\N	0	12000.00	12000.00	\N	\N	0	100.0000	11000.00	210
+LDE	\N	\N	15900.00	15900.00	2.0000	15900.00	1519	150.0000	13200.00	3816	21000.00	21000.00	1.0000	21000.00	976	2.0000	14000.00	1052	18000.00	18000.00	238.0000	18000.00	238	300.0000	12800.00	300	16000.00	16000.00	204.0000	16000.00	1109	146.0000	13000.00	4330	17000.00	17000.00	\N	\N	0	10.0000	6500.00	10	14800.00	14800.00	34.0000	14800.00	775	3.0000	13900.00	1403
+LDI	\N	\N	735.00	735.00	304.0000	735.00	2141	250.0000	125.00	850	498.80	499.00	168.0000	495.00	1969	910.0000	460.00	937	282.87	\N	\N	\N	0	\N	\N	0	499.00	499.00	12031.0000	499.00	26889	\N	\N	0	375.00	375.00	20.0000	740.00	20	\N	\N	0	521.00	521.00	115.0000	521.00	2077	500.0000	250.00	500
+LES	\N	\N	733.68	900.00	54.0000	900.00	4707	411.0000	500.00	411	351.00	351.00	10.0000	1100.00	414	50.0000	350.00	150	228.57	\N	100.0000	1100.00	300	\N	\N	0	750.00	750.00	183.0000	866.00	10645	194.0000	750.00	3194	228.57	\N	\N	\N	0	\N	\N	0	1300.00	1300.00	34.0000	1490.00	253	60.0000	601.00	60
+LFE	\N	\N	335843.16	330000.00	4.0000	339000.00	42	2.0000	220000.00	12	293817.91	299000.00	16.0000	299000.00	23	1.0000	200000.00	11	75323.07	\N	\N	\N	0	\N	\N	0	250000.00	260000.00	40.0000	280000.00	54	5.0000	200000.00	15	75323.07	\N	\N	\N	0	\N	\N	0	250000.00	250000.00	8.0000	250000.00	33	2.0000	200000.00	5
+LFL	\N	\N	505197.06	499000.00	20.0000	497000.00	41	\N	\N	0	510000.00	510000.00	1.0000	489000.00	8	5.0000	300000.00	16	156612.60	\N	\N	\N	0	\N	\N	0	360000.00	360000.00	1.0000	380000.00	10	2.0000	260000.00	3	156612.60	\N	\N	\N	0	\N	\N	0	509000.00	509000.00	1.0000	519000.00	2	1.0000	250000.00	1
+LFP	\N	\N	8700.00	8700.00	\N	\N	0	63.0000	8700.00	63	3000.00	3000.00	113.0000	8000.00	226	\N	\N	0	7378.11	\N	\N	\N	0	\N	\N	0	10000.00	10000.00	100.0000	15000.00	150	9.0000	7500.00	9	7378.11	\N	\N	\N	0	\N	\N	0	14500.00	14500.00	43.0000	14500.00	93	\N	\N	0
+LHP	\N	\N	4035.41	4100.00	34.0000	4100.00	5589	100.0000	3100.00	2657	4521.70	3900.00	384.0000	4500.00	3176	986.0000	3900.00	1218	5500.00	5500.00	90.0000	5500.00	90	\N	\N	0	4694.00	4700.00	273.0000	4700.00	9282	100.0000	3520.00	3020	5000.00	5000.00	30.0000	4200.00	90	\N	\N	0	3936.83	3940.00	494.0000	3940.00	4025	50.0000	3260.00	1033
+LI	\N	\N	1600.00	1600.00	4572.0000	1600.00	25779	300.0000	1570.00	15494	1723.88	1750.00	286.0000	1750.00	20903	1000.0000	1650.00	1910	1200.00	1200.00	152.0000	2100.00	152	\N	\N	0	1880.00	1880.00	500.0000	1960.00	9281	1931.0000	1450.00	4411	2190.00	2190.00	\N	\N	0	50.0000	1000.00	50	1530.00	1530.00	456.0000	1920.00	1798	4984.0000	1530.00	5734
+LIO	\N	\N	366.00	366.00	3885.0000	367.00	83863	10000.0000	310.00	15173	331.71	345.00	454.0000	367.00	18336	2000.0000	222.00	4600	200.00	200.00	42.0000	200.00	1568	\N	\N	0	398.00	398.00	783.0000	398.00	32986	468.0000	320.00	19538	250.00	250.00	721.0000	330.00	721	69.0000	100.00	69	354.70	398.00	156.0000	398.00	12251	1441.0000	280.00	4741
+LIS	450000.00	\N	450281.25	450000.00	1.0000	520000.00	6	100.0000	450000.00	100	541191.69	545000.00	2.0000	545000.00	21	4.0000	451000.00	104	256217.67	\N	\N	\N	0	\N	\N	0	600000.00	600000.00	5.0000	550000.00	8	2.0000	453000.00	181	256217.67	\N	\N	\N	0	\N	\N	0	600000.00	600000.00	\N	\N	0	2.0000	452000.00	104
+LIT	\N	\N	24400.00	24400.00	452.0000	30000.00	452	188.0000	24400.00	189	19000.00	19000.00	\N	\N	0	\N	\N	0	13530.98	\N	\N	\N	0	\N	\N	0	24000.00	24000.00	18.0000	29500.00	21	\N	\N	0	13530.98	\N	\N	\N	0	\N	\N	0	18800.00	18800.00	\N	\N	0	\N	\N	0
+LOG	68000.00	\N	68062.78	68100.00	39.0000	68100.00	630	100.0000	68000.00	100	68000.00	68000.00	48.0000	70000.00	73	100.0000	68000.00	107	65000.00	65000.00	\N	\N	0	\N	\N	0	73900.00	73900.00	2.0000	73900.00	1063	100.0000	68000.00	100	69700.00	69700.00	\N	\N	0	\N	\N	0	71837.29	75000.00	43.0000	75000.00	43	100.0000	68000.00	120
+LSE	\N	\N	13400.00	13400.00	29.0000	13500.00	995	4.0000	12200.00	1945	14500.00	14500.00	535.0000	14500.00	735	200.0000	12000.00	712	15000.00	15000.00	96.0000	15000.00	96	\N	\N	0	13500.00	13500.00	470.0000	13500.00	2849	4.0000	10800.00	2694	13000.00	13000.00	30.0000	14000.00	82	50.0000	7900.00	100	14800.00	14800.00	11.0000	14800.00	422	10.0000	13100.00	803
+LSL	\N	\N	480000.00	480000.00	1.0000	450000.00	16	\N	\N	0	486000.00	486000.00	4.0000	487000.00	6	\N	\N	0	223532.01	\N	\N	\N	0	\N	\N	0	490000.00	490000.00	2.0000	420000.00	3	\N	\N	0	223532.01	\N	\N	\N	0	\N	\N	0	494000.00	494000.00	2.0000	468000.00	7	\N	\N	0
+LST	34.00	\N	194.00	194.00	6379.0000	194.00	232507	2997.0000	166.00	41698	200.00	200.00	2441.0000	200.00	78924	20.0000	170.00	104027	180.00	180.00	308.0000	139.00	308	\N	\N	0	231.37	200.00	46.0000	200.00	50521	100.0000	182.00	41421	137.10	125.00	715.0000	150.00	16079	1000.0000	115.00	2334	163.40	166.00	233.0000	166.00	79892	683.0000	140.00	61213
+LTA	\N	\N	5300.00	5300.00	712.0000	5400.00	3744	41.0000	4530.00	2449	5150.00	5150.00	1733.0000	5150.00	6080	53.0000	4100.00	163	5700.00	5700.00	236.0000	5700.00	420	280.0000	4000.00	280	4700.00	4700.00	30.0000	4700.00	4603	166.0000	4400.00	2371	4500.00	4500.00	24.0000	4500.00	297	67.0000	3400.00	67	4860.00	4860.00	26.0000	4860.00	1616	5.0000	4030.00	886
+LU	\N	\N	149535.71	150000.00	9.0000	150000.00	9	\N	\N	0	100000.00	100000.00	6.0000	130000.00	16	24.0000	100000.00	24	62139.35	\N	\N	\N	0	\N	\N	0	90100.00	90100.00	4.0000	140000.00	4	1.0000	90100.00	40	62139.35	\N	\N	\N	0	\N	\N	0	120000.00	120000.00	3.0000	120000.00	3	\N	\N	0
+MAG	87.00	\N	87.00	87.00	47.0000	499.00	6982	100.0000	87.00	100	500.00	500.00	379.0000	500.00	652	100.0000	87.00	100	117.55	\N	14.0000	300.00	14	\N	\N	0	242.72	170.00	484.0000	310.00	5988	281.0000	170.00	2881	117.55	\N	10.0000	350.00	10	\N	\N	0	141.73	233.00	35.0000	233.00	96	324.0000	90.00	424
+MAI	86.00	\N	494.44	495.00	3034.0000	495.00	19551	1702.0000	401.00	14476	479.00	479.00	925.0000	479.00	9626	1788.0000	425.00	23922	400.00	400.00	\N	\N	0	\N	\N	0	495.00	495.00	688.0000	495.00	24571	2000.0000	450.00	50001	310.00	310.00	\N	\N	0	\N	\N	0	410.00	410.00	132.0000	449.00	15179	11.0000	410.00	18937
+MB	\N	\N	9746.12	9450.00	281.0000	9450.00	2272	200.0000	8760.00	1818	9200.00	9200.00	25.0000	9200.00	345	200.0000	9010.00	1531	8000.00	8000.00	\N	\N	0	\N	\N	0	9420.00	9420.00	159.0000	9400.00	3188	18.0000	8600.00	587	8400.00	8400.00	\N	\N	0	\N	\N	0	10200.00	10200.00	231.0000	10200.00	316	200.0000	8210.00	902
+MCB	\N	\N	510000.00	510000.00	1.0000	520000.00	1	\N	\N	0	510000.00	510000.00	1.0000	520000.00	1	1.0000	350000.00	1	174463.10	\N	\N	\N	0	\N	\N	0	354256.10	450000.00	1.0000	480000.00	7	\N	\N	0	174463.10	\N	\N	\N	0	\N	\N	0	517000.00	517000.00	1.0000	499000.00	3	\N	\N	0
+MCG	12.00	39.00	36.90	36.90	100.0000	39.00	85458	76.0000	36.90	122415	38.60	38.60	400.0000	38.60	560295	7500.0000	35.30	195789	39.00	39.00	2960.0000	39.00	2960	5000.0000	35.00	7540	39.00	39.00	100.0000	39.00	100500	50000.0000	36.10	448614	22.00	22.00	13551.0000	22.00	259968	\N	\N	0	39.00	39.00	100.0000	39.00	37101	2000.0000	20.00	256303
+MEA	\N	\N	4600.00	4600.00	218.0000	6500.00	13440	100.0000	4550.00	4239	5680.00	5680.00	270.0000	5680.00	2338	97.0000	5200.00	1395	3800.00	3800.00	20.0000	7000.00	20	\N	\N	0	6050.00	6050.00	28.0000	6050.00	3884	500.0000	5260.00	10442	5000.00	5000.00	20.0000	3900.00	36	\N	\N	0	5500.00	5500.00	20.0000	5500.00	3121	1000.0000	4500.00	4611
+MED	\N	\N	1530.00	1530.00	141.0000	1530.00	42889	12.0000	1340.00	7237	1450.00	1450.00	286.0000	1450.00	22517	1709.0000	1380.00	4159	1700.00	1700.00	2166.0000	1700.00	2617	189.0000	1300.00	189	1480.00	1480.00	2985.0000	1480.00	36968	2881.0000	1360.00	9675	2600.00	2600.00	3.0000	2600.00	53	100.0000	1110.00	121	1460.00	1460.00	380.0000	1460.00	15968	2170.0000	1350.00	8740
+MFE	\N	\N	155132.48	155000.00	2.0000	154000.00	132	\N	\N	0	125000.00	125000.00	5.0000	120000.00	116	12.0000	110000.00	12	43967.34	\N	\N	\N	0	\N	\N	0	156750.00	158000.00	1.0000	140000.00	109	4.0000	60000.00	4	43967.34	\N	\N	\N	0	\N	\N	0	157530.66	135000.00	40.0000	160000.00	52	\N	\N	0
+MFK	\N	\N	365.00	365.00	59.0000	365.00	33634	2000.0000	213.00	110000	389.00	389.00	559.0000	389.00	36422	979.0000	230.00	108295	420.00	420.00	1000.0000	395.00	2976	\N	\N	0	347.00	347.00	14.0000	347.00	44385	178.0000	310.00	122102	399.00	399.00	342.0000	399.00	836	\N	\N	0	380.00	380.00	3377.0000	380.00	7763	88.0000	310.00	105185
+MFL	\N	\N	190000.00	190000.00	1.0000	189000.00	24	1.0000	124000.00	1	191220.92	195000.00	1.0000	198000.00	3	\N	\N	0	78679.64	\N	\N	\N	0	\N	\N	0	158000.00	158000.00	1.0000	158000.00	25	\N	\N	0	78679.64	\N	\N	\N	0	\N	\N	0	199000.00	199000.00	1.0000	210000.00	7	\N	\N	0
+MG	\N	\N	138.35	139.00	1940.0000	139.00	78411	410.0000	102.00	66462	95.00	95.00	330.0000	95.00	126913	5045.0000	91.10	101291	90.00	90.00	4400.0000	90.00	24400	\N	\N	0	118.00	118.00	1180.0000	118.00	316427	100.0000	91.10	113553	100.00	100.00	3024.0000	100.00	5347	1000.0000	50.00	1000	100.00	100.00	858.0000	125.00	36163	980.0000	97.50	10420
+MGC	\N	\N	33000.00	33000.00	5.0000	33000.00	25	1.0000	3300.00	1	13800.00	13800.00	2.0000	13900.00	107	\N	\N	0	8511.92	\N	105.0000	17000.00	110	\N	\N	0	5000.00	5000.00	48.0000	5000.00	259	\N	\N	0	20000.00	20000.00	26.0000	20000.00	26	\N	\N	0	10347.47	14000.00	6.0000	14000.00	54	\N	\N	0
+MGS	41.00	\N	246.00	246.00	19.0000	246.00	11550	936.0000	245.00	10594	275.00	275.00	612.0000	275.00	6223	422.0000	212.00	1839	170.00	170.00	7500.0000	200.00	10000	\N	\N	0	182.25	180.00	579.0000	305.00	30346	84.0000	180.00	8184	214.80	220.00	823.0000	220.00	1384	\N	\N	0	216.00	216.00	1738.0000	330.00	1869	389.0000	216.00	5328
+MHL	\N	\N	6335.96	7390.00	150.0000	7390.00	3737	183.0000	5200.00	2183	5890.00	5890.00	365.0000	5890.00	1879	272.0000	5210.00	1472	2700.00	2700.00	136.0000	7000.00	736	\N	\N	0	5545.70	5570.00	124.0000	5570.00	6212	128.0000	5210.00	2539	7000.00	7000.00	115.0000	7000.00	115	\N	\N	0	6490.00	6490.00	159.0000	6490.00	4627	16.0000	4500.00	187
+MHP	\N	\N	6993.17	7000.00	\N	\N	0	2.0000	3000.00	1002	6800.00	6800.00	84.0000	6800.00	184	\N	\N	0	4800.00	4800.00	\N	\N	0	\N	\N	0	4000.00	4000.00	24.0000	8000.00	24	\N	\N	0	2094.13	\N	10.0000	5000.00	110	\N	\N	0	6900.00	6900.00	50.0000	6900.00	50	15.0000	3200.00	87
+MLI	\N	\N	26613.69	26000.00	10.0000	26900.00	387	2.0000	26100.00	493	25286.22	26000.00	9.0000	26000.00	85	39.0000	17000.00	39	10232.26	\N	\N	\N	0	\N	\N	0	27627.99	27000.00	41.0000	28000.00	41	8.0000	27000.00	216	10232.26	\N	\N	\N	0	\N	\N	0	30000.00	30000.00	\N	\N	0	43.0000	22300.00	72
+MPC	\N	\N	2100.00	2100.00	959.0000	2100.00	9216	73.0000	1500.00	73	2500.00	2500.00	495.0000	2500.00	8211	442.0000	1700.00	1842	656.31	\N	\N	\N	0	\N	\N	0	2098.70	1900.00	190.0000	2380.00	3869	856.0000	1900.00	2471	400.00	400.00	10.0000	2600.00	10	\N	\N	0	2936.40	2890.00	487.0000	2890.00	4709	\N	\N	0
+MSL	\N	\N	299000.00	299000.00	1.0000	300000.00	16	1.0000	260000.00	6	377698.06	380000.00	1.0000	384000.00	2	1.0000	360000.00	12	90378.24	\N	\N	\N	0	1.0000	140000.00	1	360336.71	360000.00	1.0000	300000.00	14	1.0000	225000.00	3	90378.24	\N	\N	\N	0	\N	\N	0	344000.00	344000.00	1.0000	344000.00	7	\N	\N	0
+MTC	\N	\N	450.00	450.00	163.0000	1980.00	219	1586.0000	450.00	1588	4900.00	4900.00	208.0000	4000.00	208	\N	\N	0	447.31	\N	\N	\N	0	\N	\N	0	1000.00	1000.00	200.0000	1990.00	9416	2000.0000	60.00	4000	447.31	\N	\N	\N	0	\N	\N	0	4000.00	4000.00	55.0000	4000.00	55	\N	\N	0
+MTP	\N	\N	1700.00	1700.00	1847.0000	1700.00	28159	5.0000	1510.00	5158	1502.79	1500.00	841.0000	1700.00	4743	118.0000	1500.00	204	3000.00	3000.00	\N	\N	0	\N	\N	0	1690.00	1690.00	2008.0000	1690.00	29926	10.0000	1440.00	2006	1023.48	\N	\N	\N	0	\N	\N	0	1900.00	1900.00	70.0000	1900.00	5552	1000.0000	1500.00	1000
+MUS	\N	\N	281.00	281.00	219.0000	329.00	28918	4.0000	281.00	19530	369.32	370.00	2215.0000	370.00	3610	2000.0000	335.00	24068	170.36	\N	\N	\N	0	\N	\N	0	374.81	387.00	437.0000	387.00	22028	50.0000	301.00	16751	316.00	316.00	\N	\N	0	\N	\N	0	370.89	372.00	55.0000	372.00	14799	19.0000	330.00	12790
+MWF	\N	\N	266.00	266.00	3590.0000	324.00	17187	661.0000	266.00	101688	290.00	290.00	200.0000	300.00	3772	2000.0000	111.00	102518	300.00	300.00	\N	\N	0	\N	\N	0	274.45	240.00	1176.0000	300.00	19668	1200.0000	240.00	103200	187.11	\N	100.0000	410.00	100	\N	\N	0	200.00	200.00	200.0000	451.00	9032	150.0000	250.00	100650
+N	33.00	\N	102.00	102.00	30869.0000	102.00	379370	2000.0000	97.60	149899	103.04	105.00	28129.0000	105.00	235793	4972.0000	75.00	12428	150.00	150.00	100.0000	180.00	4600	1000.0000	100.00	1500	97.90	97.90	4501.0000	97.90	492907	100.0000	92.60	94420	190.00	190.00	1976.0000	170.00	12282	300.0000	120.00	1140	91.50	91.50	1757.0000	107.00	268313	3243.0000	91.50	348092
+NA	25.00	\N	25.00	25.00	1000.0000	29.00	238371	100.0000	25.00	100	25.00	25.00	207.0000	25.20	30053	100.0000	25.00	100	30.00	30.00	1647.0000	30.00	1647	412.0000	1.10	5546	25.00	25.00	24.0000	25.50	154793	100.0000	25.00	100	1.00	1.00	332.0000	10.00	6010	4674.0000	1.00	4674	25.00	25.00	7347.0000	25.80	143536	100.0000	25.00	100
+NAB	\N	\N	199.14	200.00	1206.0000	200.00	2435	310.0000	199.00	310	171.02	175.00	249.0000	175.00	18164	1436.0000	160.00	11499	150.00	150.00	62.0000	350.00	62	\N	\N	0	150.00	150.00	3077.0000	150.00	23073	580.0000	101.00	11580	140.00	140.00	1170.0000	300.00	1170	1000.0000	100.00	1180	175.83	250.00	975.0000	479.00	6975	868.0000	207.00	968
+NCS	\N	\N	42.00	42.00	27083.0000	42.00	1656716	121643.0000	35.00	121643	40.07	42.40	45433.0000	42.40	705770	40920.0000	36.00	50832	72.00	72.00	992.0000	90.00	1992	\N	\N	0	36.00	36.00	180.0000	36.00	3447135	61926.0000	35.00	561926	42.00	42.00	2700.0000	42.00	2705	\N	\N	0	48.00	48.00	27220.0000	48.00	203561	6000.0000	34.30	147500
+NE	150.00	\N	375.00	375.00	1155.0000	375.00	12756	2000.0000	256.00	5831	400.00	400.00	778.0000	400.00	8133	300.0000	311.00	1825	400.00	400.00	\N	\N	0	\N	\N	0	380.00	380.00	434.0000	380.00	3311	100.0000	270.00	2999	200.00	200.00	2000.0000	200.00	6488	\N	\N	0	408.69	419.00	1318.0000	419.00	18653	67.0000	239.00	3480
+NF	\N	\N	8073.70	7000.00	10.0000	9000.00	62	1.0000	7000.00	1	8500.00	8500.00	25.0000	8500.00	149	\N	\N	0	5116.13	\N	\N	\N	0	\N	\N	0	6000.00	6000.00	144.0000	6000.00	375	\N	\N	0	5116.13	\N	\N	\N	0	\N	\N	0	10000.00	10000.00	2.0000	20000.00	2	\N	\N	0
+NFI	\N	\N	18.80	18.80	6564.0000	18.80	899652	19356.0000	15.50	909756	14.06	14.00	2414.0000	17.70	542976	90170.0000	14.00	190170	15.00	15.00	\N	\N	0	\N	\N	0	18.40	18.40	74586.0000	18.40	2061365	20000.0000	16.60	1521560	18.00	18.00	4800.0000	18.00	14800	\N	\N	0	16.70	16.50	106439.0000	16.50	492917	10000.0000	12.10	210000
+NG	\N	\N	2790.00	2790.00	328.0000	2790.00	15923	890.0000	1700.00	4097	1513.35	2500.00	495.0000	2500.00	2690	\N	\N	0	1300.00	1300.00	60.0000	1300.00	60	\N	\N	0	1674.00	1790.00	166.0000	1790.00	4838	275.0000	1300.00	3300	950.00	950.00	76.0000	4000.00	76	\N	\N	0	2227.66	2400.00	100.0000	2590.00	1120	789.0000	800.00	789
+NL	\N	\N	8586.14	8590.00	26.0000	8590.00	10639	126.0000	6910.00	4645	8307.14	8350.00	9.0000	8350.00	2819	300.0000	5970.00	2414	6300.00	6300.00	50.0000	8700.00	50	100.0000	6500.00	100	7200.00	7200.00	1.0000	7500.00	5483	44.0000	7200.00	2597	7066.39	8000.00	\N	\N	0	\N	\N	0	7960.00	7960.00	150.0000	7960.00	2630	50.0000	7000.00	2184
+NN	\N	\N	60000.00	60000.00	77.0000	62800.00	485	459.0000	60000.00	459	63900.00	63900.00	28.0000	63900.00	88	100.0000	58100.00	110	30000.00	30000.00	\N	\N	0	\N	\N	0	64205.95	64000.00	25.0000	65000.00	63	90.0000	61000.00	271	29378.31	\N	\N	\N	0	\N	\N	0	66000.00	66000.00	\N	\N	0	100.0000	57100.00	194
+NOZ	\N	\N	65000.00	65000.00	\N	\N	0	5.0000	65000.00	62	68000.00	68000.00	12.0000	95000.00	18	10.0000	65000.00	40	43575.34	\N	\N	\N	0	\N	\N	0	100000.00	100000.00	9.0000	100000.00	9	10.0000	65000.00	55	43575.34	\N	\N	\N	0	\N	\N	0	100000.00	100000.00	\N	\N	0	10.0000	65000.00	10
+NR	\N	\N	430.00	430.00	50.0000	439.00	148444	250.0000	420.00	75950	419.00	419.00	2615.0000	419.00	87165	1000.0000	394.00	13250	600.00	600.00	10000.0000	500.00	20000	\N	\N	0	458.00	458.00	378.0000	458.00	210771	25000.0000	399.00	67700	400.00	400.00	1300.0000	470.00	1300	\N	\N	0	426.40	664.00	375.0000	664.00	15713	10000.0000	371.00	50600
+NS	\N	\N	396.00	396.00	1417.0000	396.00	70064	2991.0000	375.00	37991	379.00	379.00	272.0000	379.00	59014	40.0000	281.00	882	500.00	500.00	4000.0000	392.00	9594	\N	\N	0	450.00	450.00	771.0000	450.00	62950	1000.0000	401.00	47347	400.00	400.00	49.0000	450.00	49	968.0000	335.00	968	350.00	350.00	480.0000	350.00	122301	500.0000	340.00	10346
+NST	\N	\N	2970.00	2970.00	72.0000	2970.00	1414	13.0000	2960.00	371	2870.00	2870.00	99.0000	2870.00	467	500.0000	2000.00	500	1200.00	1200.00	16.0000	2500.00	66	\N	\N	0	2630.56	2350.00	125.0000	2350.00	1634	100.0000	1520.00	613	1570.00	1570.00	202.0000	2500.00	202	50.0000	1000.00	50	2980.00	2980.00	888.0000	2980.00	1806	10.0000	1550.00	75
+NUT	88.00	\N	400.00	400.00	1972.0000	400.00	15481	122.0000	390.00	37326	439.00	439.00	835.0000	439.00	7302	55.0000	425.00	32357	300.00	300.00	\N	\N	0	\N	\N	0	383.00	383.00	1398.0000	478.00	7329	471.0000	383.00	9912	275.00	275.00	200.0000	310.00	200	749.0000	275.00	749	395.00	395.00	38.0000	395.00	21486	5000.0000	360.00	47144
+NV1	135000.00	\N	175000.34	180000.00	17.0000	180000.00	58	3.0000	136000.00	213	165928.89	150000.00	1.0000	210000.00	26	1.0000	150000.00	106	93565.95	\N	\N	\N	0	\N	\N	0	186490.21	136000.00	1.0000	210000.00	9	100.0000	135000.00	100	93565.95	\N	\N	\N	0	\N	\N	0	135000.00	135000.00	2.0000	250000.00	7	100.0000	135000.00	100
+NV2	200000.00	\N	200933.68	200000.00	1.0000	208000.00	8	100.0000	200000.00	100	220000.00	220000.00	4.0000	275000.00	24	9.0000	220000.00	109	130116.94	\N	\N	\N	0	\N	\N	0	200000.00	200000.00	100.0000	289000.00	112	100.0000	200000.00	100	130116.94	\N	\N	\N	0	\N	\N	0	220000.00	220000.00	3.0000	220000.00	14	1.0000	201000.00	101
+O	32.00	\N	110.00	110.00	4889.0000	110.00	339173	480.0000	108.00	1098454	116.00	116.00	3189.0000	116.00	170267	79183.0000	107.00	117737	130.00	130.00	3292.0000	130.00	15588	5000.0000	100.00	7000	125.00	125.00	4249.0000	125.00	247853	100.0000	123.00	199839	137.26	140.00	3900.0000	140.00	8100	600.0000	125.00	8297	114.00	114.00	6780.0000	114.00	208142	757.0000	110.00	91622
+OFF	\N	\N	132.00	132.00	210.0000	132.00	97817	1200.0000	113.00	50711	130.00	130.00	8110.0000	130.00	60391	5000.0000	90.00	9497	155.00	155.00	10000.0000	130.00	12020	\N	\N	0	150.00	150.00	460.0000	150.00	39525	2650.0000	120.00	35970	130.00	130.00	\N	\N	0	1000.0000	50.00	1000	128.00	128.00	1747.0000	128.00	74687	10000.0000	100.00	51235
+OLF	\N	\N	1890.00	1890.00	\N	\N	0	60.0000	1050.00	2056	3000.00	3000.00	53.0000	3000.00	113	120.0000	1050.00	120	949.58	\N	\N	\N	0	\N	\N	0	3000.00	3000.00	\N	\N	0	170.0000	1100.00	664	949.58	\N	60.0000	2000.00	60	\N	\N	0	2906.90	2800.00	60.0000	4000.00	60	140.0000	2800.00	784
+OS	\N	\N	64000.00	64000.00	75.0000	64000.00	75	50.0000	51000.00	137	54900.00	54900.00	16.0000	54900.00	41	\N	\N	0	45000.00	45000.00	\N	\N	0	\N	\N	0	60069.01	63900.00	29.0000	63900.00	92	2.0000	56000.00	374	30272.32	\N	\N	\N	0	\N	\N	0	65000.00	65000.00	15.0000	65000.00	15	\N	\N	0
+OVE	40.00	153.00	145.00	145.00	275.0000	145.00	26821	30.0000	144.00	30611	149.00	149.00	4314.0000	149.00	38418	10.0000	141.00	114576	150.00	150.00	1006.0000	150.00	1006	1926.0000	145.00	2546	153.00	153.00	100.0000	153.00	33546	29.0000	146.00	51340	151.55	153.00	\N	\N	0	50.0000	110.00	9499	152.00	152.00	7653.0000	152.00	29381	17484.0000	149.00	65727
+PBU	\N	\N	22755.00	22800.00	70.0000	22800.00	250	\N	\N	0	22656.28	22900.00	269.0000	22900.00	346	49.0000	18100.00	60	8070.62	\N	\N	\N	0	10.0000	808.00	10	23279.17	23200.00	8.0000	23200.00	87	100.0000	18000.00	105	8070.62	\N	\N	\N	0	\N	\N	0	19947.53	20000.00	3.0000	20000.00	604	100.0000	16000.00	100
+PCB	\N	\N	2670.00	2670.00	978.0000	2670.00	14169	5193.0000	2600.00	9298	2700.00	2700.00	284.0000	2700.00	4932	100.0000	2500.00	3030	2300.00	2300.00	\N	\N	0	\N	\N	0	2710.00	2710.00	284.0000	2710.00	4473	2973.0000	2600.00	7862	802.42	\N	\N	\N	0	\N	\N	0	2750.00	2750.00	267.0000	2750.00	3640	63.0000	2550.00	1021
+PDA	\N	\N	3600.00	3600.00	84.0000	3600.00	1535	6.0000	2740.00	321	3400.00	3400.00	669.0000	3400.00	1141	20.0000	2800.00	260	5000.00	5000.00	43.0000	5000.00	43	50.0000	2200.00	50	3625.43	3700.00	23.0000	3700.00	423	43.0000	2800.00	1332	2550.00	2550.00	354.0000	4500.00	354	\N	\N	0	3500.00	3500.00	81.0000	3500.00	663	50.0000	2850.00	167
+PE	\N	\N	13.29	13.50	74880.0000	13.50	3148198	9057.0000	12.50	2124354	11.20	11.20	9576.0000	12.20	5856496	18800.0000	11.20	2256020	12.04	12.10	5000.0000	12.10	205000	\N	\N	0	13.20	13.20	24840.0000	13.20	2962963	48340.0000	11.80	2479878	10.10	10.10	5747.0000	10.10	171509	10000.0000	10.00	60000	12.60	12.60	188940.0000	12.60	3229346	400.0000	11.50	1737515
+PFE	\N	\N	982.27	990.00	300.0000	990.00	2067	2000.0000	810.00	2294	900.00	900.00	3370.0000	900.00	7012	\N	\N	0	825.00	825.00	280.0000	825.00	280	\N	\N	0	937.03	1080.00	60.0000	1080.00	710	1900.0000	900.00	3999	1150.00	1150.00	270.0000	800.00	270	119.0000	500.00	119	933.41	850.00	30.0000	929.00	2777	470.0000	850.00	650
+PFG	\N	\N	4500000.00	4500000.00	2.0000	4500000.00	2	\N	\N	0	2000907.92	\N	\N	\N	0	\N	\N	0	2000907.92	\N	\N	\N	0	\N	\N	0	3690000.00	3690000.00	\N	\N	0	\N	\N	0	2000907.92	\N	\N	\N	0	\N	\N	0	2000907.92	\N	\N	\N	0	\N	\N	0
+PG	\N	\N	58.30	58.30	6617.0000	58.30	462628	480.0000	56.10	248483	55.50	55.50	2366.0000	55.50	148888	85.0000	53.60	315287	57.00	57.00	666.0000	57.00	10748	50000.0000	48.00	50000	59.90	59.90	933.0000	59.90	1071201	20000.0000	56.40	884923	50.00	50.00	11077.0000	50.00	71660	13000.0000	48.00	13000	59.10	59.10	8680.0000	59.10	439425	200.0000	52.30	92327
+PIB	\N	\N	1123.29	501.00	1.0000	2990.00	29	76.0000	501.00	156	1746.17	2100.00	20.0000	2050.00	35	5.0000	800.00	1356	1500.00	1500.00	53.0000	2000.00	53	\N	\N	0	1271.79	1250.00	5.0000	2100.00	5	100.0000	150.00	100	549.19	\N	\N	\N	0	\N	\N	0	1500.00	1500.00	175.0000	1500.00	191	100000.0000	0.01	100000
+PK	\N	\N	2200.00	2200.00	102.0000	2200.00	335	\N	\N	0	999.00	999.00	160.0000	999.00	1470	\N	\N	0	832.61	\N	\N	\N	0	\N	\N	0	1000.00	1000.00	2.0000	1200.00	2	999.0000	450.00	999	832.61	\N	\N	\N	0	\N	\N	0	1940.00	1940.00	58.0000	1000.00	58	\N	\N	0
+POW	6000.00	\N	9500.00	9500.00	180.0000	9900.00	3590	124.0000	9210.00	1318	9971.50	9980.00	157.0000	9980.00	3983	10.0000	8590.00	678	9500.00	9500.00	50.0000	9500.00	90	\N	\N	0	10116.36	10900.00	437.0000	10900.00	2104	1134.0000	10000.00	2775	13000.00	13000.00	\N	\N	0	\N	\N	0	10800.00	10800.00	13.0000	10800.00	14	10.0000	8200.00	853
+PPA	\N	\N	350.00	350.00	703.0000	350.00	1248	56.0000	340.00	11664	356.81	370.00	32.0000	360.00	7367	846.0000	320.00	3250	300.00	300.00	\N	\N	0	\N	\N	0	299.70	320.00	27.0000	320.00	8866	\N	\N	0	220.00	220.00	\N	\N	0	990.0000	220.00	990	321.57	333.00	7.0000	333.00	1273	5314.0000	300.00	5314
+PSH	\N	\N	10000.00	10000.00	187.0000	10000.00	2323	100.0000	9000.00	100	10000.00	10000.00	29.0000	12500.00	989	\N	\N	0	4013.58	\N	\N	\N	0	\N	\N	0	11800.00	11800.00	429.0000	11800.00	1706	59.0000	9000.00	888	4013.58	\N	32.0000	13000.00	32	\N	\N	0	10000.00	10000.00	360.0000	13600.00	636	69.0000	10000.00	79
+PSL	\N	\N	5460.00	5460.00	4.0000	5460.00	4258	61.0000	4900.00	3122	5400.00	5400.00	560.0000	5400.00	1045	34.0000	4600.00	1517	5000.00	5000.00	92.0000	5000.00	92	\N	\N	0	5200.00	5200.00	80.0000	5200.00	3397	12.0000	4910.00	2267	5000.00	5000.00	48.0000	4320.00	120	24.0000	3000.00	24	5430.00	5430.00	429.0000	5430.00	1132	50.0000	4300.00	111
+PSM	\N	\N	3125.71	3400.00	8.0000	3290.00	4677	184.0000	2800.00	1284	3290.00	3290.00	\N	\N	0	100.0000	2750.00	3027	2500.00	2500.00	\N	\N	0	\N	\N	0	4361.49	4400.00	223.0000	4400.00	751	250.0000	3000.00	4583	1299.42	\N	35.0000	3000.00	35	\N	\N	0	3093.61	3100.00	73.0000	3100.00	846	250.0000	2650.00	1059
+PSS	\N	\N	1500.00	1500.00	120.0000	1700.00	10301	1602.0000	1500.00	2602	1626.37	1800.00	23.0000	1800.00	2110	1000.0000	1470.00	6023	450.00	450.00	\N	\N	0	\N	\N	0	1900.00	1900.00	1.0000	1950.00	5921	210.0000	1800.00	1210	1600.00	1600.00	100.0000	3000.00	100	\N	\N	0	1100.00	1100.00	2045.0000	1880.00	3079	371.0000	1100.00	4215
+PT	\N	\N	598.00	598.00	173.0000	598.00	30625	20.0000	470.00	16835	510.00	510.00	796.0000	555.00	34038	170.0000	510.00	6602	600.00	600.00	180.0000	600.00	1675	\N	\N	0	585.00	585.00	163.0000	585.00	40608	5.0000	495.00	11110	692.81	700.00	230.0000	700.00	266	15.0000	600.00	15	579.00	579.00	2638.0000	579.00	33965	112.0000	578.00	1153
+PWO	\N	\N	400.00	400.00	321.0000	400.00	28364	200.0000	375.00	20453	420.00	420.00	50.0000	420.00	31941	3.0000	410.00	5605	390.00	390.00	129.0000	390.00	1701	17.0000	281.00	3017	424.00	424.00	157.0000	424.00	22458	24.0000	410.00	21991	350.00	350.00	351.0000	350.00	1239	200.0000	300.00	695	379.00	379.00	665.0000	379.00	16359	100.0000	372.00	880
+QCR	\N	\N	1000000.00	1000000.00	1.0000	1000000.00	13	1.0000	800000.00	1	1080000.00	1080000.00	1.0000	999000.00	11	1.0000	900000.00	4	850000.00	850000.00	\N	\N	0	\N	\N	0	1190000.00	1190000.00	\N	\N	0	5.0000	800000.00	6	365080.83	\N	\N	\N	0	\N	\N	0	1300000.00	1300000.00	1.0000	1400000.00	1	1.0000	500000.00	1
+RAD	\N	\N	15000.00	15000.00	37.0000	15900.00	399	34.0000	14000.00	334	15000.00	15000.00	58.0000	15000.00	195	50.0000	13500.00	77	3700.19	\N	\N	\N	0	\N	\N	0	13770.38	14000.00	26.0000	13900.00	481	44.0000	13000.00	367	3700.19	\N	10.0000	14500.00	10	\N	\N	0	12600.00	12600.00	42.0000	16000.00	42	\N	\N	0
+RAG	\N	\N	550000.00	550000.00	1.0000	699000.00	4	\N	\N	0	550000.00	550000.00	11.0000	690000.00	12	1.0000	550000.00	2	259841.81	\N	\N	\N	0	\N	\N	0	569000.00	569000.00	5.0000	569000.00	5	5.0000	480000.00	5	259841.81	\N	\N	\N	0	\N	\N	0	580000.00	580000.00	4.0000	650000.00	8	\N	\N	0
+RAM	\N	\N	3150.00	3150.00	70.0000	3110.00	2344	500.0000	2800.00	1859	2586.69	2500.00	30.0000	2800.00	944	274.0000	2500.00	1325	1238.00	\N	\N	\N	0	\N	\N	0	2839.44	2700.00	61.0000	2990.00	2933	713.0000	2700.00	2181	1600.00	1600.00	10.0000	3000.00	10	\N	\N	0	2500.00	2500.00	97.0000	2800.00	595	463.0000	2500.00	1463
+RAT	32.00	176.00	176.00	176.00	100.0000	176.00	1262863	9674.0000	173.00	792331	176.00	176.00	100.0000	176.00	784852	499.0000	172.00	146750	176.00	176.00	901.0000	176.00	1401	9950.0000	150.00	19380	176.00	176.00	100.0000	176.00	822750	200.0000	175.00	201160	171.73	190.00	8046.0000	190.00	8046	2000.0000	150.00	27224	176.00	176.00	100.0000	176.00	745549	4511.0000	175.00	588058
+RBH	\N	\N	19700.00	19700.00	2.0000	19700.00	2618	88.0000	18000.00	699	20400.00	20400.00	154.0000	20400.00	1340	9.0000	18100.00	140	22000.00	22000.00	2.0000	22000.00	22	\N	\N	0	17500.00	17500.00	70.0000	17500.00	2327	90.0000	17200.00	1065	25000.00	25000.00	8.0000	20000.00	8	10.0000	10000.00	10	18000.00	18000.00	22.0000	18000.00	1023	115.0000	17900.00	288
+RCO	400.00	\N	1700.00	1700.00	910.0000	1700.00	8264	1841.0000	1500.00	10232	1550.00	1550.00	70.0000	1550.00	12434	420.0000	1320.00	2196	1700.00	1700.00	120.0000	1400.00	804	500.0000	1000.00	500	2290.00	2290.00	54.0000	2000.00	3331	272.0000	1650.00	3972	1500.00	1500.00	160.0000	1450.00	476	909.0000	900.00	909	1370.00	1370.00	10.0000	1780.00	1607	52.0000	1370.00	5532
+RCS	\N	\N	250000.00	250000.00	1.0000	250000.00	6	1.0000	200000.00	8	240000.00	240000.00	13.0000	240000.00	13	5.0000	215000.00	12	93742.00	\N	\N	\N	0	\N	\N	0	225000.00	225000.00	2.0000	225000.00	8	\N	\N	0	93742.00	\N	\N	\N	0	\N	\N	0	210000.00	210000.00	2.0000	220000.00	2	1.0000	200000.00	1
+RCT	\N	\N	928000.00	928000.00	1.0000	927000.00	7	\N	\N	0	930000.00	930000.00	2.0000	960000.00	3	1.0000	500000.00	3	1000000.00	1000000.00	\N	\N	0	\N	\N	0	990000.00	990000.00	2.0000	850000.00	6	\N	\N	0	357974.88	\N	\N	\N	0	\N	\N	0	960000.00	960000.00	1.0000	979000.00	1	\N	\N	0
+RDE	\N	\N	38937.50	39000.00	122.0000	39000.00	1057	50.0000	32400.00	635	39900.00	39900.00	10.0000	39900.00	130	50.0000	29100.00	434	38000.00	38000.00	12.0000	55000.00	12	\N	\N	0	39000.00	39000.00	69.0000	39000.00	1126	115.0000	31700.00	725	50000.00	50000.00	57.0000	50000.00	57	10.0000	15000.00	10	34500.00	34500.00	10.0000	34500.00	861	50.0000	31100.00	899
+RDL	\N	\N	1100000.00	1100000.00	10.0000	1380000.00	13	1.0000	200000.00	1	998000.00	998000.00	2.0000	998000.00	9	\N	\N	0	378869.08	\N	\N	\N	0	\N	\N	0	1390000.00	1390000.00	1.0000	1390000.00	3	1.0000	1200000.00	2	378869.08	\N	\N	\N	0	\N	\N	0	1600000.00	1600000.00	1.0000	1400000.00	1	\N	\N	0
+RDS	\N	\N	800000.00	800000.00	1.0000	800000.00	1	\N	\N	0	775000.00	775000.00	1.0000	800000.00	1	\N	\N	0	208036.57	\N	\N	\N	0	\N	\N	0	800000.00	800000.00	1.0000	800000.00	1	\N	\N	0	208036.57	\N	\N	\N	0	\N	\N	0	800000.00	800000.00	1.0000	800000.00	1	\N	\N	0
+RE	\N	\N	2900.00	2900.00	1951.0000	2900.00	24993	250.0000	1800.00	827	3700.00	3700.00	70.0000	3700.00	14080	100.0000	2600.00	200	3000.00	3000.00	279.0000	3500.00	279	\N	\N	0	3400.00	3400.00	937.0000	3390.00	38224	100.0000	2800.00	100	5000.00	5000.00	12.0000	4500.00	3760	\N	\N	0	2800.00	2800.00	300.0000	4200.00	10575	\N	\N	0
+REA	\N	\N	1200.31	950.00	246.0000	1320.00	8817	191.0000	950.00	191	1200.00	1200.00	49.0000	1200.00	5611	300.0000	750.00	300	500.00	500.00	17.0000	3000.00	17	\N	\N	0	1146.38	1160.00	1474.0000	1160.00	9257	104.0000	985.00	5199	900.00	900.00	400.0000	900.00	1600	\N	\N	0	1075.15	975.00	40.0000	1390.00	546	150.0000	975.00	1963
+RED	60000.00	\N	60000.00	60000.00	200.0000	60200.00	210	100.0000	60000.00	100	60000.00	60000.00	3.0000	69900.00	248	100.0000	60000.00	100	22664.06	\N	\N	\N	0	\N	\N	0	60000.00	60000.00	12.0000	64900.00	387	100.0000	60000.00	100	22664.06	\N	\N	\N	0	\N	\N	0	60000.00	60000.00	20.0000	66000.00	20	100.0000	60000.00	100
+REO	\N	\N	2000.00	2000.00	812.0000	1990.00	2653	1000.0000	400.00	1320	2100.00	2100.00	52.0000	2190.00	685	316.0000	2100.00	416	164.57	\N	270.0000	2000.00	270	24.0000	1000.00	24	400.00	400.00	\N	\N	0	\N	\N	0	2000.00	2000.00	\N	\N	0	46.0000	2000.00	46	0.01	0.01	\N	\N	0	800000.0000	0.01	800000
+REP	\N	\N	948.00	948.00	114.0000	948.00	11088	10.0000	842.00	10395	880.00	880.00	226.0000	880.00	11462	3.0000	820.00	850	950.00	950.00	170.0000	950.00	970	10.0000	630.00	10	881.00	881.00	2326.0000	881.00	14338	39.0000	751.00	20493	700.00	700.00	90.0000	700.00	181	50.0000	620.00	113	850.00	850.00	368.0000	925.00	10039	54.0000	850.00	3705
+RG	\N	\N	1550.00	1550.00	672.0000	1700.00	17540	110.0000	1550.00	7466	1310.00	1310.00	280.0000	2000.00	5898	450.0000	1310.00	2170	2090.00	2090.00	\N	\N	0	\N	\N	0	1670.00	1670.00	111.0000	1670.00	11822	650.0000	1340.00	23313	2500.00	2500.00	2.0000	2220.00	120	\N	\N	0	1779.72	1810.00	290.0000	1770.00	11426	196.0000	1420.00	2887
+RGO	\N	\N	2340.00	2340.00	278.0000	2330.00	1061	500.0000	1650.00	700	2100.00	2100.00	23.0000	2100.00	892	50.0000	1310.00	605	794.69	\N	\N	\N	0	\N	\N	0	2500.00	2500.00	825.0000	2500.00	3113	200.0000	1690.00	1420	794.69	\N	10.0000	2100.00	10	\N	\N	0	2000.00	2000.00	60.0000	2000.00	77	77.0000	1000.00	77
+RHP	\N	\N	6990.00	6990.00	25.0000	6980.00	117	36.0000	5200.00	36	6969.55	7100.00	47.0000	7000.00	60	\N	\N	0	2754.41	\N	\N	\N	0	\N	\N	0	6590.00	6590.00	1.0000	6340.00	623	\N	\N	0	2754.41	\N	\N	\N	0	\N	\N	0	6941.55	7000.00	\N	\N	0	\N	\N	0
+ROM	\N	\N	5810.00	5810.00	72.0000	5810.00	6216	200.0000	5510.00	6207	5954.96	5990.00	97.0000	5990.00	1336	1000.0000	4600.00	2011	1901.96	\N	\N	\N	0	\N	\N	0	5390.00	5390.00	105.0000	5390.00	2081	300.0000	4850.00	4235	4500.00	4500.00	40.0000	7500.00	40	\N	\N	0	5991.91	5900.00	122.0000	5900.00	1261	100.0000	3310.00	401
+RSE	\N	\N	29700.00	29700.00	41.0000	29700.00	3351	19.0000	27600.00	499	35948.87	36000.00	455.0000	36000.00	1043	8.0000	28000.00	507	33000.00	33000.00	20.0000	35000.00	20	\N	\N	0	27400.00	27400.00	4.0000	27400.00	1697	265.0000	27300.00	1794	30000.00	30000.00	5.0000	30000.00	5	10.0000	15000.00	10	28500.00	28500.00	40.0000	28500.00	933	20.0000	27600.00	962
+RSH	\N	\N	40000.00	40000.00	711.0000	40000.00	711	44.0000	30000.00	458	50000.00	50000.00	\N	\N	0	\N	\N	0	19215.07	\N	\N	\N	0	\N	\N	0	22200.00	22200.00	\N	\N	0	14.0000	22200.00	54	28000.00	28000.00	\N	\N	0	\N	\N	0	40000.00	40000.00	\N	\N	0	30.0000	22000.00	30
+RSI	\N	\N	1978.24	2000.00	449.0000	2000.00	449	300.0000	200.00	300	1650.00	1650.00	27.0000	1650.00	27	\N	\N	0	684.20	\N	\N	\N	0	\N	\N	0	2120.00	2120.00	452.0000	2120.00	452	19.0000	722.00	1034	1150.00	1150.00	\N	\N	0	\N	\N	0	2175.43	2490.00	13.0000	2480.00	85	\N	\N	0
+RTA	\N	\N	17000.00	17000.00	24.0000	17000.00	3196	1.0000	16500.00	985	18900.00	18900.00	16.0000	18900.00	1509	70.0000	16600.00	308	17300.00	17300.00	10.0000	25000.00	10	\N	\N	0	15900.00	15900.00	9.0000	15900.00	1512	11.0000	15500.00	1344	20000.00	20000.00	2.0000	20000.00	2	10.0000	8000.00	20	17156.25	17200.00	86.0000	17200.00	1013	50.0000	14500.00	450
+S	\N	\N	372.00	372.00	20.0000	372.00	4762	5.0000	150.00	7760	297.00	297.00	256.0000	297.00	3655	296.0000	145.00	4344	280.00	280.00	\N	\N	0	\N	\N	0	197.31	214.00	147.0000	210.00	8448	26.0000	155.00	19054	145.00	145.00	100.0000	190.00	100	\N	\N	0	227.23	201.00	1041.0000	239.00	8459	7286.0000	200.00	12830
+SA	\N	\N	8088.84	8300.00	45.0000	8300.00	111	11.0000	7600.00	111	8237.37	8300.00	35.0000	8300.00	162	\N	\N	0	3410.75	\N	\N	\N	0	\N	\N	0	8280.00	8280.00	1.0000	8280.00	277	42.0000	7500.00	124	3410.75	\N	\N	\N	0	\N	\N	0	12716.84	15000.00	100.0000	9990.00	144	10.0000	7500.00	20
+SAL	\N	\N	7100.00	7100.00	2.0000	7690.00	121	57.0000	7100.00	557	7706.11	7890.00	3.0000	7890.00	238	49.0000	7000.00	49	3410.75	\N	\N	\N	0	\N	\N	0	7500.00	7500.00	44.0000	7690.00	724	88.0000	7500.00	88	3410.75	\N	\N	\N	0	\N	\N	0	7500.00	7500.00	6.0000	7500.00	140	28.0000	7000.00	58
+SAR	\N	\N	32100.00	32100.00	73.0000	32100.00	2679	4.0000	28500.00	255	38000.00	38000.00	15.0000	38000.00	1105	10.0000	29100.00	153	9564.21	\N	\N	\N	0	\N	\N	0	34000.00	34000.00	4.0000	34900.00	817	76.0000	30000.00	269	9564.21	\N	10.0000	34000.00	10	\N	\N	0	35500.00	35500.00	251.0000	35600.00	715	20.0000	26500.00	72
+SBU	\N	\N	43000.00	43000.00	156.0000	43000.00	1156	15.0000	33000.00	15	43951.17	44000.00	201.0000	44000.00	201	15.0000	33000.00	51	14800.44	\N	\N	\N	0	\N	\N	0	35667.04	35700.00	202.0000	44000.00	202	8.0000	32000.00	54	14800.44	\N	\N	\N	0	\N	\N	0	36400.00	36900.00	150.0000	44000.00	150	15.0000	30000.00	15
+SC	\N	\N	1330.00	1330.00	362.0000	1330.00	10339	12.0000	1000.00	4394	1340.00	1340.00	744.0000	1370.00	2875	100.0000	1000.00	159	1600.00	1600.00	95.0000	1600.00	152	100.0000	800.00	100	1250.00	1250.00	2.0000	1250.00	8068	8.0000	961.00	2682	2971.12	3000.00	85.0000	3000.00	85	5.0000	1200.00	105	1220.00	1220.00	982.0000	1220.00	6603	30.0000	971.00	914
+SCB	\N	\N	110000.00	110000.00	9.0000	110000.00	19	\N	\N	0	120000.00	120000.00	1.0000	120000.00	3	\N	\N	0	53413.53	\N	\N	\N	0	\N	\N	0	160000.00	160000.00	1.0000	140000.00	3	1.0000	50000.00	1	53413.53	\N	\N	\N	0	\N	\N	0	190000.00	190000.00	1.0000	100000.00	4	\N	\N	0
+SCN	\N	\N	3030.00	3030.00	92.0000	3030.00	2460	60.0000	2600.00	3268	3390.00	3390.00	182.0000	3390.00	2660	50.0000	3100.00	1609	2500.00	2500.00	922.0000	2500.00	2435	\N	\N	0	3790.00	3790.00	1.0000	3790.00	1509	10.0000	2800.00	2079	2500.00	2500.00	135.0000	2500.00	145	40.0000	1500.00	40	3730.00	3730.00	267.0000	3730.00	1333	200.0000	2650.00	437
+SCR	82.00	\N	450.00	450.00	475.0000	440.00	1827	50.0000	183.00	3350	161.48	105.00	731.0000	265.00	3724	484.0000	105.00	2570	100.00	100.00	\N	\N	0	\N	\N	0	215.00	215.00	50.0000	270.00	6407	2154.0000	215.00	12663	150.00	150.00	15.0000	144.00	15	\N	\N	0	230.59	300.00	101.0000	320.00	6668	1960.0000	300.00	3972
+SDM	\N	\N	3400000.00	3400000.00	1.0000	3000000.00	1	\N	\N	0	1115816.42	\N	\N	\N	0	\N	\N	0	1115816.42	\N	\N	\N	0	\N	\N	0	2500000.00	2500000.00	\N	\N	0	\N	\N	0	1115816.42	\N	\N	\N	0	\N	\N	0	1115816.42	\N	\N	\N	0	\N	\N	0
+SDR	100000.00	\N	100000.00	100000.00	49.0000	102000.00	129	100.0000	100000.00	100	100000.00	100000.00	103.0000	115000.00	133	100.0000	100000.00	100	37717.07	\N	\N	\N	0	\N	\N	0	100000.00	100000.00	60.0000	130000.00	60	100.0000	100000.00	100	37717.07	\N	\N	\N	0	\N	\N	0	100000.00	100000.00	\N	\N	0	100.0000	100000.00	100
+SEA	\N	\N	199.00	199.00	5764.0000	199.00	89239	500.0000	150.00	103525	189.19	190.00	1235.0000	190.00	48393	2500.0000	141.00	111589	155.00	155.00	4450.0000	155.00	9450	\N	\N	0	198.16	199.00	4118.0000	199.00	62883	112.0000	170.00	151314	170.00	170.00	1058.0000	175.00	1058	\N	\N	0	174.00	174.00	853.0000	174.00	42839	1000.0000	125.00	109588
+SEN	\N	\N	814.21	824.00	5399.0000	824.00	89393	880.0000	803.00	38849	740.00	740.00	3747.0000	800.00	35270	1000.0000	650.00	1500	1300.00	1300.00	\N	\N	0	50.0000	610.00	100	814.63	836.00	1731.0000	836.00	45274	10000.0000	800.00	25864	775.00	775.00	\N	\N	0	\N	\N	0	841.42	848.00	700.0000	845.00	11089	400.0000	694.00	6356
+SEQ	\N	\N	22900.00	22900.00	30.0000	24000.00	50	100.0000	20000.00	234	23000.00	23000.00	\N	\N	0	\N	\N	0	8481.09	\N	\N	\N	0	\N	\N	0	20000.00	20000.00	19.0000	20000.00	56	59.0000	18000.00	59	8481.09	\N	\N	\N	0	\N	\N	0	25000.00	25000.00	\N	\N	0	10.0000	16000.00	10
+SF	6.00	18.00	17.90	17.90	3091.0000	17.90	1230060	500.0000	16.60	1647460	16.90	16.90	18210.0000	16.90	1183029	500.0000	16.50	2659957	18.00	18.00	7030.0000	18.00	112039	\N	\N	0	17.90	17.90	94467.0000	17.90	845004	9525.0000	17.70	1565747	18.20	18.20	549.0000	24.00	33882	1000.0000	17.60	96367	17.90	17.90	4020.0000	17.90	1380738	354.0000	17.80	568111
+SFE	\N	\N	63614.23	67800.00	4.0000	67800.00	51	7.0000	50000.00	7	60000.00	60000.00	10.0000	63000.00	90	7.0000	60000.00	7	25136.58	\N	\N	\N	0	\N	\N	0	60000.00	60000.00	14.0000	69800.00	59	\N	\N	0	25136.58	\N	\N	\N	0	\N	\N	0	66000.00	66000.00	3.0000	69900.00	44	\N	\N	0
+SFK	\N	\N	100.00	100.00	21951.0000	100.00	90145	100.0000	90.10	140147	97.20	97.20	3477.0000	97.20	57504	9608.0000	75.00	116286	75.00	75.00	3889.0000	85.00	6889	\N	\N	0	78.00	78.00	282.0000	78.00	239281	20.0000	71.00	201120	70.00	70.00	200.0000	238.00	200	100.0000	50.00	100	89.80	89.80	3493.0000	89.80	106592	88.0000	75.20	103568
+SFL	\N	\N	98500.00	98500.00	1.0000	98300.00	35	\N	\N	0	118000.00	118000.00	1.0000	109000.00	39	\N	\N	0	39315.27	\N	\N	\N	0	\N	\N	0	85000.00	85000.00	1.0000	88900.00	7	\N	\N	0	39315.27	\N	\N	\N	0	\N	\N	0	11000.00	11000.00	1.0000	109000.00	13	\N	\N	0
+SI	\N	\N	2460.00	2460.00	95.0000	2460.00	22732	50.0000	2320.00	12880	2356.92	2350.00	9.0000	2670.00	12310	500.0000	2260.00	8644	2000.00	2000.00	858.0000	2700.00	858	\N	\N	0	2760.00	2760.00	138.0000	2760.00	25732	490.0000	2300.00	4231	3000.00	3000.00	\N	\N	0	39.0000	1000.00	39	2297.12	2300.00	43.0000	2300.00	1597	1998.0000	2120.00	8877
+SIL	\N	\N	2800.00	2800.00	194.0000	2800.00	1509	\N	\N	0	1500.00	1500.00	106.0000	2640.00	801	201.0000	1500.00	201	2265.14	\N	4.0000	10000.00	4	\N	\N	0	2750.00	2750.00	809.0000	2750.00	3111	\N	\N	0	2265.14	\N	10.0000	3500.00	14	\N	\N	0	2050.00	2050.00	30.0000	1950.00	553	20.0000	1600.00	20
+SIO	38.00	\N	133.00	133.00	1346.0000	133.00	254336	40.0000	103.00	37919	139.00	139.00	58.0000	139.00	148826	68.0000	134.00	13011	190.00	190.00	903.0000	145.00	3841	\N	\N	0	140.00	140.00	2309.0000	140.00	145921	20.0000	125.00	42858	190.00	190.00	15000.0000	150.00	23670	50.0000	100.00	50	116.27	116.00	44.0000	115.00	58241	410.0000	113.00	24050
+SNM	\N	\N	110000.00	110000.00	10.0000	119000.00	75	50.0000	110000.00	110	109000.00	109000.00	19.0000	109000.00	69	\N	\N	0	76610.66	\N	\N	\N	0	\N	\N	0	115000.00	115000.00	4.0000	115000.00	23	4.0000	114000.00	104	76610.66	\N	\N	\N	0	\N	\N	0	110000.00	110000.00	6.0000	120000.00	6	100000.0000	0.01	100000
+SOI	\N	\N	725.00	725.00	49.0000	800.00	2138	101.0000	725.00	2713	825.00	825.00	100.0000	840.00	3546	808.0000	680.00	3002	450.00	450.00	\N	\N	0	\N	\N	0	880.00	880.00	232.0000	880.00	18061	480.0000	703.00	10322	550.00	550.00	10.0000	744.00	663	\N	\N	0	747.51	748.00	60.0000	748.00	5784	18.0000	625.00	7778
+SOL	\N	\N	1550.00	1550.00	3756.0000	1550.00	6768	1000.0000	1300.00	10000	1409.52	1500.00	12.0000	1450.00	631	808.0000	1200.00	5443	446.02	\N	\N	\N	0	\N	\N	0	1578.96	1590.00	125.0000	1580.00	6439	3000.0000	1450.00	8843	1200.00	1200.00	3.0000	1200.00	3	\N	\N	0	1806.11	1930.00	\N	\N	0	1000.0000	1200.00	3988
+SP	2500.00	\N	2793.45	2750.00	60.0000	2750.00	8100	100.0000	2500.00	100	2980.00	2980.00	64.0000	2980.00	2065	96.0000	2510.00	196	2900.00	2900.00	18.0000	2900.00	160	\N	\N	0	2572.28	2600.00	374.0000	2600.00	11757	100.0000	2500.00	110	2560.00	2560.00	\N	\N	0	\N	\N	0	3850.00	3850.00	202.0000	3850.00	1954	14.0000	2850.00	770
+SPT	\N	\N	600.00	600.00	299.0000	750.00	299	\N	\N	0	600.00	600.00	1000.0000	600.00	5000	\N	\N	0	189.33	\N	\N	\N	0	\N	\N	0	520.00	520.00	100.0000	520.00	100	\N	\N	0	189.33	\N	\N	\N	0	\N	\N	0	778.81	780.00	156.0000	780.00	24756	\N	\N	0
+SRD	70000.00	\N	82000.00	82000.00	5.0000	82000.00	45	100.0000	70000.00	100	70000.00	70000.00	3.0000	89900.00	147	100.0000	70000.00	100	29473.94	\N	\N	\N	0	\N	\N	0	70100.00	70100.00	60.0000	90000.00	60	100.0000	70000.00	100	29473.94	\N	\N	\N	0	\N	\N	0	70000.00	70000.00	10.0000	90000.00	10	100.0000	70000.00	100
+SRP	\N	\N	13900.00	13900.00	87.0000	13900.00	1670	\N	\N	0	17000.00	17000.00	547.0000	17000.00	1118	\N	\N	0	7928.26	\N	\N	\N	0	\N	\N	0	16900.00	16900.00	49.0000	16900.00	208	100.0000	4000.00	100	7928.26	\N	\N	\N	0	\N	\N	0	20000.00	20000.00	48.0000	20000.00	48	\N	\N	0
+SSC	\N	\N	680.80	698.00	302.0000	698.00	7020	200.0000	550.00	6406	647.00	647.00	82.0000	647.00	1413	50.0000	531.00	2949	600.00	600.00	96.0000	600.00	2196	\N	\N	0	669.00	669.00	2711.0000	669.00	13943	20.0000	570.00	8707	530.00	530.00	57.0000	530.00	347	\N	\N	0	690.00	690.00	1089.0000	690.00	2108	100.0000	670.00	951
+SSL	\N	\N	69500.00	69500.00	1.0000	69600.00	20	\N	\N	0	69863.64	70000.00	1.0000	71000.00	1	2.0000	58000.00	2	22109.03	\N	\N	\N	0	\N	\N	0	66717.24	70000.00	6.0000	70000.00	6	\N	\N	0	22109.03	\N	\N	\N	0	\N	\N	0	80000.00	80000.00	1.0000	80000.00	2	\N	\N	0
+SST	\N	\N	10000000.00	10000000.00	2.0000	10000000.00	2	\N	\N	0	3838073.91	\N	\N	\N	0	\N	\N	0	3838073.91	\N	\N	\N	0	\N	\N	0	10000000.00	10000000.00	\N	\N	0	\N	\N	0	3838073.91	\N	\N	\N	0	\N	\N	0	3838073.91	\N	\N	\N	0	\N	\N	0
+STL	\N	\N	2450.00	2450.00	111.0000	2450.00	15416	39.0000	1920.00	6505	2200.00	2200.00	784.0000	2200.00	10097	403.0000	1910.00	3055	2300.00	2300.00	222.0000	2300.00	1272	200.0000	1800.00	200	1850.00	1850.00	126.0000	1950.00	27084	282.0000	1850.00	3530	2000.00	2000.00	63.0000	1950.00	247	\N	\N	0	2244.79	2210.00	168.0000	2210.00	7813	136.0000	2070.00	2553
+STR	1750.00	\N	2694.32	2690.00	36.0000	2690.00	323	500.0000	2300.00	826	1800.00	1800.00	100.0000	2800.00	300	96.0000	1800.00	490	2350.00	2350.00	180.0000	2000.00	181	\N	\N	0	3200.00	3200.00	53.0000	3200.00	335	200.0000	1800.00	380	1950.00	1950.00	12.0000	2600.00	22	\N	\N	0	2766.48	2620.00	\N	\N	0	40.0000	2650.00	570
+STS	\N	\N	193000.00	193000.00	5.0000	190000.00	12	2.0000	17300.00	4	170000.00	170000.00	4.0000	170000.00	8	\N	\N	0	95665.68	\N	\N	\N	0	\N	\N	0	176000.00	176000.00	1.0000	177000.00	6	2.0000	17000.00	2	95665.68	\N	\N	\N	0	\N	\N	0	178000.00	178000.00	2.0000	178000.00	13	\N	\N	0
+SU	\N	\N	115000.00	115000.00	9.0000	115000.00	11	\N	\N	0	200000.00	200000.00	\N	\N	0	\N	\N	0	112362.03	\N	\N	\N	0	\N	\N	0	300000.00	300000.00	20.0000	300000.00	20	\N	\N	0	112362.03	\N	\N	\N	0	\N	\N	0	112362.03	\N	\N	\N	0	\N	\N	0
+SUD	100000.00	\N	110000.00	110000.00	4.0000	110000.00	34	100.0000	100000.00	100	100000.00	100000.00	3.0000	124000.00	63	100.0000	100000.00	100	37979.57	\N	\N	\N	0	\N	\N	0	120000.00	120000.00	57.0000	120000.00	57	100.0000	100000.00	100	37979.57	\N	\N	\N	0	\N	\N	0	100000.00	100000.00	\N	\N	0	100.0000	100000.00	100
+SUN	\N	\N	799.73	800.00	2981.0000	800.00	4869	684.0000	500.00	1084	508.99	640.00	60.0000	640.00	1030	20.0000	550.00	1004	475.00	475.00	200.0000	1000.00	200	\N	\N	0	720.00	720.00	720.0000	720.00	3210	1000.0000	600.00	6842	499.00	499.00	300.0000	499.00	500	100.0000	300.00	100	695.66	690.00	60.0000	690.00	2115	20.0000	522.00	940
+SWF	\N	\N	199.00	199.00	22573.0000	199.00	255665	553.0000	177.00	146336	196.34	197.00	1500.0000	196.00	112046	1680.0000	179.00	109649	80.31	\N	\N	\N	0	\N	\N	0	180.00	180.00	3841.0000	180.00	130215	20000.0000	175.00	140000	110.00	110.00	1000.0000	400.00	1000	\N	\N	0	177.09	179.00	9430.0000	179.00	33729	226.0000	137.00	107526
+TA	\N	\N	17439.12	17400.00	5.0000	17400.00	853	2.0000	12000.00	12	15000.00	15000.00	113.0000	19000.00	463	3.0000	15000.00	335	8409.38	\N	\N	\N	0	50.0000	8000.00	50	18821.05	12500.00	13.0000	24000.00	201	36.0000	12500.00	245	10400.00	10400.00	\N	\N	0	1.0000	16000.00	1	29000.00	29000.00	36.0000	27500.00	42	10.0000	16000.00	61
+TAC	\N	\N	150000.00	150000.00	1.0000	318000.00	68	2.0000	15000.00	2	500000.00	500000.00	3.0000	350000.00	5	\N	\N	0	91593.23	\N	1.0000	350000.00	1	\N	\N	0	550000.00	550000.00	2.0000	460000.00	13	\N	\N	0	91593.23	\N	\N	\N	0	\N	\N	0	91593.23	\N	\N	\N	0	2.0000	50000.00	2
+TAI	\N	\N	703.00	703.00	5573.0000	750.00	10441	729.0000	703.00	1129	1000.00	1000.00	869.0000	1000.00	8574	40.0000	500.00	70	121.01	\N	1000.0000	900.00	1000	\N	\N	0	1115.51	1200.00	194.0000	1200.00	6220	181.0000	800.00	1567	750.00	750.00	22.0000	750.00	84	\N	\N	0	950.00	950.00	356.0000	950.00	1739	\N	\N	0
+TBU	\N	\N	67968.81	68000.00	170.0000	68000.00	170	15.0000	59000.00	15	69000.00	69000.00	150.0000	69000.00	150	2.0000	51000.00	2	22796.04	\N	\N	\N	0	\N	\N	0	108000.00	108000.00	161.0000	69000.00	171	15.0000	59000.00	15	22796.04	\N	\N	\N	0	\N	\N	0	69000.00	69000.00	190.0000	69000.00	190	\N	\N	0
+TC	\N	\N	4100.00	4100.00	1.0000	7900.00	839	25.0000	4100.00	25	7000.00	7000.00	158.0000	7400.00	892	27.0000	7000.00	204	3848.04	\N	\N	\N	0	\N	\N	0	20000.00	20000.00	32.0000	20000.00	316	37.0000	4100.00	37	7500.00	7500.00	10.0000	18000.00	10	\N	\N	0	6500.00	6500.00	15.0000	6500.00	1079	98.0000	2500.00	98
+TCB	\N	\N	45000.00	50000.00	1.0000	51000.00	1	\N	\N	0	26000.00	26000.00	1.0000	26000.00	2	\N	\N	0	9540.45	\N	\N	\N	0	\N	\N	0	30000.00	30000.00	3.0000	34500.00	8	\N	\N	0	9540.45	\N	\N	\N	0	\N	\N	0	29900.00	29900.00	1.0000	25500.00	3	\N	\N	0
+TCL	\N	\N	4200.00	4200.00	313.0000	4200.00	6875	255.0000	3600.00	7687	3900.00	3900.00	191.0000	3900.00	6685	131.0000	3250.00	5137	3500.00	3500.00	96.0000	3500.00	429	\N	\N	0	3550.00	3550.00	965.0000	3750.00	9078	293.0000	3550.00	7801	3000.00	3000.00	\N	\N	0	20.0000	2000.00	20	3940.00	3940.00	60.0000	3930.00	3335	105.0000	3460.00	2368
+TCO	\N	\N	750.00	750.00	18.0000	750.00	5977	100.0000	420.00	1900	1000.00	1000.00	496.0000	1000.00	2880	50.0000	500.00	2510	500.00	500.00	9490.0000	500.00	20419	\N	\N	0	1270.00	1270.00	422.0000	1270.00	5577	500.0000	416.00	1270	130.00	130.00	93.0000	650.00	535	\N	\N	0	750.00	750.00	\N	\N	0	16.0000	515.00	772
+TCS	\N	\N	4847.30	4990.00	15.0000	4980.00	5688	89.0000	4010.00	1234	5611.44	5400.00	391.0000	5390.00	665	100.0000	4100.00	171	6264.19	6300.00	94.0000	9000.00	94	100.0000	5700.00	100	4218.46	3940.00	121.0000	5400.00	639	9.0000	3940.00	466	4400.00	4400.00	50.0000	8000.00	50	\N	\N	0	4890.00	4890.00	405.0000	4890.00	8540	\N	\N	0
+TCU	\N	\N	230000.00	230000.00	2.0000	200000.00	2	10.0000	91100.00	12	190000.00	190000.00	2.0000	200000.00	2	10.0000	90000.00	10	69683.38	\N	\N	\N	0	\N	\N	0	195000.00	195000.00	3.0000	300000.00	3	10.0000	196000.00	37	69683.38	\N	\N	\N	0	\N	\N	0	250000.00	250000.00	\N	\N	0	10.0000	96000.00	15
+THF	\N	\N	725.95	850.00	2901.0000	850.00	2901	320.0000	500.00	4761	599.72	600.00	245.0000	715.00	6490	1500.0000	431.00	7430	475.00	475.00	\N	\N	0	\N	\N	0	570.00	570.00	317.0000	570.00	26764	562.0000	430.00	11360	550.00	550.00	40.0000	550.00	40	\N	\N	0	506.01	565.00	496.0000	565.00	5838	\N	\N	0
+THP	\N	\N	6700.00	6700.00	6.0000	6700.00	2025	63.0000	5130.00	1063	7040.61	6900.00	364.0000	8400.00	727	30.0000	6900.00	213	2399.04	\N	\N	\N	0	\N	\N	0	7000.00	7000.00	8.0000	8000.00	929	184.0000	7000.00	1271	2399.04	\N	\N	\N	0	\N	\N	0	6000.00	6000.00	222.0000	8900.00	411	16.0000	6000.00	16
+TI	\N	\N	1930.00	1930.00	162.0000	2340.00	15670	49.0000	1930.00	2054	2390.00	2390.00	1141.0000	2390.00	9911	1000.0000	1900.00	2023	2000.00	2000.00	478.0000	2400.00	1523	\N	\N	0	2387.35	2390.00	4.0000	2390.00	22774	616.0000	1800.00	4716	2490.00	2490.00	76.0000	4000.00	76	\N	\N	0	2686.12	2700.00	428.0000	2700.00	3662	275.0000	2110.00	396
+TIO	74.00	\N	365.00	365.00	1304.0000	365.00	183633	26.0000	294.00	15502	300.00	300.00	8613.0000	300.00	20721	500.0000	255.00	42721	330.00	330.00	400.0000	280.00	2320	\N	\N	0	345.00	345.00	405.0000	345.00	54648	400.0000	275.00	18606	220.00	220.00	\N	\N	0	\N	\N	0	369.00	369.00	950.0000	369.00	1766	200.0000	242.00	3960
+TK	\N	\N	31000.00	31000.00	160.0000	48000.00	433	\N	\N	0	35500.00	35000.00	50.0000	39000.00	263	20.0000	35000.00	40	20250.62	\N	\N	\N	0	\N	\N	0	38000.00	38000.00	10.0000	38000.00	60	\N	\N	0	20250.62	\N	5.0000	41100.00	5	\N	\N	0	3950.00	3950.00	2.0000	38900.00	9	\N	\N	0
+TOR	\N	\N	900000.00	900000.00	12.0000	849000.00	29	\N	\N	0	280650.29	\N	\N	\N	0	\N	\N	0	280650.29	\N	\N	\N	0	\N	\N	0	1100000.00	1100000.00	1.0000	800000.00	4	\N	\N	0	280650.29	\N	\N	\N	0	\N	\N	0	400000.00	400000.00	\N	\N	0	\N	\N	0
+TPU	\N	\N	2450.00	2450.00	177.0000	3990.00	2479	67.0000	2410.00	802	2500.00	2500.00	135.0000	2500.00	635	\N	\N	0	1175.20	\N	\N	\N	0	\N	\N	0	4460.00	4460.00	10.0000	4460.00	686	489.0000	2500.00	489	1000.00	1000.00	\N	\N	0	\N	\N	0	3291.86	3500.00	188.0000	4100.00	681	\N	\N	0
+TRA	\N	\N	2034.15	2000.00	83.0000	2270.00	1593	\N	\N	0	1846.10	1840.00	48.0000	2650.00	490	\N	\N	0	840.01	\N	\N	\N	0	\N	\N	0	1810.00	1810.00	473.0000	2150.00	2831	183.0000	1810.00	683	840.01	\N	10.0000	2000.00	10	\N	\N	0	2730.00	2730.00	158.0000	2730.00	293	200.0000	1700.00	200
+TRN	\N	\N	520.00	520.00	150.0000	520.00	138141	1000.0000	511.00	164145	500.00	500.00	1492.0000	500.00	38451	4889.0000	495.00	122329	600.00	600.00	\N	\N	0	\N	\N	0	510.00	510.00	989.0000	510.00	93814	5000.0000	482.00	139478	50.00	50.00	1000.0000	700.00	1000	\N	\N	0	477.58	477.00	58.0000	508.00	29044	1930.0000	477.00	106224
+TRS	\N	\N	299666.67	300000.00	6.0000	300000.00	6	6.0000	230000.00	12	290000.00	290000.00	\N	\N	0	1.0000	220000.00	1	101058.03	\N	\N	\N	0	\N	\N	0	297300.00	300000.00	16.0000	300000.00	619	7.0000	260000.00	17	101058.03	\N	\N	\N	0	\N	\N	0	295000.00	295000.00	\N	\N	0	8.0000	231000.00	28
+TRU	\N	\N	620.00	620.00	41.0000	620.00	9312	352.0000	600.00	13271	711.27	711.00	29.0000	797.00	3749	1179.0000	711.00	3356	750.00	750.00	178.0000	750.00	178	\N	\N	0	640.00	640.00	96.0000	640.00	28805	500.0000	560.00	19451	550.00	550.00	110.0000	550.00	330	200.0000	500.00	200	640.00	640.00	1968.0000	640.00	15957	932.0000	619.00	1042
+TS	\N	\N	899.00	899.00	1569.0000	899.00	9759	1000.0000	122.00	2100	100.00	100.00	\N	\N	0	616.0000	63.00	2284	74.81	\N	\N	\N	0	\N	\N	0	550.00	550.00	572.0000	550.00	1743	100.0000	400.00	13195	74.81	\N	10.0000	399.00	10	\N	\N	0	207.00	207.00	\N	\N	0	93.0000	207.00	1662
+TSH	\N	\N	42900.00	42900.00	25.0000	42900.00	1168	5.0000	31600.00	809	44869.45	49400.00	207.0000	49400.00	437	4.0000	39100.00	79	60000.00	60000.00	\N	\N	0	\N	\N	0	39000.00	39000.00	50.0000	39000.00	473	2.0000	32000.00	632	40000.00	40000.00	9.0000	39000.00	16	\N	\N	0	45035.00	45000.00	25.0000	40000.00	148	1.0000	39000.00	77
+TUB	\N	\N	329.69	330.00	1000.0000	329.00	13762	231.0000	220.00	31537	279.17	289.00	2612.0000	289.00	11178	400.0000	155.00	5400	270.00	270.00	228.0000	270.00	646	\N	\N	0	270.18	332.00	60.0000	200.00	21882	1000.0000	180.00	27422	170.00	170.00	260.0000	170.00	1544	\N	\N	0	341.87	348.00	400.0000	348.00	38319	400.0000	155.00	26989
+UTS	3500.00	\N	19870.83	19900.00	15.0000	19900.00	418	21.0000	5800.00	3593	8222.13	8250.00	\N	\N	0	8.0000	6800.00	1424	5400.00	5400.00	\N	\N	0	\N	\N	0	7000.00	7000.00	2.0000	7500.00	385	228.0000	7000.00	1890	5900.00	5900.00	16.0000	6000.00	16	\N	\N	0	6950.00	6950.00	8.0000	6950.00	683	40.0000	6000.00	1329
+VCB	\N	\N	799000.00	799000.00	1.0000	799000.00	2	\N	\N	0	850000.00	850000.00	1.0000	878000.00	2	\N	\N	0	350872.81	\N	\N	\N	0	\N	\N	0	839000.00	839000.00	1.0000	839000.00	3	\N	\N	0	350872.81	\N	\N	\N	0	\N	\N	0	896000.00	896000.00	1.0000	896000.00	4	\N	\N	0
+VEG	88.00	\N	321.00	321.00	13.0000	321.00	28094	750.0000	320.00	27491	419.00	419.00	345.0000	419.00	13175	763.0000	410.00	12551	400.00	400.00	\N	\N	0	\N	\N	0	351.00	351.00	8.0000	434.00	12278	38.0000	351.00	14962	335.00	335.00	840.0000	375.00	840	303.0000	335.00	970	399.00	399.00	123.0000	399.00	19177	200.0000	342.00	33467
+VF	\N	\N	19.90	19.90	1000.0000	19.80	2324508	100000.0000	15.00	100000	22.00	22.00	6536.0000	22.00	148997	100000.0000	15.10	200000	16.14	\N	18763.0000	24.00	18763	\N	\N	0	15.00	15.00	85000.0000	19.40	643459	84000.0000	15.00	84000	24.00	24.00	90000.0000	24.00	90000	\N	\N	0	15.77	15.00	29931.0000	17.40	956536	41000.0000	15.00	41000
+VFT	\N	\N	2600000.00	2600000.00	1.0000	2600000.00	1	\N	\N	0	2600000.00	2600000.00	\N	\N	0	\N	\N	0	1029499.45	\N	\N	\N	0	\N	\N	0	2400000.00	2400000.00	\N	\N	0	\N	\N	0	1029499.45	\N	\N	\N	0	\N	\N	0	1029499.45	\N	\N	\N	0	\N	\N	0
+VG	\N	\N	2890.00	2890.00	86.0000	2890.00	2129	60.0000	1810.00	2183	2120.00	2120.00	168.0000	2120.00	6612	37.0000	1810.00	667	2190.00	2190.00	90.0000	2190.00	250	\N	\N	0	2439.29	2480.00	249.0000	2480.00	2211	143.0000	1900.00	1543	2400.00	2400.00	17.0000	2400.00	217	\N	\N	0	2380.00	2380.00	26.0000	2380.00	7857	30.0000	2260.00	2154
+VIT	\N	\N	585.83	560.00	376.0000	1080.00	7779	841.0000	560.00	1895	785.00	785.00	18012.0000	785.00	18012	500.0000	400.00	500	324.66	\N	\N	\N	0	\N	\N	0	982.90	987.00	450.0000	986.00	686	\N	\N	0	740.00	740.00	\N	\N	0	\N	\N	0	1120.55	1200.00	\N	\N	0	4.0000	800.00	33
+VOE	\N	\N	5400000.00	5400000.00	\N	\N	0	\N	\N	0	2949036.32	\N	1.0000	6000000.00	1	\N	\N	0	2949036.32	\N	\N	\N	0	\N	\N	0	5000000.00	5000000.00	\N	\N	0	\N	\N	0	2949036.32	\N	\N	\N	0	\N	\N	0	2949036.32	\N	\N	\N	0	\N	\N	0
+VOR	\N	\N	2553164.39	\N	\N	\N	0	\N	\N	0	2553164.39	\N	\N	\N	0	\N	\N	0	2553164.39	\N	\N	\N	0	\N	\N	0	2553164.39	\N	1.0000	4420000.00	1	\N	\N	0	2518066.46	\N	\N	\N	0	\N	\N	0	2553164.39	\N	\N	\N	0	\N	\N	0
+VSC	\N	\N	50000.00	50000.00	1.0000	40000.00	4	\N	\N	0	50000.00	50000.00	1.0000	50000.00	1	\N	\N	0	15937.35	\N	\N	\N	0	\N	\N	0	54800.00	54800.00	1.0000	54400.00	6	\N	\N	0	15937.35	\N	\N	\N	0	\N	\N	0	50000.00	50000.00	1.0000	40000.00	2	\N	\N	0
+W	\N	\N	16900.00	16900.00	31.0000	16900.00	3136	30.0000	15200.00	11362	16981.52	18400.00	10.0000	17000.00	1979	200.0000	16000.00	851	6250.14	\N	\N	\N	0	\N	\N	0	17176.75	17500.00	98.0000	17500.00	1960	500.0000	15300.00	1771	8900.00	8900.00	\N	\N	0	10.0000	8000.00	10	16900.00	16900.00	172.0000	16900.00	848	39.0000	15200.00	604
+WAI	\N	\N	95500.00	95500.00	45.0000	95500.00	615	88.0000	91000.00	251	91723.63	93000.00	13.0000	93000.00	329	20.0000	92000.00	80	100000.00	100000.00	37.0000	100000.00	248	\N	\N	0	96000.00	96000.00	33.0000	96000.00	688	20.0000	90600.00	170	51930.23	\N	\N	\N	0	\N	\N	0	90000.00	90000.00	46.0000	94000.00	171	99.0000	90000.00	200099
+WAL	\N	\N	7990.94	7990.00	191.0000	7990.00	2829	10.0000	6510.00	2212	6300.00	6300.00	40.0000	7500.00	1542	479.0000	6300.00	1549	2800.33	\N	\N	\N	0	\N	\N	0	9131.41	9000.00	12.0000	8990.00	8185	44.0000	6500.00	444	2800.33	\N	\N	\N	0	\N	\N	0	9500.00	9500.00	76.0000	9500.00	76	\N	\N	0
+WCB	\N	\N	960000.00	960000.00	3.0000	930000.00	18	1.0000	402000.00	2	800000.00	800000.00	2.0000	939000.00	7	\N	\N	0	347832.93	\N	\N	\N	0	\N	\N	0	870000.00	870000.00	2.0000	871000.00	29	1.0000	500000.00	4	347832.93	\N	\N	\N	0	\N	\N	0	790000.00	790000.00	3.0000	940000.00	4	1.0000	300000.00	2
+WIN	\N	\N	9000.00	9000.00	138.0000	14500.00	1712	30.0000	7830.00	4547	9890.00	9890.00	306.0000	9890.00	809	2000.0000	7600.00	3787	10000.00	10000.00	60.0000	12000.00	73	\N	\N	0	9590.00	9590.00	51.0000	9600.00	4933	2000.0000	7600.00	5203	12000.00	12000.00	2.0000	6480.00	22	\N	\N	0	9500.00	9500.00	4.0000	9500.00	915	1000.0000	7010.00	5931
+WM	\N	\N	11000.00	11000.00	264.0000	13000.00	313	80.0000	11000.00	99	12900.00	12900.00	19.0000	12900.00	54	8.0000	10000.00	9	6821.51	\N	\N	\N	0	\N	\N	0	12000.00	12000.00	56.0000	12000.00	243	82.0000	11000.00	192	6821.51	\N	\N	\N	0	\N	\N	0	11000.00	11000.00	\N	\N	0	\N	\N	0
+WOR	\N	\N	230000.00	230000.00	\N	\N	0	\N	\N	0	187935.04	220000.00	\N	\N	0	10.0000	160000.00	10	83894.73	\N	1.0000	200000.00	1	\N	\N	0	200000.00	200000.00	\N	\N	0	\N	\N	0	83894.73	\N	\N	\N	0	\N	\N	0	150000.00	150000.00	\N	\N	0	\N	\N	0
+WR	140000.00	\N	190000.00	190000.00	10.0000	155000.00	18	5.0000	150000.00	110	150000.00	150000.00	2.0000	150000.00	2	100.0000	140000.00	100	78235.62	\N	\N	\N	0	\N	\N	0	140000.00	140000.00	1.0000	150000.00	3	100.0000	140000.00	100	78235.62	\N	\N	\N	0	\N	\N	0	150000.00	150000.00	\N	\N	0	100.0000	140000.00	100
+WRH	\N	\N	7800.00	7800.00	1336.0000	7800.00	1904	10.0000	6000.00	190	10900.00	10900.00	736.0000	10900.00	2589	\N	\N	0	3393.95	\N	\N	\N	0	\N	\N	0	10019.90	9990.00	15.0000	9990.00	2539	40.0000	8100.00	806	3393.95	\N	\N	\N	0	\N	\N	0	9676.10	9970.00	545.0000	9970.00	1784	\N	\N	0
+WS	\N	\N	5820.00	5820.00	95.0000	5820.00	938	19.0000	5700.00	19	4880.00	4880.00	7.0000	4880.00	220	1.0000	3360.00	275	6000.00	6000.00	60.0000	5200.00	64	\N	\N	0	4385.35	4800.00	10.0000	4800.00	2112	100.0000	3900.00	1119	2599.57	\N	20.0000	5000.00	166	\N	\N	0	5150.00	5150.00	136.0000	5150.00	626	50.0000	3050.00	260
+ZIR	\N	\N	500.00	500.00	475.0000	500.00	19508	30.0000	250.00	1896	481.34	440.00	43.0000	540.00	13777	468.0000	440.00	1968	117.55	\N	552.0000	800.00	552	\N	\N	0	678.00	678.00	3105.0000	678.00	24032	50.0000	501.00	6550	648.00	648.00	20.0000	780.00	20	\N	\N	0	600.00	600.00	458.0000	600.00	6175	4.0000	325.00	1504
+ZR	\N	\N	16200.00	16200.00	198.0000	16200.00	491	4.0000	12000.00	84	17000.00	17000.00	446.0000	17000.00	487	200.0000	14200.00	300	7683.92	\N	\N	\N	0	\N	\N	0	16900.00	16900.00	106.0000	16900.00	308	100.0000	14000.00	270	15200.00	15200.00	10.0000	35000.00	10	\N	\N	0	14582.01	16500.00	34.0000	16500.00	166	104.0000	13500.00	164
+\.
+
+
+--
 -- Data for Name: questions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -3865,7 +8196,2812 @@ COPY public.questionslink (number, exam, link) FROM stdin;
 71	1z0-071	https://www.examtopics.com/discussions/oracle/view/126003-exam-1z0-071-topic-1-question-71-discussion/
 72	1z0-071	https://www.examtopics.com/discussions/oracle/view/111993-exam-1z0-071-topic-1-question-72-discussion/
 73	1z0-071	https://www.examtopics.com/discussions/oracle/view/110362-exam-1z0-071-topic-1-question-73-discussion/
+1	PSM I	https://www.examtopics.com/discussions/scrum/view/17519-exam-psm-i-topic-1-question-1-discussion/
+2	PSM I	https://www.examtopics.com/discussions/scrum/view/113253-exam-psm-i-topic-1-question-2-discussion/
+3	PSM I	https://www.examtopics.com/discussions/scrum/view/19354-exam-psm-i-topic-1-question-3-discussion/
+4	PSM I	https://www.examtopics.com/exams/scrum/psm-i/view/
+5	PSM I	https://www.examtopics.com/discussions/scrum/view/121405-exam-psm-i-topic-1-question-5-discussion/
+6	PSM I	https://www.examtopics.com/discussions/scrum/view/116796-exam-psm-i-topic-1-question-6-discussion/
 \.
+
+
+--
+-- Data for Name: recipe_inputs_raw; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.recipe_inputs_raw ("Key", "Material", "Amount") FROM stdin;
+AAF:10xSAR-1xSNM-1000xSPT-1xSST-2xTOR-4xTRS=>1xGWS	TOR	2
+AAF:10xSAR-1xSNM-1000xSPT-1xSST-2xTOR-4xTRS=>1xGWS	SNM	1
+AAF:10xSAR-1xSNM-1000xSPT-1xSST-2xTOR-4xTRS=>1xGWS	SST	1
+AAF:10xSAR-1xSNM-1000xSPT-1xSST-2xTOR-4xTRS=>1xGWS	SPT	1000
+AAF:10xSAR-1xSNM-1000xSPT-1xSST-2xTOR-4xTRS=>1xGWS	TRS	4
+AAF:10xSAR-1xSNM-1000xSPT-1xSST-2xTOR-4xTRS=>1xGWS	SAR	10
+AAF:1xBMF-1xDA-1xSA=>1xTAC	SA	1
+AAF:1xBMF-1xDA-1xSA=>1xTAC	BMF	1
+AAF:1xBMF-1xDA-1xSA=>1xTAC	DA	1
+AAF:1xBMF-1xSNM=>1xNV2	BMF	1
+AAF:1xBMF-1xSNM=>1xNV2	SNM	1
+AAF:1xCST-10xES-3xFC-6xFLP-1xPCB-1xSAR-1xWAI=>1xCRU	PCB	1
+AAF:1xCST-10xES-3xFC-6xFLP-1xPCB-1xSAR-1xWAI=>1xCRU	ES	10
+AAF:1xCST-10xES-3xFC-6xFLP-1xPCB-1xSAR-1xWAI=>1xCRU	FLP	6
+AAF:1xCST-10xES-3xFC-6xFLP-1xPCB-1xSAR-1xWAI=>1xCRU	WAI	1
+AAF:1xCST-10xES-3xFC-6xFLP-1xPCB-1xSAR-1xWAI=>1xCRU	FC	3
+AAF:1xCST-10xES-3xFC-6xFLP-1xPCB-1xSAR-1xWAI=>1xCRU	SAR	1
+AAF:1xCST-10xES-3xFC-6xFLP-1xPCB-1xSAR-1xWAI=>1xCRU	CST	1
+AAF:1xPFG-1xSDM-200xWRH=>1xSST	PFG	1
+AAF:1xPFG-1xSDM-200xWRH=>1xSST	WRH	200
+AAF:1xPFG-1xSDM-200xWRH=>1xSST	SDM	1
+AAF:1xTPU-1xWAI=>1xSTS	WAI	1
+AAF:1xTPU-1xWAI=>1xSTS	TPU	1
+AAF:2xCBM-1xFFC-2xFIR-2xRAG=>1xPFG	FFC	1
+AAF:2xCBM-1xFFC-2xFIR-2xRAG=>1xPFG	CBM	2
+AAF:2xCBM-1xFFC-2xFIR-2xRAG=>1xPFG	FIR	2
+AAF:2xCBM-1xFFC-2xFIR-2xRAG=>1xPFG	RAG	2
+AAF:8xFC-100xGV-1xPCB-10xSAR-20xTHF-1xWAI=>1xCC	FC	8
+AAF:8xFC-100xGV-1xPCB-10xSAR-20xTHF-1xWAI=>1xCC	PCB	1
+AAF:8xFC-100xGV-1xPCB-10xSAR-20xTHF-1xWAI=>1xCC	SAR	10
+AAF:8xFC-100xGV-1xPCB-10xSAR-20xTHF-1xWAI=>1xCC	GV	100
+AAF:8xFC-100xGV-1xPCB-10xSAR-20xTHF-1xWAI=>1xCC	THF	20
+AAF:8xFC-100xGV-1xPCB-10xSAR-20xTHF-1xWAI=>1xCC	WAI	1
+AML:2xBER=>1xAL-1xBE-1xSIO	BER	2
+AML:2xTAI=>1xFE-1xTA	TAI	2
+AML:2xZIR=>2xSIO-1xZR	ZIR	2
+AML:4xAL-1xBOR-1xSI=>4xBOS	BOR	1
+AML:4xAL-1xBOR-1xSI=>4xBOS	AL	4
+AML:4xAL-1xBOR-1xSI=>4xBOS	SI	1
+AML:4xNA-2xTAI=>1xFE-1xTA	NA	4
+AML:4xNA-2xTAI=>1xFE-1xTA	TAI	2
+AML:4xNA-2xZIR=>2xSIO-1xZR	NA	4
+AML:4xNA-2xZIR=>2xSIO-1xZR	ZIR	2
+AML:5xBTS=>1xW	BTS	5
+APF:1xAAR-1xBWS-4xRAD=>1xCOM	AAR	1
+APF:1xAAR-1xBWS-4xRAD=>1xCOM	BWS	1
+APF:1xAAR-1xBWS-4xRAD=>1xCOM	RAD	4
+APF:1xAIR-1xBMF-1xWAI-1xWR=>1xLIS	BMF	1
+APF:1xAIR-1xBMF-1xWAI-1xWR=>1xLIS	AIR	1
+APF:1xAIR-1xBMF-1xWAI-1xWR=>1xLIS	WR	1
+APF:1xAIR-1xBMF-1xWAI-1xWR=>1xLIS	WAI	1
+APF:1xAWF-1xFC-12xFLP-1xPCB-1xSEN-1xWAI=>1xWR	AWF	1
+APF:1xAWF-1xFC-12xFLP-1xPCB-1xSEN-1xWAI=>1xWR	FC	1
+APF:1xAWF-1xFC-12xFLP-1xPCB-1xSEN-1xWAI=>1xWR	WAI	1
+APF:1xAWF-1xFC-12xFLP-1xPCB-1xSEN-1xWAI=>1xWR	FLP	12
+APF:1xAWF-1xFC-12xFLP-1xPCB-1xSEN-1xWAI=>1xWR	SEN	1
+APF:1xAWF-1xFC-12xFLP-1xPCB-1xSEN-1xWAI=>1xWR	PCB	1
+APF:1xBAC-1xFC-1xGV-1xH2O-1xHCP-1xNS-1xPCB-1xSAR-1xWAI=>1xAIR	WAI	1
+APF:1xBAC-1xFC-1xGV-1xH2O-1xHCP-1xNS-1xPCB-1xSAR-1xWAI=>1xAIR	PCB	1
+APF:1xBAC-1xFC-1xGV-1xH2O-1xHCP-1xNS-1xPCB-1xSAR-1xWAI=>1xAIR	GV	1
+APF:1xBAC-1xFC-1xGV-1xH2O-1xHCP-1xNS-1xPCB-1xSAR-1xWAI=>1xAIR	SAR	1
+APF:1xBAC-1xFC-1xGV-1xH2O-1xHCP-1xNS-1xPCB-1xSAR-1xWAI=>1xAIR	H2O	1
+APF:1xBAC-1xFC-1xGV-1xH2O-1xHCP-1xNS-1xPCB-1xSAR-1xWAI=>1xAIR	HCP	1
+APF:1xBAC-1xFC-1xGV-1xH2O-1xHCP-1xNS-1xPCB-1xSAR-1xWAI=>1xAIR	NS	1
+APF:1xBAC-1xFC-1xGV-1xH2O-1xHCP-1xNS-1xPCB-1xSAR-1xWAI=>1xAIR	BAC	1
+APF:1xBAC-1xFC-1xGV-1xH2O-1xHCP-1xNS-1xPCB-1xSAR-1xWAI=>1xAIR	FC	1
+APF:1xBMF-1xDA-5xW-1xWAI=>1xFFC	W	5
+APF:1xBMF-1xDA-5xW-1xWAI=>1xFFC	DA	1
+APF:1xBMF-1xDA-5xW-1xWAI=>1xFFC	WAI	1
+APF:1xBMF-1xDA-5xW-1xWAI=>1xFFC	BMF	1
+APF:1xBMF-1xLD-1xSAL=>1xLOG	LD	1
+APF:1xBMF-1xLD-1xSAL=>1xLOG	BMF	1
+APF:1xBMF-1xLD-1xSAL=>1xLOG	SAL	1
+APF:1xBWS-1xDA-1xOS-1xSAR=>1xRCS	SAR	1
+APF:1xBWS-1xDA-1xOS-1xSAR=>1xRCS	DA	1
+APF:1xBWS-1xDA-1xOS-1xSAR=>1xRCS	OS	1
+APF:1xBWS-1xDA-1xOS-1xSAR=>1xRCS	BWS	1
+APF:1xBWS-1xDA=>20xWS	DA	1
+APF:1xBWS-1xDA=>20xWS	BWS	1
+APF:1xBWS-1xOS-8xTRA=>1xADS	TRA	8
+APF:1xBWS-1xOS-8xTRA=>1xADS	BWS	1
+APF:1xBWS-1xOS-8xTRA=>1xADS	OS	1
+APF:1xFC-1xSAR-10xTHF-1xWAI=>1xACS	SAR	1
+APF:1xFC-1xSAR-10xTHF-1xWAI=>1xACS	THF	10
+APF:1xFC-1xSAR-10xTHF-1xWAI=>1xACS	FC	1
+APF:1xFC-1xSAR-10xTHF-1xWAI=>1xACS	WAI	1
+APF:1xSNM-1xWS=>1xNV1	SNM	1
+APF:1xSNM-1xWS=>1xNV1	WS	1
+APF:1xSTS-10xTRS=>1xSDM	STS	1
+APF:1xSTS-10xTRS=>1xSDM	TRS	10
+APF:2xHPC-1xLD=>32xPDA	LD	1
+APF:2xHPC-1xLD=>32xPDA	HPC	2
+ASM:1xAL-3xTI=>4xAST	TI	3
+ASM:1xAL-3xTI=>4xAST	AL	1
+ASM:1xAL-5xRE=>6xALR	RE	5
+ASM:1xAL-5xRE=>6xALR	AL	1
+ASM:1xFE-3xTI=>4xFET	FE	1
+ASM:1xFE-3xTI=>4xFET	TI	3
+ASM:1xO-1xSI-2xWAL=>1xCTF	WAL	2
+ASM:1xO-1xSI-2xWAL=>1xCTF	SI	1
+ASM:1xO-1xSI-2xWAL=>1xCTF	O	1
+ASM:3xAL-1xW=>4xWAL	W	1
+ASM:3xAL-1xW=>4xWAL	AL	3
+ASM:3xAL-3xFE=>6xFAL	AL	3
+ASM:3xAL-3xFE=>6xFAL	FE	3
+ASM:4xRE-2xW=>6xWRH	RE	4
+ASM:4xRE-2xW=>6xWRH	W	2
+BMP:100xPE-25xPG=>20xOVE	PE	100
+BMP:100xPE-25xPG=>20xOVE	PG	25
+BMP:10xC-20xOVE=>20xSUN	OVE	20
+BMP:10xC-20xOVE=>20xSUN	C	10
+BMP:10xINS-1xMFK-1xSFK=>4xREP	MFK	1
+BMP:10xINS-1xMFK-1xSFK=>4xREP	INS	10
+BMP:10xINS-1xMFK-1xSFK=>4xREP	SFK	1
+BMP:1xAL-10xOVE-1xSWF=>10xEXO	OVE	10
+BMP:1xAL-10xOVE-1xSWF=>10xEXO	SWF	1
+BMP:1xAL-10xOVE-1xSWF=>10xEXO	AL	1
+BMP:1xAL-10xOVE=>10xEXO	OVE	10
+BMP:1xAL-10xOVE=>10xEXO	AL	1
+BMP:1xAL-1xMFK-10xOVE=>10xEXO	MFK	1
+BMP:1xAL-1xMFK-10xOVE=>10xEXO	OVE	10
+BMP:1xAL-1xMFK-10xOVE=>10xEXO	AL	1
+BMP:1xC-2xH=>200xPE	H	2
+BMP:1xC-2xH=>200xPE	C	1
+BMP:1xCOT-10xPG=>30xOVE	COT	1
+BMP:1xCOT-10xPG=>30xOVE	PG	10
+BMP:1xCOT-50xPG=>20xPWO	PG	50
+BMP:1xCOT-50xPG=>20xPWO	COT	1
+BMP:1xMGS=>6xMG	MGS	1
+BMP:1xSTL-1xTRN=>7xPT	TRN	1
+BMP:1xSTL-1xTRN=>7xPT	STL	1
+BMP:1xSTL-1xW=>10xPT	W	1
+BMP:1xSTL-1xW=>10xPT	STL	1
+BMP:1xSTL-1xW=>15xPT	W	1
+BMP:1xSTL-1xW=>15xPT	STL	1
+BMP:1xSTL=>5xPT	STL	1
+BMP:20xEPO-20xPG=>50xOFF	EPO	20
+BMP:20xEPO-20xPG=>50xOFF	PG	20
+BMP:2xSFK-1xSTL=>6xPT	STL	1
+BMP:2xSFK-1xSTL=>6xPT	SFK	2
+BMP:30xPG-1xS-1xSI=>30xSEA	PG	30
+BMP:30xPG-1xS-1xSI=>30xSEA	S	1
+BMP:30xPG-1xS-1xSI=>30xSEA	SI	1
+BMP:3xCLI=>1xI	CLI	3
+BMP:4xAL-50xPE=>2xSTR	AL	4
+BMP:4xAL-50xPE=>2xSTR	PE	50
+BMP:4xLST-2xSIO=>50xMCG	LST	4
+BMP:4xLST-2xSIO=>50xMCG	SIO	2
+BMP:50xPE-1xRCO=>20xOVE	RCO	1
+BMP:50xPE-1xRCO=>20xOVE	PE	50
+CHP:10xAMM-4xREA=>10xPFE	REA	4
+CHP:10xAMM-4xREA=>10xPFE	AMM	10
+CHP:10xREA-6xVEG=>6xOLF	VEG	6
+CHP:10xREA-6xVEG=>6xOLF	REA	10
+CHP:1xAL-4xCOT-1xHER-50xPE=>16xMED	HER	1
+CHP:1xAL-4xCOT-1xHER-50xPE=>16xMED	COT	4
+CHP:1xAL-4xCOT-1xHER-50xPE=>16xMED	PE	50
+CHP:1xAL-4xCOT-1xHER-50xPE=>16xMED	AL	1
+CHP:1xBOR-5xH-1xNA=>20xNAB	NA	1
+CHP:1xBOR-5xH-1xNA=>20xNAB	H	5
+CHP:1xBOR-5xH-1xNA=>20xNAB	BOR	1
+CHP:1xCU-1xMG-1xS=>1xIND	MG	1
+CHP:1xCU-1xMG-1xS=>1xIND	S	1
+CHP:1xCU-1xMG-1xS=>1xIND	CU	1
+CHP:1xH2O-3xHAL=>1xCL-2xNA	H2O	1
+CHP:1xH2O-3xHAL=>1xCL-2xNA	HAL	3
+CHP:1xLST=>10xFLX	LST	1
+CHP:1xLST=>1xCA	LST	1
+CHP:1xO-1xSI=>1xLCR	O	1
+CHP:1xO-1xSI=>1xLCR	SI	1
+CHP:20xBRM-10xCLI=>16xSOI	BRM	20
+CHP:20xBRM-10xCLI=>16xSOI	CLI	10
+CHP:25xBRM=>10xREA	BRM	25
+CHP:2xCA-1xMG-1xTA=>20xSC	TA	1
+CHP:2xCA-1xMG-1xTA=>20xSC	CA	2
+CHP:2xCA-1xMG-1xTA=>20xSC	MG	1
+CHP:2xH2O-1xLST-2xN=>4xNS	N	2
+CHP:2xH2O-1xLST-2xN=>4xNS	H2O	2
+CHP:2xH2O-1xLST-2xN=>4xNS	LST	1
+CLF:1xBLE-10xHD-10xPCB-2xSIL=>10xLC	SIL	2
+CLF:1xBLE-10xHD-10xPCB-2xSIL=>10xLC	BLE	1
+CLF:1xBLE-10xHD-10xPCB-2xSIL=>10xLC	HD	10
+CLF:1xBLE-10xHD-10xPCB-2xSIL=>10xLC	PCB	10
+CLF:1xBLE-5xNL-5xPCB-5xSEN=>20xHSS	SEN	5
+CLF:1xBLE-5xNL-5xPCB-5xSEN=>20xHSS	NL	5
+CLF:1xBLE-5xNL-5xPCB-5xSEN=>20xHSS	PCB	5
+CLF:1xBLE-5xNL-5xPCB-5xSEN=>20xHSS	BLE	1
+CLF:1xKV-10xMTC=>100xSPT	MTC	10
+CLF:1xKV-10xMTC=>100xSPT	KV	1
+CLF:6xGC-1xIND-1xNL=>10xHMS	NL	1
+CLF:6xGC-1xIND-1xNL=>10xHMS	IND	1
+CLF:6xGC-1xIND-1xNL=>10xHMS	GC	6
+CLR:10xC-2xSI=>1200xNFI	SI	2
+CLR:10xC-2xSI=>1200xNFI	C	10
+CLR:1xAL-1xSI=>10xTRN	SI	1
+CLR:1xAL-1xSI=>10xTRN	AL	1
+CLR:1xAL-1xSI=>30xSWF	AL	1
+CLR:1xAL-1xSI=>30xSWF	SI	1
+CLR:1xC=>100xNCS	C	1
+CLR:1xCAP-1xSWF-1xTRN=>1xTRA	SWF	1
+CLR:1xCAP-1xSWF-1xTRN=>1xTRA	CAP	1
+CLR:1xCAP-1xSWF-1xTRN=>1xTRA	TRN	1
+CLR:1xCBM-4xCF=>1xMFE	CF	4
+CLR:1xCBM-4xCF=>1xMFE	CBM	1
+CLR:1xCBS-2xCF=>1xSFE	CBS	1
+CLR:1xCBS-2xCF=>1xSFE	CF	2
+CLR:1xFE-1xSI=>15xCAP	SI	1
+CLR:1xFE-1xSI=>15xCAP	FE	1
+CLR:1xGAL-1xSI=>6xLDI	SI	1
+CLR:1xGAL-1xSI=>6xLDI	GAL	1
+CLR:2xAL-2xSI=>20xMWF	SI	2
+CLR:2xAL-2xSI=>20xMWF	AL	2
+CLR:2xNCS=>2xMTC	NCS	2
+DRS:1xBSC-1xDCH-1xSAR=>1xSUD	BSC	1
+DRS:1xBSC-1xDCH-1xSAR=>1xSUD	DCH	1
+DRS:1xBSC-1xDCH-1xSAR=>1xSUD	SAR	1
+DRS:1xBSC-1xDCH-1xSEQ=>1xSDR	BSC	1
+DRS:1xBSC-1xDCH-1xSEQ=>1xSDR	DCH	1
+DRS:1xBSC-1xDCH-1xSEQ=>1xSDR	SEQ	1
+DRS:1xBSC-1xDCH=>1xCCD	DCH	1
+DRS:1xBSC-1xDCH=>1xCCD	BSC	1
+DRS:1xDCH-1xSAR-2xUTS=>1xSRD	SAR	1
+DRS:1xDCH-1xSAR-2xUTS=>1xSRD	UTS	2
+DRS:1xDCH-1xSAR-2xUTS=>1xSRD	DCH	1
+DRS:1xDCH-1xSAR=>1xRED	SAR	1
+DRS:1xDCH-1xSAR=>1xRED	DCH	1
+DRS:1xDCS-50xNFI=>1xDRF	DCS	1
+DRS:1xDCS-50xNFI=>1xDRF	NFI	50
+DRS:1xDRF-1xMPC-1xPOW-1xSOL=>1xDCH	DRF	1
+DRS:1xDRF-1xMPC-1xPOW-1xSOL=>1xDCH	MPC	1
+DRS:1xDRF-1xMPC-1xPOW-1xSOL=>1xDCH	POW	1
+DRS:1xDRF-1xMPC-1xPOW-1xSOL=>1xDCH	SOL	1
+ECA:12xBE-60xHCC-12xLI-150xPG=>1xCBL	LI	12
+ECA:12xBE-60xHCC-12xLI-150xPG=>1xCBL	HCC	60
+ECA:12xBE-60xHCC-12xLI-150xPG=>1xCBL	BE	12
+ECA:12xBE-60xHCC-12xLI-150xPG=>1xCBL	PG	150
+ECA:1xACS-1xAFR-20xCTF-10xKRE-1xPFG-1xRCS=>1xVOR	PFG	1
+ECA:1xACS-1xAFR-20xCTF-10xKRE-1xPFG-1xRCS=>1xVOR	KRE	10
+ECA:1xACS-1xAFR-20xCTF-10xKRE-1xPFG-1xRCS=>1xVOR	CTF	20
+ECA:1xACS-1xAFR-20xCTF-10xKRE-1xPFG-1xRCS=>1xVOR	RCS	1
+ECA:1xACS-1xAFR-20xCTF-10xKRE-1xPFG-1xRCS=>1xVOR	AFR	1
+ECA:1xACS-1xAFR-20xCTF-10xKRE-1xPFG-1xRCS=>1xVOR	ACS	1
+ECA:1xACS-8xAFR-10xCTF-4xEES-1xRCS-10xWAL=>1xFIR	AFR	8
+ECA:1xACS-8xAFR-10xCTF-4xEES-1xRCS-10xWAL=>1xFIR	EES	4
+ECA:1xACS-8xAFR-10xCTF-4xEES-1xRCS-10xWAL=>1xFIR	RCS	1
+ECA:1xACS-8xAFR-10xCTF-4xEES-1xRCS-10xWAL=>1xFIR	CTF	10
+ECA:1xACS-8xAFR-10xCTF-4xEES-1xRCS-10xWAL=>1xFIR	ACS	1
+ECA:1xACS-8xAFR-10xCTF-4xEES-1xRCS-10xWAL=>1xFIR	WAL	10
+ECA:1xACS-8xAST-4xBFR-6xCF-4xETC-1xRCS=>1xRAG	ETC	4
+ECA:1xACS-8xAST-4xBFR-6xCF-4xETC-1xRCS=>1xRAG	CF	6
+ECA:1xACS-8xAST-4xBFR-6xCF-4xETC-1xRCS=>1xRAG	RCS	1
+ECA:1xACS-8xAST-4xBFR-6xCF-4xETC-1xRCS=>1xRAG	ACS	1
+ECA:1xACS-8xAST-4xBFR-6xCF-4xETC-1xRCS=>1xRAG	BFR	4
+ECA:1xACS-8xAST-4xBFR-6xCF-4xETC-1xRCS=>1xRAG	AST	8
+ECA:20xBCO-6xBE-6xLI-60xPG=>1xCBS	LI	6
+ECA:20xBCO-6xBE-6xLI-60xPG=>1xCBS	BCO	20
+ECA:20xBCO-6xBE-6xLI-60xPG=>1xCBS	PG	60
+ECA:20xBCO-6xBE-6xLI-60xPG=>1xCBS	BE	6
+ECA:4xBCO-1xBRO-2xCU-2xSI=>12xSOL	CU	2
+ECA:4xBCO-1xBRO-2xCU-2xSI=>12xSOL	BCO	4
+ECA:4xBCO-1xBRO-2xCU-2xSI=>12xSOL	BRO	1
+ECA:4xBCO-1xBRO-2xCU-2xSI=>12xSOL	SI	2
+ECA:4xLI-1xNCS=>1xPOW	NCS	1
+ECA:4xLI-1xNCS=>1xPOW	LI	4
+ECA:8xBE-40xBGC-8xLI-120xPG=>1xCBM	BE	8
+ECA:8xBE-40xBGC-8xLI-120xPG=>1xCBM	PG	120
+ECA:8xBE-40xBGC-8xLI-120xPG=>1xCBM	LI	8
+ECA:8xBE-40xBGC-8xLI-120xPG=>1xCBM	BGC	40
+ECA:8xGL-24xSOL=>12xSP	SOL	24
+ECA:8xGL-24xSOL=>12xSP	GL	8
+EDM:1xDCS-1xHD-1xNG=>1xHOG	NG	1
+EDM:1xDCS-1xHD-1xNG=>1xHOG	DCS	1
+EDM:1xDCS-1xHD-1xNG=>1xHOG	HD	1
+EDM:1xDCS-1xPOW-1xSFK=>1xRAD	DCS	1
+EDM:1xDCS-1xPOW-1xSFK=>1xRAD	POW	1
+EDM:1xDCS-1xPOW-1xSFK=>1xRAD	SFK	1
+EDM:1xPCB-1xTRA=>1xMHP	TRA	1
+EDM:1xPCB-1xTRA=>1xMHP	PCB	1
+EDM:2xCD-1xKV-2xSAR=>2xBID	KV	1
+EDM:2xCD-1xKV-2xSAR=>2xBID	SAR	2
+EDM:2xCD-1xKV-2xSAR=>2xBID	CD	2
+EDM:4xCU-100xPE=>8xSCN	CU	4
+EDM:4xCU-100xPE=>8xSCN	PE	100
+EEP:1xES-4xFLX-16xKR-4xREA=>4xKRE	KR	16
+EEP:1xES-4xFLX-16xKR-4xREA=>4xKRE	FLX	4
+EEP:1xES-4xFLX-16xKR-4xREA=>4xKRE	REA	4
+EEP:1xES-4xFLX-16xKR-4xREA=>4xKRE	ES	1
+EEP:1xES-4xFLX-4xREA=>1xEES	REA	4
+EEP:1xES-4xFLX-4xREA=>1xEES	FLX	4
+EEP:1xES-4xFLX-4xREA=>1xEES	ES	1
+EEP:1xLES=>10xES	LES	1
+ELP:10xBAC-1xMAG-10xPE=>5xAWF	MAG	1
+ELP:10xBAC-1xMAG-10xPE=>5xAWF	BAC	10
+ELP:10xBAC-1xMAG-10xPE=>5xAWF	PE	10
+ELP:1xCBL-3xCTF=>1xLFE	CTF	3
+ELP:1xCBL-3xCTF=>1xLFE	CBL	1
+ELP:1xCD-1xDCS-1xMB=>1xHPC	DCS	1
+ELP:1xCD-1xDCS-1xMB=>1xHPC	CD	1
+ELP:1xCD-1xDCS-1xMB=>1xHPC	MB	1
+ELP:1xDCL-1xFAN-1xMB-1xTPU=>1xBMF	TPU	1
+ELP:1xDCL-1xFAN-1xMB-1xTPU=>1xBMF	FAN	1
+ELP:1xDCL-1xFAN-1xMB-1xTPU=>1xBMF	DCL	1
+ELP:1xDCL-1xFAN-1xMB-1xTPU=>1xBMF	MB	1
+ELP:1xDCM-1xHD-1xMB=>1xBWS	HD	1
+ELP:1xDCM-1xHD-1xMB=>1xBWS	MB	1
+ELP:1xDCM-1xHD-1xMB=>1xBWS	DCM	1
+ELP:2xAU-1xKV-4xPCB-6xSWF=>3xAAR	KV	1
+ELP:2xAU-1xKV-4xPCB-6xSWF=>3xAAR	AU	2
+ELP:2xAU-1xKV-4xPCB-6xSWF=>3xAAR	PCB	4
+ELP:2xAU-1xKV-4xPCB-6xSWF=>3xAAR	SWF	6
+ELP:2xBCO-1xDIS=>1xCD	BCO	2
+ELP:2xBCO-1xDIS=>1xCD	DIS	1
+ELP:4xPCB-16xSEN=>1xSAR	PCB	4
+ELP:4xPCB-16xSEN=>1xSAR	SEN	16
+FER:1xAMM-1xCA-10xDW-1xI-4xPIB=>20xVIT	DW	10
+FER:1xAMM-1xCA-10xDW-1xI-4xPIB=>20xVIT	AMM	1
+FER:1xAMM-1xCA-10xDW-1xI-4xPIB=>20xVIT	PIB	4
+FER:1xAMM-1xCA-10xDW-1xI-4xPIB=>20xVIT	I	1
+FER:1xAMM-1xCA-10xDW-1xI-4xPIB=>20xVIT	CA	1
+FER:1xAMM-20xDW-15xGRA-15xREA=>10xWIN	GRA	15
+FER:1xAMM-20xDW-15xGRA-15xREA=>10xWIN	REA	15
+FER:1xAMM-20xDW-15xGRA-15xREA=>10xWIN	DW	20
+FER:1xAMM-20xDW-15xGRA-15xREA=>10xWIN	AMM	1
+FER:1xAMM-2xDW-1xES-2xGRN=>4xGIN	DW	2
+FER:1xAMM-2xDW-1xES-2xGRN=>4xGIN	AMM	1
+FER:1xAMM-2xDW-1xES-2xGRN=>4xGIN	ES	1
+FER:1xAMM-2xDW-1xES-2xGRN=>4xGIN	GRN	2
+FER:1xAMM-3xDW-2xGRN-1xHOP=>6xALE	DW	3
+FER:1xAMM-3xDW-2xGRN-1xHOP=>6xALE	AMM	1
+FER:1xAMM-3xDW-2xGRN-1xHOP=>6xALE	HOP	1
+FER:1xAMM-3xDW-2xGRN-1xHOP=>6xALE	GRN	2
+FER:1xAMM-4xDW-1xHER=>6xKOM	DW	4
+FER:1xAMM-4xDW-1xHER=>6xKOM	AMM	1
+FER:1xAMM-4xDW-1xHER=>6xKOM	HER	1
+FP:10xH2O-1xPG=>10xDW	H2O	10
+FP:10xH2O-1xPG=>10xDW	PG	1
+FP:10xH2O=>7xDW	H2O	10
+FP:1xALG-1xBEA-1xH2O=>6xPPA	H2O	1
+FP:1xALG-1xBEA-1xH2O=>6xPPA	ALG	1
+FP:1xALG-1xBEA-1xH2O=>6xPPA	BEA	1
+FP:1xALG-1xGRN-1xNUT=>10xRAT	ALG	1
+FP:1xALG-1xGRN-1xNUT=>10xRAT	NUT	1
+FP:1xALG-1xGRN-1xNUT=>10xRAT	GRN	1
+FP:1xALG-1xGRN-1xVEG=>10xRAT	GRN	1
+FP:1xALG-1xGRN-1xVEG=>10xRAT	ALG	1
+FP:1xALG-1xGRN-1xVEG=>10xRAT	VEG	1
+FP:1xALG-1xMAI-1xNUT=>10xRAT	ALG	1
+FP:1xALG-1xMAI-1xNUT=>10xRAT	MAI	1
+FP:1xALG-1xMAI-1xNUT=>10xRAT	NUT	1
+FP:1xALG-1xMAI-1xVEG=>10xRAT	ALG	1
+FP:1xALG-1xMAI-1xVEG=>10xRAT	VEG	1
+FP:1xALG-1xMAI-1xVEG=>10xRAT	MAI	1
+FP:1xBEA-1xGRN-1xNUT=>10xRAT	BEA	1
+FP:1xBEA-1xGRN-1xNUT=>10xRAT	NUT	1
+FP:1xBEA-1xGRN-1xNUT=>10xRAT	GRN	1
+FP:1xBEA-1xGRN-1xVEG=>10xRAT	BEA	1
+FP:1xBEA-1xGRN-1xVEG=>10xRAT	GRN	1
+FP:1xBEA-1xGRN-1xVEG=>10xRAT	VEG	1
+FP:1xBEA-1xMAI-1xNUT=>10xRAT	BEA	1
+FP:1xBEA-1xMAI-1xNUT=>10xRAT	NUT	1
+FP:1xBEA-1xMAI-1xNUT=>10xRAT	MAI	1
+FP:1xBEA-1xMAI-1xVEG=>10xRAT	BEA	1
+FP:1xBEA-1xMAI-1xVEG=>10xRAT	MAI	1
+FP:1xBEA-1xMAI-1xVEG=>10xRAT	VEG	1
+FP:1xCAF-3xDW=>3xCOF	CAF	1
+FP:1xCAF-3xDW=>3xCOF	DW	3
+FP:1xGRN-1xMUS-1xNUT=>10xRAT	GRN	1
+FP:1xGRN-1xMUS-1xNUT=>10xRAT	MUS	1
+FP:1xGRN-1xMUS-1xNUT=>10xRAT	NUT	1
+FP:1xGRN-1xMUS-1xVEG=>10xRAT	GRN	1
+FP:1xGRN-1xMUS-1xVEG=>10xRAT	MUS	1
+FP:1xGRN-1xMUS-1xVEG=>10xRAT	VEG	1
+FP:1xHER-2xRAT=>2xFIM	HER	1
+FP:1xHER-2xRAT=>2xFIM	RAT	2
+FP:1xMAI-1xMUS-1xNUT=>10xRAT	MUS	1
+FP:1xMAI-1xMUS-1xNUT=>10xRAT	MAI	1
+FP:1xMAI-1xMUS-1xNUT=>10xRAT	NUT	1
+FP:1xMAI-1xMUS-1xVEG=>10xRAT	MAI	1
+FP:1xMAI-1xMUS-1xVEG=>10xRAT	VEG	1
+FP:1xMAI-1xMUS-1xVEG=>10xRAT	MUS	1
+FP:2xALG-1xH2O=>4xPPA	ALG	2
+FP:2xALG-1xH2O=>4xPPA	H2O	1
+FP:2xBEA-1xH2O=>4xPPA	BEA	2
+FP:2xBEA-1xH2O=>4xPPA	H2O	1
+FP:2xFIM-1xMTP=>2xMEA	FIM	2
+FP:2xFIM-1xMTP=>2xMEA	MTP	1
+FP:5xMAI-5xNUT-5xVEG=>16xFOD	VEG	5
+FP:5xMAI-5xNUT-5xVEG=>16xFOD	MAI	5
+FP:5xMAI-5xNUT-5xVEG=>16xFOD	NUT	5
+FRM:1xDDT-4xH2O=>4xHER	DDT	1
+FRM:1xDDT-4xH2O=>4xHER	H2O	4
+FRM:1xH2O=>12xNUT	H2O	1
+FRM:1xH2O=>2xBEA	H2O	1
+FRM:1xH2O=>4xGRN	H2O	1
+FRM:2xH2O-4xNS=>2xRCO	H2O	2
+FRM:2xH2O-4xNS=>2xRCO	NS	4
+FRM:2xH2O=>1xRCO	H2O	2
+FRM:2xH2O=>4xHCP	H2O	2
+FRM:3xH2O=>4xVEG	H2O	3
+FRM:4xH2O=>12xMAI	H2O	4
+FRM:4xH2O=>4xGRN	H2O	4
+FRM:6xH2O=>4xBEA	H2O	6
+FS:10xAL-4xSTL=>1xFLO	AL	10
+FS:10xAL-4xSTL=>1xFLO	STL	4
+FS:1xAL-1xSTL=>1xBFR	AL	1
+FS:1xAL-1xSTL=>1xBFR	STL	1
+FS:1xAL-1xZR=>1xAFR	AL	1
+FS:1xAL-1xZR=>1xAFR	ZR	1
+FS:1xAL-2xCU=>3xBRO	CU	2
+FS:1xAL-2xCU=>3xBRO	AL	1
+FS:1xBGO-300xPE=>10xBGC	PE	300
+FS:1xBGO-300xPE=>10xBGC	BGO	1
+FS:1xCU-300xPE=>10xBCO	PE	300
+FS:1xCU-300xPE=>10xBCO	CU	1
+FS:1xFE=>16xSFK	FE	1
+FS:1xHOG-2xSTL-2xTI=>1xSEQ	STL	2
+FS:1xHOG-2xSTL-2xTI=>1xSEQ	TI	2
+FS:1xHOG-2xSTL-2xTI=>1xSEQ	HOG	1
+FS:1xSTL=>8xMFK	STL	1
+FS:300xPE-1xRGO=>10xHCC	PE	300
+FS:300xPE-1xRGO=>10xHCC	RGO	1
+FS:4xAU-1xCU=>5xRGO	CU	1
+FS:4xAU-1xCU=>5xRGO	AU	4
+FS:4xAU-1xFE=>5xBGO	AU	4
+FS:4xAU-1xFE=>5xBGO	FE	1
+FS:6xFE-2xSFK=>1xUTS	FE	6
+FS:6xFE-2xSFK=>1xUTS	SFK	2
+GF:10xGL-10xNCS=>10xNG	GL	10
+GF:10xGL-10xNCS=>10xNG	NCS	10
+GF:10xGL-15xPG-1xSEN=>10xRG	GL	10
+GF:10xGL-15xPG-1xSEN=>10xRG	SEN	1
+GF:10xGL-15xPG-1xSEN=>10xRG	PG	15
+GF:10xGL-15xPG=>10xRG	PG	15
+GF:10xGL-15xPG=>10xRG	GL	10
+GF:10xGL=>20xTUB	GL	10
+GF:16xNE-8xRG=>1xLIT	NE	16
+GF:16xNE-8xRG=>1xLIT	RG	8
+GF:1xFLX-1xNA-2xSIO=>12xGL	SIO	2
+GF:1xFLX-1xNA-2xSIO=>12xGL	NA	1
+GF:1xFLX-1xNA-2xSIO=>12xGL	FLX	1
+GF:1xGCH-20xRG-1xTI=>1xGNZ	RG	20
+GF:1xGCH-20xRG-1xTI=>1xGNZ	TI	1
+GF:1xGCH-20xRG-1xTI=>1xGNZ	GCH	1
+GF:1xGV-20xRG=>1xGCH	GV	1
+GF:1xGV-20xRG=>1xGCH	RG	20
+GF:1xNA-1xSEN-2xSIO=>10xGL	SIO	2
+GF:1xNA-1xSEN-2xSIO=>10xGL	NA	1
+GF:1xNA-1xSEN-2xSIO=>10xGL	SEN	1
+GF:1xNA-2xSIO=>10xGL	SIO	2
+GF:1xNA-2xSIO=>10xGL	NA	1
+GF:4xGNZ-4xLFP-1xMFK-50xNG-10xTHF=>1xGEN	THF	10
+GF:4xGNZ-4xLFP-1xMFK-50xNG-10xTHF=>1xGEN	MFK	1
+GF:4xGNZ-4xLFP-1xMFK-50xNG-10xTHF=>1xGEN	LFP	4
+GF:4xGNZ-4xLFP-1xMFK-50xNG-10xTHF=>1xGEN	NG	50
+GF:4xGNZ-4xLFP-1xMFK-50xNG-10xTHF=>1xGEN	GNZ	4
+HWP:12xAL-1xHE-1xRE=>4xBHP	RE	1
+HWP:12xAL-1xHE-1xRE=>4xBHP	HE	1
+HWP:12xAL-1xHE-1xRE=>4xBHP	AL	12
+HWP:12xAL-1xHE-1xSTL=>4xBHP	AL	12
+HWP:12xAL-1xHE-1xSTL=>4xBHP	STL	1
+HWP:12xAL-1xHE-1xSTL=>4xBHP	HE	1
+HWP:12xAL-1xHE-4xRE=>4xRHP	HE	1
+HWP:12xAL-1xHE-4xRE=>4xRHP	RE	4
+HWP:12xAL-1xHE-4xRE=>4xRHP	AL	12
+HWP:12xAL-1xHE-4xTI=>4xRHP	TI	4
+HWP:12xAL-1xHE-4xTI=>4xRHP	HE	1
+HWP:12xAL-1xHE-4xTI=>4xRHP	AL	12
+HWP:12xAL-1xHE-4xWRH=>4xAHP	HE	1
+HWP:12xAL-1xHE-4xWRH=>4xAHP	AL	12
+HWP:12xAL-1xHE-4xWRH=>4xAHP	WRH	4
+HWP:12xAL-1xHE=>4xLHP	AL	12
+HWP:12xAL-1xHE=>4xLHP	HE	1
+HWP:12xAL-4xALR-1xHE=>4xHHP	HE	1
+HWP:12xAL-4xALR-1xHE=>4xHHP	AL	12
+HWP:12xAL-4xALR-1xHE=>4xHHP	ALR	4
+HWP:12xAL-4xAST-1xHE=>4xHHP	AST	4
+HWP:12xAL-4xAST-1xHE=>4xHHP	AL	12
+HWP:12xAL-4xAST-1xHE=>4xHHP	HE	1
+HWP:2xBOS-2xCTF-1xHE=>2xATP	HE	1
+HWP:2xBOS-2xCTF-1xHE=>2xATP	BOS	2
+HWP:2xBOS-2xCTF-1xHE=>2xATP	CTF	2
+HWP:4xCF-2xFAL-1xHE-1xKV=>10xBWH	HE	1
+HWP:4xCF-2xFAL-1xHE-1xKV=>10xBWH	FAL	2
+HWP:4xCF-2xFAL-1xHE-1xKV=>10xBWH	CF	4
+HWP:4xCF-2xFAL-1xHE-1xKV=>10xBWH	KV	1
+HWP:4xCF-2xFAL-1xHE-1xKV=>8xBWH	KV	1
+HWP:4xCF-2xFAL-1xHE-1xKV=>8xBWH	CF	4
+HWP:4xCF-2xFAL-1xHE-1xKV=>8xBWH	FAL	2
+HWP:4xCF-2xFAL-1xHE-1xKV=>8xBWH	HE	1
+HWP:4xCTF-1xHE-2xTI-2xTK=>10xAWH	TI	2
+HWP:4xCTF-1xHE-2xTI-2xTK=>10xAWH	TK	2
+HWP:4xCTF-1xHE-2xTI-2xTK=>10xAWH	HE	1
+HWP:4xCTF-1xHE-2xTI-2xTK=>10xAWH	CTF	4
+HWP:4xCTF-1xHE-2xTI-2xTK=>8xAWH	TK	2
+HWP:4xCTF-1xHE-2xTI-2xTK=>8xAWH	TI	2
+HWP:4xCTF-1xHE-2xTI-2xTK=>8xAWH	HE	1
+HWP:4xCTF-1xHE-2xTI-2xTK=>8xAWH	CTF	4
+HWP:8xAL-10xFET-1xHE=>4xAHP	FET	10
+HWP:8xAL-10xFET-1xHE=>4xAHP	AL	8
+HWP:8xAL-10xFET-1xHE=>4xAHP	HE	1
+HYF:10xH2O-4xNS=>2xRCO	NS	4
+HYF:10xH2O-4xNS=>2xRCO	H2O	10
+HYF:14xH2O-1xNS=>8xHCP	H2O	14
+HYF:14xH2O-1xNS=>8xHCP	NS	1
+HYF:16xH2O-1xNS=>6xVEG	NS	1
+HYF:16xH2O-1xNS=>6xVEG	H2O	16
+HYF:16xH2O-2xNS=>12xALG	NS	2
+HYF:16xH2O-2xNS=>12xALG	H2O	16
+HYF:1xNS=>4xMUS	NS	1
+HYF:20xH2O-2xNS=>12xMAI	H2O	20
+HYF:20xH2O-2xNS=>12xMAI	NS	2
+HYF:22xH2O-3xNS=>2xCAF	NS	3
+HYF:22xH2O-3xNS=>2xCAF	H2O	22
+HYF:4xNS=>12xMUS	NS	4
+INC:2xGRN-4xHCP-2xMAI=>4xC	GRN	2
+INC:2xGRN-4xHCP-2xMAI=>4xC	HCP	4
+INC:2xGRN-4xHCP-2xMAI=>4xC	MAI	2
+INC:2xGRN-4xHCP=>4xC	GRN	2
+INC:2xGRN-4xHCP=>4xC	HCP	4
+INC:4xGRN=>4xC	GRN	4
+INC:4xHCP-2xMAI=>4xC	MAI	2
+INC:4xHCP-2xMAI=>4xC	HCP	4
+INC:4xHCP=>4xC	HCP	4
+INC:4xMAI=>4xC	MAI	4
+IVP:16xH2O-1xHCP-1xNS=>8xRSI	H2O	16
+IVP:16xH2O-1xHCP-1xNS=>8xRSI	NS	1
+IVP:16xH2O-1xHCP-1xNS=>8xRSI	HCP	1
+IVP:1xHCP-1xNS-1xPPA=>4xMTP	PPA	1
+IVP:1xHCP-1xNS-1xPPA=>4xMTP	HCP	1
+IVP:1xHCP-1xNS-1xPPA=>4xMTP	NS	1
+IVP:2xBAC-2xBL-4xREA-2xVIT=>20xVG	REA	4
+IVP:2xBAC-2xBL-4xREA-2xVIT=>20xVG	BL	2
+IVP:2xBAC-2xBL-4xREA-2xVIT=>20xVG	VIT	2
+IVP:2xBAC-2xBL-4xREA-2xVIT=>20xVG	BAC	2
+LAB:10xNAB-2xO-3xS=>4xBLE	S	3
+LAB:10xNAB-2xO-3xS=>4xBLE	NAB	10
+LAB:10xNAB-2xO-3xS=>4xBLE	O	2
+LAB:1xALG-1xES-1xTHF=>4xNST	ALG	1
+LAB:1xALG-1xES-1xTHF=>4xNST	THF	1
+LAB:1xALG-1xES-1xTHF=>4xNST	ES	1
+LAB:1xC-1xCL-1xH=>3xDDT	CL	1
+LAB:1xC-1xCL-1xH=>3xDDT	H	1
+LAB:1xC-1xCL-1xH=>3xDDT	C	1
+LAB:1xCL-1xH-1xO=>3xTCL	O	1
+LAB:1xCL-1xH-1xO=>3xTCL	CL	1
+LAB:1xCL-1xH-1xO=>3xTCL	H	1
+LAB:1xCL-1xNA-1xO=>3xBLE	O	1
+LAB:1xCL-1xNA-1xO=>3xBLE	CL	1
+LAB:1xCL-1xNA-1xO=>3xBLE	NA	1
+LAB:1xDW-1xNS=>3xCST	DW	1
+LAB:1xDW-1xNS=>3xCST	NS	1
+LAB:1xF-1xO=>2xBL	F	1
+LAB:1xF-1xO=>2xBL	O	1
+LAB:1xHCP-1xO-1xS=>10xBAC	HCP	1
+LAB:1xHCP-1xO-1xS=>10xBAC	O	1
+LAB:1xHCP-1xO-1xS=>10xBAC	S	1
+LAB:4xAMM-4xH2O-4xNA=>20xTHF	NA	4
+LAB:4xAMM-4xH2O-4xNA=>20xTHF	H2O	4
+LAB:4xAMM-4xH2O-4xNA=>20xTHF	AMM	4
+LAB:50xEPO-75xNCS=>50xNR	NCS	75
+LAB:50xEPO-75xNCS=>50xNR	EPO	50
+LAB:5xBL-5xCST-10xHEX-1xPK=>30xJUI	PK	1
+LAB:5xBL-5xCST-10xHEX-1xPK=>30xJUI	BL	5
+LAB:5xBL-5xCST-10xHEX-1xPK=>30xJUI	CST	5
+LAB:5xBL-5xCST-10xHEX-1xPK=>30xJUI	HEX	10
+MCA:1xAL-8xDCS-2xSFK=>8xFAN	SFK	2
+MCA:1xAL-8xDCS-2xSFK=>8xFAN	DCS	8
+MCA:1xAL-8xDCS-2xSFK=>8xFAN	AL	1
+MCA:3xGL-1xLCR=>1xDIS	LCR	1
+MCA:3xGL-1xLCR=>1xDIS	GL	3
+MCA:4xMPC-4xPSM-4xRAM-4xSFK=>4xMB	MPC	4
+MCA:4xMPC-4xPSM-4xRAM-4xSFK=>4xMB	RAM	4
+MCA:4xMPC-4xPSM-4xRAM-4xSFK=>4xMB	SFK	4
+MCA:4xMPC-4xPSM-4xRAM-4xSFK=>4xMB	PSM	4
+MCA:5xDCS-5xLDI-1xRG=>5xHD	DCS	5
+MCA:5xDCS-5xLDI-1xRG=>5xHD	RG	1
+MCA:5xDCS-5xLDI-1xRG=>5xHD	LDI	5
+ORC:1xDDT-20xH2O-2xSOI=>12xPIB	DDT	1
+ORC:1xDDT-20xH2O-2xSOI=>12xPIB	SOI	2
+ORC:1xDDT-20xH2O-2xSOI=>12xPIB	H2O	20
+ORC:1xDDT-30xH2O-3xSOI=>6xGRA	DDT	1
+ORC:1xDDT-30xH2O-3xSOI=>6xGRA	H2O	30
+ORC:1xDDT-30xH2O-3xSOI=>6xGRA	SOI	3
+ORC:1xDDT-30xH2O=>10xPIB	DDT	1
+ORC:1xDDT-30xH2O=>10xPIB	H2O	30
+ORC:1xDDT-40xH2O=>5xGRA	DDT	1
+ORC:1xDDT-40xH2O=>5xGRA	H2O	40
+ORC:2xDDT-40xH2O-4xSOI=>18xHOP	SOI	4
+ORC:2xDDT-40xH2O-4xSOI=>18xHOP	DDT	2
+ORC:2xDDT-40xH2O-4xSOI=>18xHOP	H2O	40
+ORC:2xDDT-60xH2O=>15xHOP	DDT	2
+ORC:2xDDT-60xH2O=>15xHOP	H2O	60
+PAC:100xDW-2xLC-70xMEA-5xMED-1xNST-280xPE-8xPSS-10xWIN-1xWS=>1xCBU	PSS	8
+PAC:100xDW-2xLC-70xMEA-5xMED-1xNST-280xPE-8xPSS-10xWIN-1xWS=>1xCBU	PE	280
+PAC:100xDW-2xLC-70xMEA-5xMED-1xNST-280xPE-8xPSS-10xWIN-1xWS=>1xCBU	MEA	70
+PAC:100xDW-2xLC-70xMEA-5xMED-1xNST-280xPE-8xPSS-10xWIN-1xWS=>1xCBU	MED	5
+PAC:100xDW-2xLC-70xMEA-5xMED-1xNST-280xPE-8xPSS-10xWIN-1xWS=>1xCBU	WIN	10
+PAC:100xDW-2xLC-70xMEA-5xMED-1xNST-280xPE-8xPSS-10xWIN-1xWS=>1xCBU	WS	1
+PAC:100xDW-2xLC-70xMEA-5xMED-1xNST-280xPE-8xPSS-10xWIN-1xWS=>1xCBU	LC	2
+PAC:100xDW-2xLC-70xMEA-5xMED-1xNST-280xPE-8xPSS-10xWIN-1xWS=>1xCBU	DW	100
+PAC:100xDW-2xLC-70xMEA-5xMED-1xNST-280xPE-8xPSS-10xWIN-1xWS=>1xCBU	NST	1
+PAC:100xDW-70xFIM-10xGIN-2xHSS-5xMED-1xPDA-160xPE-4xPSS-2xVG=>1xEBU	DW	100
+PAC:100xDW-70xFIM-10xGIN-2xHSS-5xMED-1xPDA-160xPE-4xPSS-2xVG=>1xEBU	PE	160
+PAC:100xDW-70xFIM-10xGIN-2xHSS-5xMED-1xPDA-160xPE-4xPSS-2xVG=>1xEBU	PSS	4
+PAC:100xDW-70xFIM-10xGIN-2xHSS-5xMED-1xPDA-160xPE-4xPSS-2xVG=>1xEBU	PDA	1
+PAC:100xDW-70xFIM-10xGIN-2xHSS-5xMED-1xPDA-160xPE-4xPSS-2xVG=>1xEBU	VG	2
+PAC:100xDW-70xFIM-10xGIN-2xHSS-5xMED-1xPDA-160xPE-4xPSS-2xVG=>1xEBU	GIN	10
+PAC:100xDW-70xFIM-10xGIN-2xHSS-5xMED-1xPDA-160xPE-4xPSS-2xVG=>1xEBU	HSS	2
+PAC:100xDW-70xFIM-10xGIN-2xHSS-5xMED-1xPDA-160xPE-4xPSS-2xVG=>1xEBU	MED	5
+PAC:100xDW-70xFIM-10xGIN-2xHSS-5xMED-1xPDA-160xPE-4xPSS-2xVG=>1xEBU	FIM	70
+PAC:10xALE-75xDW-5xHMS-5xMED-40xPE-1xPSS-70xRAT-1xSC-1xSCN=>1xTBU	SC	1
+PAC:10xALE-75xDW-5xHMS-5xMED-40xPE-1xPSS-70xRAT-1xSC-1xSCN=>1xTBU	DW	75
+PAC:10xALE-75xDW-5xHMS-5xMED-40xPE-1xPSS-70xRAT-1xSC-1xSCN=>1xTBU	PE	40
+PAC:10xALE-75xDW-5xHMS-5xMED-40xPE-1xPSS-70xRAT-1xSC-1xSCN=>1xTBU	RAT	70
+PAC:10xALE-75xDW-5xHMS-5xMED-40xPE-1xPSS-70xRAT-1xSC-1xSCN=>1xTBU	HMS	5
+PAC:10xALE-75xDW-5xHMS-5xMED-40xPE-1xPSS-70xRAT-1xSC-1xSCN=>1xTBU	SCN	1
+PAC:10xALE-75xDW-5xHMS-5xMED-40xPE-1xPSS-70xRAT-1xSC-1xSCN=>1xTBU	MED	5
+PAC:10xALE-75xDW-5xHMS-5xMED-40xPE-1xPSS-70xRAT-1xSC-1xSCN=>1xTBU	ALE	10
+PAC:10xALE-75xDW-5xHMS-5xMED-40xPE-1xPSS-70xRAT-1xSC-1xSCN=>1xTBU	PSS	1
+PAC:50xDW-5xEXO-10xKOM-100xPE-5xPT-60xRAT-2xREP=>1xSBU	PT	5
+PAC:50xDW-5xEXO-10xKOM-100xPE-5xPT-60xRAT-2xREP=>1xSBU	PE	100
+PAC:50xDW-5xEXO-10xKOM-100xPE-5xPT-60xRAT-2xREP=>1xSBU	RAT	60
+PAC:50xDW-5xEXO-10xKOM-100xPE-5xPT-60xRAT-2xREP=>1xSBU	REP	2
+PAC:50xDW-5xEXO-10xKOM-100xPE-5xPT-60xRAT-2xREP=>1xSBU	EXO	5
+PAC:50xDW-5xEXO-10xKOM-100xPE-5xPT-60xRAT-2xREP=>1xSBU	KOM	10
+PAC:50xDW-5xEXO-10xKOM-100xPE-5xPT-60xRAT-2xREP=>1xSBU	DW	50
+PAC:5xCOF-40xDW-5xOVE-50xPE-2xPWO-40xRAT=>1xPBU	COF	5
+PAC:5xCOF-40xDW-5xOVE-50xPE-2xPWO-40xRAT=>1xPBU	DW	40
+PAC:5xCOF-40xDW-5xOVE-50xPE-2xPWO-40xRAT=>1xPBU	PE	50
+PAC:5xCOF-40xDW-5xOVE-50xPE-2xPWO-40xRAT=>1xPBU	PWO	2
+PAC:5xCOF-40xDW-5xOVE-50xPE-2xPWO-40xRAT=>1xPBU	RAT	40
+PAC:5xCOF-40xDW-5xOVE-50xPE-2xPWO-40xRAT=>1xPBU	OVE	5
+PHF:1xBSC-2xDCM-4xMFK-20xREA=>1xADR	REA	20
+PHF:1xBSC-2xDCM-4xMFK-20xREA=>1xADR	BSC	1
+PHF:1xBSC-2xDCM-4xMFK-20xREA=>1xADR	DCM	2
+PHF:1xBSC-2xDCM-4xMFK-20xREA=>1xADR	MFK	4
+PHF:1xDCM-1xMFK-1xSAR=>1xBSC	SAR	1
+PHF:1xDCM-1xMFK-1xSAR=>1xBSC	MFK	1
+PHF:1xDCM-1xMFK-1xSAR=>1xBSC	DCM	1
+PHF:1xNL-1xSIL=>20xBND	SIL	1
+PHF:1xNL-1xSIL=>20xBND	NL	1
+PHF:2xCA-4xLI-10xREA=>10xPK	LI	4
+PHF:2xCA-4xLI-10xREA=>10xPK	CA	2
+PHF:2xCA-4xLI-10xREA=>10xPK	REA	10
+POL:1xC-1xCL-1xH-1xO=>50xEPO	H	1
+POL:1xC-1xCL-1xH-1xO=>50xEPO	CL	1
+POL:1xC-1xCL-1xH-1xO=>50xEPO	C	1
+POL:1xC-1xCL-1xH-1xO=>50xEPO	O	1
+POL:1xC-1xH-1xMG=>50xPG	C	1
+POL:1xC-1xH-1xMG=>50xPG	MG	1
+POL:1xC-1xH-1xMG=>50xPG	H	1
+POL:70xEPO-150xPG=>1xDEC	EPO	70
+POL:70xEPO-150xPG=>1xDEC	PG	150
+PP1:150xPE=>1xBDE	PE	150
+PP1:1xFE-2xLST=>1xBSE	LST	2
+PP1:1xFE-2xLST=>1xBSE	FE	1
+PP1:1xFE-50xPE=>1xBTA	FE	1
+PP1:1xFE-50xPE=>1xBTA	PE	50
+PP1:2xFE-1xLST=>1xBBH	LST	1
+PP1:2xFE-1xLST=>1xBBH	FE	2
+PP2:1xAL-1xGL=>1xBTA	GL	1
+PP2:1xAL-1xGL=>1xBTA	AL	1
+PP2:1xAL-2xLST=>1xBSE	LST	2
+PP2:1xAL-2xLST=>1xBSE	AL	1
+PP2:1xAL-5xGL=>1xLTA	AL	1
+PP2:1xAL-5xGL=>1xLTA	GL	5
+PP2:1xNE-50xPG=>1xAEF	NE	1
+PP2:1xNE-50xPG=>1xAEF	PG	50
+PP2:2xAL-1xLST=>1xBBH	AL	2
+PP2:2xAL-1xLST=>1xBBH	LST	1
+PP2:3xAL-120xPG=>1xLSE	AL	3
+PP2:3xAL-120xPG=>1xLSE	PG	120
+PP2:3xAL-1xNL=>1xLDE	NL	1
+PP2:3xAL-1xNL=>1xLDE	AL	3
+PP2:3xAL-35xPE=>1xLBH	PE	35
+PP2:3xAL-35xPE=>1xLBH	AL	3
+PP2:40xPG=>1xBDE	PG	40
+PP2:60xPG=>1xBDE	PG	60
+PP3:100xEPO-1xKV-1xLDE=>2xRDE	LDE	1
+PP3:100xEPO-1xKV-1xLDE=>2xRDE	EPO	100
+PP3:100xEPO-1xKV-1xLDE=>2xRDE	KV	1
+PP3:1xAR-100xPE-1xTHF=>24xINS	PE	100
+PP3:1xAR-100xPE-1xTHF=>24xINS	AR	1
+PP3:1xAR-100xPE-1xTHF=>24xINS	THF	1
+PP3:1xBBH-50xEPO-1xSTL=>1xRBH	EPO	50
+PP3:1xBBH-50xEPO-1xSTL=>1xRBH	STL	1
+PP3:1xBBH-50xEPO-1xSTL=>1xRBH	BBH	1
+PP3:1xLDE-1xMAG=>1xMGC	MAG	1
+PP3:1xLDE-1xMAG=>1xMGC	LDE	1
+PP3:1xLTA-6xRG=>1xRTA	RG	6
+PP3:1xLTA-6xRG=>1xRTA	LTA	1
+PP3:250xNFI-1xTI=>1xPSH	NFI	250
+PP3:250xNFI-1xTI=>1xPSH	TI	1
+PP3:2xBSE-225xEPO-1xSTL=>2xRSE	BSE	2
+PP3:2xBSE-225xEPO-1xSTL=>2xRSE	STL	1
+PP3:2xBSE-225xEPO-1xSTL=>2xRSE	EPO	225
+PP3:2xLSE-1xTCS=>2xHSE	TCS	1
+PP3:2xLSE-1xTCS=>2xHSE	LSE	2
+PP4:125xNR-2xRBH=>2xABH	RBH	2
+PP4:125xNR-2xRBH=>2xABH	NR	125
+PP4:1xLST-1xSTL-1xTA=>1xRSH	LST	1
+PP4:1xLST-1xSTL-1xTA=>1xRSH	STL	1
+PP4:1xLST-1xSTL-1xTA=>1xRSH	TA	1
+PP4:1xNG-1xRTA=>1xATA	RTA	1
+PP4:1xNG-1xRTA=>1xATA	NG	1
+PP4:1xRSE-2xTI=>1xASE	RSE	1
+PP4:1xRSE-2xTI=>1xASE	TI	2
+PP4:2xKV-2xLDE=>2xADE	LDE	2
+PP4:2xKV-2xLDE=>2xADE	KV	2
+PP4:2xLBH-150xPE-2xTHP=>1xTSH	PE	150
+PP4:2xLBH-150xPE-2xTHP=>1xTSH	THP	2
+PP4:2xLBH-150xPE-2xTHP=>1xTSH	LBH	2
+PP4:8xHSE-100xMFK-4xPSH=>1xTRS	MFK	100
+PP4:8xHSE-100xMFK-4xPSH=>1xTRS	HSE	8
+PP4:8xHSE-100xMFK-4xPSH=>1xTRS	PSH	4
+PPF:10xPG-1xPSS-4xSFK=>2xDCS	PSS	1
+PPF:10xPG-1xPSS-4xSFK=>2xDCS	SFK	4
+PPF:10xPG-1xPSS-4xSFK=>2xDCS	PG	10
+PPF:10xPG=>1xPSS	PG	10
+PPF:20xPG-2xPSM-8xSFK=>2xDCM	PG	20
+PPF:20xPG-2xPSM-8xSFK=>2xDCM	PSM	2
+PPF:20xPG-2xPSM-8xSFK=>2xDCM	SFK	8
+PPF:20xPG=>1xPSM	PG	20
+PPF:2xMFK-40xPG-2xPSL=>2xDCL	PSL	2
+PPF:2xMFK-40xPG-2xPSL=>2xDCL	PG	40
+PPF:2xMFK-40xPG-2xPSL=>2xDCL	MFK	2
+PPF:40xPG=>1xPSL	PG	40
+PPF:50xPG-1xSFK-10xTHF=>1xLFP	THF	10
+PPF:50xPG-1xSFK-10xTHF=>1xLFP	PG	50
+PPF:50xPG-1xSFK-10xTHF=>1xLFP	SFK	1
+REF:1xAMM-2xGAL-3xH=>100xSF	GAL	2
+REF:1xAMM-2xGAL-3xH=>100xSF	AMM	1
+REF:1xAMM-2xGAL-3xH=>100xSF	H	3
+REF:1xAMM-5xNAB=>150xSF	AMM	1
+REF:1xAMM-5xNAB=>150xSF	NAB	5
+REF:3xTS=>2xHE3	TS	3
+REF:4xH-2xHE3=>100xFF	H	4
+REF:4xH-2xHE3=>100xFF	HE3	2
+REF:4xH-2xKRE=>2000xVF	H	4
+REF:4xH-2xKRE=>2000xVF	KRE	2
+SCA:10xBCO-10xSWF-10xTRN=>10xMPC	BCO	10
+SCA:10xBCO-10xSWF-10xTRN=>10xMPC	TRN	10
+SCA:10xBCO-10xSWF-10xTRN=>10xMPC	SWF	10
+SCA:10xBGC-10xPSS-10xSI=>10xROM	SI	10
+SCA:10xBGC-10xPSS-10xSI=>10xROM	BGC	10
+SCA:10xBGC-10xPSS-10xSI=>10xROM	PSS	10
+SCA:10xH-10xN-20xTRN=>20xSEN	H	10
+SCA:10xH-10xN-20xTRN=>20xSEN	TRN	20
+SCA:10xH-10xN-20xTRN=>20xSEN	N	10
+SCA:4xCAP-4xHCC-4xMWF-4xTRN=>4xTPU	TRN	4
+SCA:4xCAP-4xHCC-4xMWF-4xTRN=>4xTPU	HCC	4
+SCA:4xCAP-4xHCC-4xMWF-4xTRN=>4xTPU	MWF	4
+SCA:4xCAP-4xHCC-4xMWF-4xTRN=>4xTPU	CAP	4
+SCA:5xBCO-1xBGO-60xPE-10xSWF=>5xPCB	PE	60
+SCA:5xBCO-1xBGO-60xPE-10xSWF=>5xPCB	SWF	10
+SCA:5xBCO-1xBGO-60xPE-10xSWF=>5xPCB	BCO	5
+SCA:5xBCO-1xBGO-60xPE-10xSWF=>5xPCB	BGO	1
+SCA:6xBCO-6xCAP-6xPSS=>6xRAM	CAP	6
+SCA:6xBCO-6xCAP-6xPSS=>6xRAM	BCO	6
+SCA:6xBCO-6xCAP-6xPSS=>6xRAM	PSS	6
+SE:1xBAI-1xMLI=>1xNN	BAI	1
+SE:1xBAI-1xMLI=>1xNN	MLI	1
+SE:1xLD-1xNF=>1xDD	LD	1
+SE:1xLD-1xNF=>1xDD	NF	1
+SE:1xLD-1xROM-1xSA-1xSAL=>1xDA	SA	1
+SE:1xLD-1xROM-1xSA-1xSAL=>1xDA	SAL	1
+SE:1xLD-1xROM-1xSA-1xSAL=>1xDA	LD	1
+SE:1xLD-1xROM-1xSA-1xSAL=>1xDA	ROM	1
+SE:1xLD-1xROM-1xWM=>1xOS	LD	1
+SE:1xLD-1xROM-1xWM=>1xOS	ROM	1
+SE:1xLD-1xROM-1xWM=>1xOS	WM	1
+SKF:100xAST-100xFET-20xMFK=>1xWCB	MFK	20
+SKF:100xAST-100xFET-20xMFK=>1xWCB	AST	100
+SKF:100xAST-100xFET-20xMFK=>1xWCB	FET	100
+SKF:100xAST-16xMFK=>1xMCB	MFK	16
+SKF:100xAST-16xMFK=>1xMCB	AST	100
+SKF:100xMFK-500xWRH=>1xHCB	WRH	500
+SKF:100xMFK-500xWRH=>1xHCB	MFK	100
+SKF:100xMFK-600xWAL=>1xHCB	WAL	600
+SKF:100xMFK-600xWAL=>1xHCB	MFK	100
+SKF:125xFET-8xMFK=>1xLSL	FET	125
+SKF:125xFET-8xMFK=>1xLSL	MFK	8
+SKF:16xMFK-48xWRH=>1xMCB	WRH	48
+SKF:16xMFK-48xWRH=>1xMCB	MFK	16
+SKF:1xMFK-5xZR=>1xSFL	ZR	5
+SKF:1xMFK-5xZR=>1xSFL	MFK	1
+SKF:200xAST-20xMFK=>1xLCB	AST	200
+SKF:200xAST-20xMFK=>1xLCB	MFK	20
+SKF:200xFET-20xMFK=>1xVCB	FET	200
+SKF:200xFET-20xMFK=>1xVCB	MFK	20
+SKF:20xFE-4xMFK=>1xTCB	MFK	4
+SKF:20xFE-4xMFK=>1xTCB	FE	20
+SKF:20xMFK-100xWRH=>1xLCB	MFK	20
+SKF:20xMFK-100xWRH=>1xLCB	WRH	100
+SKF:20xMFK-100xWRH=>1xVCB	WRH	100
+SKF:20xMFK-100xWRH=>1xVCB	MFK	20
+SKF:24xMFK-80xSRP-50xZR=>1xVFT	ZR	50
+SKF:24xMFK-80xSRP-50xZR=>1xVFT	MFK	24
+SKF:24xMFK-80xSRP-50xZR=>1xVFT	SRP	80
+SKF:2xMFK-20xTI=>1xSSL	TI	20
+SKF:2xMFK-20xTI=>1xSSL	MFK	2
+SKF:35xFE-8xMFK=>1xVSC	FE	35
+SKF:35xFE-8xMFK=>1xVSC	MFK	8
+SKF:36xALR-12xMFK=>1xSCB	MFK	12
+SKF:36xALR-12xMFK=>1xSCB	ALR	36
+SKF:4xMFK-10xZR=>1xMFL	ZR	10
+SKF:4xMFK-10xZR=>1xMFL	MFK	4
+SKF:4xMFK-12xRE=>1xTCB	RE	12
+SKF:4xMFK-12xRE=>1xTCB	MFK	4
+SKF:50xFAL-12xMFK=>1xSCB	MFK	12
+SKF:50xFAL-12xMFK=>1xSCB	FAL	50
+SKF:50xFET-4xMFK=>1xMSL	MFK	4
+SKF:50xFET-4xMFK=>1xMSL	FET	50
+SKF:70xALR-20xMFK-70xWRH=>1xWCB	MFK	20
+SKF:70xALR-20xMFK-70xWRH=>1xWCB	ALR	70
+SKF:70xALR-20xMFK-70xWRH=>1xWCB	WRH	70
+SKF:8xMFK-20xRE=>1xVSC	RE	20
+SKF:8xMFK-20xRE=>1xVSC	MFK	8
+SKF:8xMFK-20xZR=>1xLFL	MFK	8
+SKF:8xMFK-20xZR=>1xLFL	ZR	20
+SL:1xDA-1xDD=>1xIMM	DD	1
+SL:1xDA-1xDD=>1xIMM	DA	1
+SL:1xDV-1xIMM-1xWAI=>2xSNM	DV	1
+SL:1xDV-1xIMM-1xWAI=>2xSNM	WAI	1
+SL:1xDV-1xIMM-1xWAI=>2xSNM	IMM	1
+SL:1xNN-1xROM=>1xWAI	ROM	1
+SL:1xNN-1xROM=>1xWAI	NN	1
+SME:1xAL-1xO-4xTS=>1xSI	O	1
+SME:1xAL-1xO-4xTS=>1xSI	AL	1
+SME:1xAL-1xO-4xTS=>1xSI	TS	4
+SME:1xAL-3xSIO=>1xSI	AL	1
+SME:1xAL-3xSIO=>1xSI	SIO	3
+SME:1xC-1xFLX-1xO-3xSIO=>1xSI	FLX	1
+SME:1xC-1xFLX-1xO-3xSIO=>1xSI	SIO	3
+SME:1xC-1xFLX-1xO-3xSIO=>1xSI	C	1
+SME:1xC-1xFLX-1xO-3xSIO=>1xSI	O	1
+SME:1xC-1xFLX-1xO-8xREO=>5xRE	O	1
+SME:1xC-1xFLX-1xO-8xREO=>5xRE	REO	8
+SME:1xC-1xFLX-1xO-8xREO=>5xRE	C	1
+SME:1xC-1xFLX-1xO-8xREO=>5xRE	FLX	1
+SME:1xC-1xNA-1xO-4xTIO=>2xTI	C	1
+SME:1xC-1xNA-1xO-4xTIO=>2xTI	NA	1
+SME:1xC-1xNA-1xO-4xTIO=>2xTI	O	1
+SME:1xC-1xNA-1xO-4xTIO=>2xTI	TIO	4
+SME:1xC-1xO-3xSIO=>1xSI	C	1
+SME:1xC-1xO-3xSIO=>1xSI	SIO	3
+SME:1xC-1xO-3xSIO=>1xSI	O	1
+SME:1xC-1xO-4xTIO=>2xTI	O	1
+SME:1xC-1xO-4xTIO=>2xTI	C	1
+SME:1xC-1xO-4xTIO=>2xTI	TIO	4
+SME:1xC-1xO-8xREO=>4xRE	REO	8
+SME:1xC-1xO-8xREO=>4xRE	O	1
+SME:1xC-1xO-8xREO=>4xRE	C	1
+SME:1xC-6xFEO-1xFLX-1xO=>4xFE	C	1
+SME:1xC-6xFEO-1xFLX-1xO=>4xFE	FEO	6
+SME:1xC-6xFEO-1xFLX-1xO=>4xFE	FLX	1
+SME:1xC-6xFEO-1xFLX-1xO=>4xFE	O	1
+SME:1xC-6xFEO-1xO=>3xFE	O	1
+SME:1xC-6xFEO-1xO=>3xFE	FEO	6
+SME:1xC-6xFEO-1xO=>3xFE	C	1
+SME:1xO-1xSCR=>6xS	O	1
+SME:1xO-1xSCR=>6xS	SCR	1
+SME:2xFE-8xO=>2xSTL	FE	2
+SME:2xFE-8xO=>2xSTL	O	8
+SME:3xAUO-1xC=>2xAU	C	1
+SME:3xAUO-1xC=>2xAU	AUO	3
+SME:4xAL-2xO-1xSI=>1xCF	SI	1
+SME:4xAL-2xO-1xSI=>1xCF	O	2
+SME:4xAL-2xO-1xSI=>1xCF	AL	4
+SME:4xHAL-10xLIO=>4xLI	HAL	4
+SME:4xHAL-10xLIO=>4xLI	LIO	10
+SME:5xCUO-10xO-1xSIO=>3xCU	O	10
+SME:5xCUO-10xO-1xSIO=>3xCU	SIO	1
+SME:5xCUO-10xO-1xSIO=>3xCU	CUO	5
+SME:6xALO-1xC-1xFLX-1xO=>4xAL	C	1
+SME:6xALO-1xC-1xFLX-1xO=>4xAL	ALO	6
+SME:6xALO-1xC-1xFLX-1xO=>4xAL	FLX	1
+SME:6xALO-1xC-1xFLX-1xO=>4xAL	O	1
+SME:6xALO-1xC-1xO=>3xAL	C	1
+SME:6xALO-1xC-1xO=>3xAL	ALO	6
+SME:6xALO-1xC-1xO=>3xAL	O	1
+SPF:10xAST-1xCBS-1xRAG=>1xRCT	RAG	1
+SPF:10xAST-1xCBS-1xRAG=>1xRCT	CBS	1
+SPF:10xAST-1xCBS-1xRAG=>1xRCT	AST	10
+SPF:10xATP-50xPG-1xSFK=>1xAFP	PG	50
+SPF:10xATP-50xPG-1xSFK=>1xAFP	SFK	1
+SPF:10xATP-50xPG-1xSFK=>1xAFP	ATP	10
+SPF:1xACS-10xAST-4xBFP-1xMFK-4xNOZ=>1xENG	AST	10
+SPF:1xACS-10xAST-4xBFP-1xMFK-4xNOZ=>1xENG	BFP	4
+SPF:1xACS-10xAST-4xBFP-1xMFK-4xNOZ=>1xENG	MFK	1
+SPF:1xACS-10xAST-4xBFP-1xMFK-4xNOZ=>1xENG	NOZ	4
+SPF:1xACS-10xAST-4xBFP-1xMFK-4xNOZ=>1xENG	ACS	1
+SPF:1xACS-25xBRO-6xLFP-1xMFK-6xNOZ=>1xFSE	BRO	25
+SPF:1xACS-25xBRO-6xLFP-1xMFK-6xNOZ=>1xFSE	MFK	1
+SPF:1xACS-25xBRO-6xLFP-1xMFK-6xNOZ=>1xFSE	ACS	1
+SPF:1xACS-25xBRO-6xLFP-1xMFK-6xNOZ=>1xFSE	LFP	6
+SPF:1xACS-25xBRO-6xLFP-1xMFK-6xNOZ=>1xFSE	NOZ	6
+SPF:1xACS-4xAFP-4xANZ-20xFET-1xMFK=>1xAEN	ANZ	4
+SPF:1xACS-4xAFP-4xANZ-20xFET-1xMFK=>1xAEN	FET	20
+SPF:1xACS-4xAFP-4xANZ-20xFET-1xMFK=>1xAEN	MFK	1
+SPF:1xACS-4xAFP-4xANZ-20xFET-1xMFK=>1xAEN	AFP	4
+SPF:1xACS-4xAFP-4xANZ-20xFET-1xMFK=>1xAEN	ACS	1
+SPF:1xACS-8xAFP-4xHNZ-1xMFK-20xWAL=>1xHTE	HNZ	4
+SPF:1xACS-8xAFP-4xHNZ-1xMFK-20xWAL=>1xHTE	AFP	8
+SPF:1xACS-8xAFP-4xHNZ-1xMFK-20xWAL=>1xHTE	WAL	20
+SPF:1xACS-8xAFP-4xHNZ-1xMFK-20xWAL=>1xHTE	MFK	1
+SPF:1xACS-8xAFP-4xHNZ-1xMFK-20xWAL=>1xHTE	ACS	1
+SPF:1xCBL-1xVOR-40xWAL=>1xVOE	WAL	40
+SPF:1xCBL-1xVOR-40xWAL=>1xVOE	VOR	1
+SPF:1xCBL-1xVOR-40xWAL=>1xVOE	CBL	1
+SPF:1xCBL-2xFIR-20xWAL=>1xHYR	WAL	20
+SPF:1xCBL-2xFIR-20xWAL=>1xHYR	CBL	1
+SPF:1xCBL-2xFIR-20xWAL=>1xHYR	FIR	2
+SPF:1xCBM-1xFIR-20xSTL=>1xHPR	FIR	1
+SPF:1xCBM-1xFIR-20xSTL=>1xHPR	STL	20
+SPF:1xCBM-1xFIR-20xSTL=>1xHPR	CBM	1
+SPF:1xCHA-10xFAL-2xMFK=>1xNOZ	CHA	1
+SPF:1xCHA-10xFAL-2xMFK=>1xNOZ	FAL	10
+SPF:1xCHA-10xFAL-2xMFK=>1xNOZ	MFK	2
+SPF:1xCHA-20xFET-4xMFK=>1xANZ	FET	20
+SPF:1xCHA-20xFET-4xMFK=>1xANZ	CHA	1
+SPF:1xCHA-20xFET-4xMFK=>1xANZ	MFK	4
+SPF:1xCHA-4xMFK-20xWAL=>1xHNZ	MFK	4
+SPF:1xCHA-4xMFK-20xWAL=>1xHNZ	WAL	20
+SPF:1xCHA-4xMFK-20xWAL=>1xHNZ	CHA	1
+SPF:20xBGO-1xCBS-1xRAG=>1xQCR	RAG	1
+SPF:20xBGO-1xCBS-1xRAG=>1xQCR	BGO	20
+SPF:20xBGO-1xCBS-1xRAG=>1xQCR	CBS	1
+SPF:50xPG-1xSFK-5xTHP=>1xBFP	SFK	1
+SPF:50xPG-1xSFK-5xTHP=>1xBFP	PG	50
+SPF:50xPG-1xSFK-5xTHP=>1xBFP	THP	5
+SPP:14xFAL-4xKV-80xPG=>1xBGS	PG	80
+SPP:14xFAL-4xKV-80xPG=>1xBGS	FAL	14
+SPP:14xFAL-4xKV-80xPG=>1xBGS	KV	4
+SPP:20xAST-100xPG-8xTK=>1xAGS	TK	8
+SPP:20xAST-100xPG-8xTK=>1xAGS	AST	20
+SPP:20xAST-100xPG-8xTK=>1xAGS	PG	100
+SPP:20xTHF-5xTHP=>10xBPT	THP	5
+SPP:20xTHF-5xTHP=>10xBPT	THF	20
+SPP:20xTHF-5xTHP=>12xBPT	THP	5
+SPP:20xTHF-5xTHP=>12xBPT	THF	20
+SPP:2xKV-5xLST=>10xBRP	LST	5
+SPP:2xKV-5xLST=>10xBRP	KV	2
+SPP:2xKV-5xLST=>12xBRP	KV	2
+SPP:2xKV-5xLST=>12xBRP	LST	5
+SPP:5xATP-30xTHF=>10xAPT	THF	30
+SPP:5xATP-30xTHF=>10xAPT	ATP	5
+SPP:5xATP-30xTHF=>12xAPT	THF	30
+SPP:5xATP-30xTHF=>12xAPT	ATP	5
+SPP:5xLST-2xTK=>10xARP	LST	5
+SPP:5xLST-2xTK=>10xARP	TK	2
+SPP:5xLST-2xTK=>8xARP	LST	5
+SPP:5xLST-2xTK=>8xARP	TK	2
+SPP:5xLST-5xTA-5xW=>10xSRP	TA	5
+SPP:5xLST-5xTA-5xW=>10xSRP	W	5
+SPP:5xLST-5xTA-5xW=>10xSRP	LST	5
+SPP:5xLST-5xTA-5xW=>8xSRP	W	5
+SPP:5xLST-5xTA-5xW=>8xSRP	TA	5
+SPP:5xLST-5xTA-5xW=>8xSRP	LST	5
+TNP:1xTC=>3xTCS	TC	1
+TNP:1xTCO=>1xO-1xTC	TCO	1
+TNP:4xFLX-4xREA-1xTC=>1xETC	TC	1
+TNP:4xFLX-4xREA-1xTC=>1xETC	REA	4
+TNP:4xFLX-4xREA-1xTC=>1xETC	FLX	4
+UPF:10xDEC-1xLIS-10xPSL-20xPSM-1xTCU-10xTI=>1xCQM	TI	10
+UPF:10xDEC-1xLIS-10xPSL-20xPSM-1xTCU-10xTI=>1xCQM	DEC	10
+UPF:10xDEC-1xLIS-10xPSL-20xPSM-1xTCU-10xTI=>1xCQM	PSL	10
+UPF:10xDEC-1xLIS-10xPSL-20xPSM-1xTCU-10xTI=>1xCQM	LIS	1
+UPF:10xDEC-1xLIS-10xPSL-20xPSM-1xTCU-10xTI=>1xCQM	PSM	20
+UPF:10xDEC-1xLIS-10xPSL-20xPSM-1xTCU-10xTI=>1xCQM	TCU	1
+UPF:10xPSL-20xPSM-4xRAD-5xSAR-10xTI=>1xBRS	SAR	5
+UPF:10xPSL-20xPSM-4xRAD-5xSAR-10xTI=>1xBRS	PSM	20
+UPF:10xPSL-20xPSM-4xRAD-5xSAR-10xTI=>1xBRS	PSL	10
+UPF:10xPSL-20xPSM-4xRAD-5xSAR-10xTI=>1xBRS	TI	10
+UPF:10xPSL-20xPSM-4xRAD-5xSAR-10xTI=>1xBRS	RAD	4
+UPF:1xADR-12xPSL-8xPSM=>1xTCU	PSL	12
+UPF:1xADR-12xPSL-8xPSM=>1xTCU	PSM	8
+UPF:1xADR-12xPSL-8xPSM=>1xTCU	ADR	1
+UPF:1xBID-1xBWS-4xPCB-8xPSL=>1xFUN	PSL	8
+UPF:1xBID-1xBWS-4xPCB-8xPSL=>1xFUN	BID	1
+UPF:1xBID-1xBWS-4xPCB-8xPSL=>1xFUN	PCB	4
+UPF:1xBID-1xBWS-4xPCB-8xPSL=>1xFUN	BWS	1
+UPF:1xBSU-1xCPU-1xFUN-1000xPFE-1xSU-1xTCU-1xWOR=>1xHAM	PFE	1000
+UPF:1xBSU-1xCPU-1xFUN-1000xPFE-1xSU-1xTCU-1xWOR=>1xHAM	CPU	1
+UPF:1xBSU-1xCPU-1xFUN-1000xPFE-1xSU-1xTCU-1xWOR=>1xHAM	FUN	1
+UPF:1xBSU-1xCPU-1xFUN-1000xPFE-1xSU-1xTCU-1xWOR=>1xHAM	WOR	1
+UPF:1xBSU-1xCPU-1xFUN-1000xPFE-1xSU-1xTCU-1xWOR=>1xHAM	TCU	1
+UPF:1xBSU-1xCPU-1xFUN-1000xPFE-1xSU-1xTCU-1xWOR=>1xHAM	BSU	1
+UPF:1xBSU-1xCPU-1xFUN-1000xPFE-1xSU-1xTCU-1xWOR=>1xHAM	SU	1
+UPF:1xCOM-10xFET-1xNV1-10xPSL-20xPSM-5xSAR=>1xBR1	SAR	5
+UPF:1xCOM-10xFET-1xNV1-10xPSL-20xPSM-5xSAR=>1xBR1	FET	10
+UPF:1xCOM-10xFET-1xNV1-10xPSL-20xPSM-5xSAR=>1xBR1	PSL	10
+UPF:1xCOM-10xFET-1xNV1-10xPSL-20xPSM-5xSAR=>1xBR1	COM	1
+UPF:1xCOM-10xFET-1xNV1-10xPSL-20xPSM-5xSAR=>1xBR1	PSM	20
+UPF:1xCOM-10xFET-1xNV1-10xPSL-20xPSM-5xSAR=>1xBR1	NV1	1
+UPF:1xCOM-10xFET-1xNV2-10xPSL-20xPSM-10xSAR=>1xBR2	PSL	10
+UPF:1xCOM-10xFET-1xNV2-10xPSL-20xPSM-10xSAR=>1xBR2	COM	1
+UPF:1xCOM-10xFET-1xNV2-10xPSL-20xPSM-10xSAR=>1xBR2	NV2	1
+UPF:1xCOM-10xFET-1xNV2-10xPSL-20xPSM-10xSAR=>1xBR2	SAR	10
+UPF:1xCOM-10xFET-1xNV2-10xPSL-20xPSM-10xSAR=>1xBR2	FET	10
+UPF:1xCOM-10xFET-1xNV2-10xPSL-20xPSM-10xSAR=>1xBR2	PSM	20
+UPF:1xCOM-10xPSL-4xSAR=>1xDOU	SAR	4
+UPF:1xCOM-10xPSL-4xSAR=>1xDOU	COM	1
+UPF:1xCOM-10xPSL-4xSAR=>1xDOU	PSL	10
+UPF:1xCRU-100xFLO-1xLIS=>1xCPU	LIS	1
+UPF:1xCRU-100xFLO-1xLIS=>1xCPU	FLO	100
+UPF:1xCRU-100xFLO-1xLIS=>1xCPU	CRU	1
+UPF:1xDA-10xPSL-6xPSM-1xWS=>1xLU	PSL	10
+UPF:1xDA-10xPSL-6xPSM-1xWS=>1xLU	PSM	6
+UPF:1xDA-10xPSL-6xPSM-1xWS=>1xLU	DA	1
+UPF:1xDA-10xPSL-6xPSM-1xWS=>1xLU	WS	1
+UPF:20xDEC-20xFET-1xLIS-20xPSL-30xPSM-1xTCU=>1xCQL	DEC	20
+UPF:20xDEC-20xFET-1xLIS-20xPSL-30xPSM-1xTCU=>1xCQL	PSM	30
+UPF:20xDEC-20xFET-1xLIS-20xPSL-30xPSM-1xTCU=>1xCQL	PSL	20
+UPF:20xDEC-20xFET-1xLIS-20xPSL-30xPSM-1xTCU=>1xCQL	LIS	1
+UPF:20xDEC-20xFET-1xLIS-20xPSL-30xPSM-1xTCU=>1xCQL	FET	20
+UPF:20xDEC-20xFET-1xLIS-20xPSL-30xPSM-1xTCU=>1xCQL	TCU	1
+UPF:20xPSL-12xPSM-6xUTS=>1xWOR	PSL	20
+UPF:20xPSL-12xPSM-6xUTS=>1xWOR	PSM	12
+UPF:20xPSL-12xPSM-6xUTS=>1xWOR	UTS	6
+UPF:20xPSL-30xPSM-4xSRD=>1xRDS	PSM	30
+UPF:20xPSL-30xPSM-4xSRD=>1xRDS	PSL	20
+UPF:20xPSL-30xPSM-4xSRD=>1xRDS	SRD	4
+UPF:2xBSC-10xNG-12xPSL-8xPSM-4xSEQ=>1xSU	BSC	2
+UPF:2xBSC-10xNG-12xPSL-8xPSM-4xSEQ=>1xSU	PSL	12
+UPF:2xBSC-10xNG-12xPSL-8xPSM-4xSEQ=>1xSU	PSM	8
+UPF:2xBSC-10xNG-12xPSL-8xPSM-4xSEQ=>1xSU	NG	10
+UPF:2xBSC-10xNG-12xPSL-8xPSM-4xSEQ=>1xSU	SEQ	4
+UPF:2xDEC-5xFAL-1xLIS-5xPSL-10xPSM-1xTCU=>1xCQS	LIS	1
+UPF:2xDEC-5xFAL-1xLIS-5xPSL-10xPSM-1xTCU=>1xCQS	DEC	2
+UPF:2xDEC-5xFAL-1xLIS-5xPSL-10xPSM-1xTCU=>1xCQS	TCU	1
+UPF:2xDEC-5xFAL-1xLIS-5xPSL-10xPSM-1xTCU=>1xCQS	PSM	10
+UPF:2xDEC-5xFAL-1xLIS-5xPSL-10xPSM-1xTCU=>1xCQS	PSL	5
+UPF:2xDEC-5xFAL-1xLIS-5xPSL-10xPSM-1xTCU=>1xCQS	FAL	5
+UPF:30xPSL-50xPSM-8xSRD=>1xRDL	PSM	50
+UPF:30xPSL-50xPSM-8xSRD=>1xRDL	PSL	30
+UPF:30xPSL-50xPSM-8xSRD=>1xRDL	SRD	8
+UPF:5xAL-1xBMF-1xDEC-2xPSL-5xPSM-1xTCU=>1xCQT	TCU	1
+UPF:5xAL-1xBMF-1xDEC-2xPSL-5xPSM-1xTCU=>1xCQT	PSM	5
+UPF:5xAL-1xBMF-1xDEC-2xPSL-5xPSM-1xTCU=>1xCQT	PSL	2
+UPF:5xAL-1xBMF-1xDEC-2xPSL-5xPSM-1xTCU=>1xCQT	DEC	1
+UPF:5xAL-1xBMF-1xDEC-2xPSL-5xPSM-1xTCU=>1xCQT	BMF	1
+UPF:5xAL-1xBMF-1xDEC-2xPSL-5xPSM-1xTCU=>1xCQT	AL	5
+UPF:60xDDT-1xHAB-1xLIS-200xPFE=>1xBSU	HAB	1
+UPF:60xDDT-1xHAB-1xLIS-200xPFE=>1xBSU	PFE	200
+UPF:60xDDT-1xHAB-1xLIS-200xPFE=>1xBSU	DDT	60
+UPF:60xDDT-1xHAB-1xLIS-200xPFE=>1xBSU	LIS	1
+UPF:6xBBH-10xBDE-10xBSE-50xSOI=>1xHAB	BBH	6
+UPF:6xBBH-10xBDE-10xBSE-50xSOI=>1xHAB	BSE	10
+UPF:6xBBH-10xBDE-10xBSE-50xSOI=>1xHAB	BDE	10
+UPF:6xBBH-10xBDE-10xBSE-50xSOI=>1xHAB	SOI	50
+WEL:10xBOS-1xGV-1xHE=>1xCHA	BOS	10
+WEL:10xBOS-1xGV-1xHE=>1xCHA	GV	1
+WEL:10xBOS-1xGV-1xHE=>1xCHA	HE	1
+WEL:1xAL-1xBSE-1xHE=>1xFC	BSE	1
+WEL:1xAL-1xBSE-1xHE=>1xFC	AL	1
+WEL:1xAL-1xBSE-1xHE=>1xFC	HE	1
+WEL:1xAL-1xFE-1xHE=>10xGC	AL	1
+WEL:1xAL-1xFE-1xHE=>10xGC	FE	1
+WEL:1xAL-1xFE-1xHE=>10xGC	HE	1
+WEL:1xAL-1xFE-1xHE=>6xFLP	AL	1
+WEL:1xAL-1xFE-1xHE=>6xFLP	HE	1
+WEL:1xAL-1xFE-1xHE=>6xFLP	FE	1
+WEL:1xAL-1xHE=>1xGV	AL	1
+WEL:1xAL-1xHE=>1xGV	HE	1
+WEL:1xFE-1xHE-1xI=>1xMHL	I	1
+WEL:1xFE-1xHE-1xI=>1xMHL	FE	1
+WEL:1xFE-1xHE-1xI=>1xMHL	HE	1
+WEL:200xALR-40xHE=>1xTOR	HE	40
+WEL:200xALR-40xHE=>1xTOR	ALR	200
+WEL:2xAL-1xHE-20xNFI=>6xSSC	NFI	20
+WEL:2xAL-1xHE-20xNFI=>6xSSC	HE	1
+WEL:2xAL-1xHE-20xNFI=>6xSSC	AL	2
+WEL:2xAL-1xHE=>6xTRU	HE	1
+WEL:2xAL-1xHE=>6xTRU	AL	2
+WEL:2xBE-2xCF-1xHE=>4xTHP	HE	1
+WEL:2xBE-2xCF-1xHE=>4xTHP	CF	2
+WEL:2xBE-2xCF-1xHE=>4xTHP	BE	2
+WEL:6xAL-1xHE=>1xDRF	AL	6
+WEL:6xAL-1xHE=>1xDRF	HE	1
+WPL:1xKV-1xTC=>1xTK	TC	1
+WPL:1xKV-1xTC=>1xTK	KV	1
+WPL:1xRCO=>1xCOT	RCO	1
+WPL:1xRSI=>1xSIL	RSI	1
+WPL:50xPG=>1xNL	PG	50
+WPL:75xPG-5xTCL=>1xKV	PG	75
+WPL:75xPG-5xTCL=>1xKV	TCL	5
+\.
+
+
+--
+-- Data for Name: relative_path_answers; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.relative_path_answers (number, question_number, question_exam, text, is_correct) FROM stdin;
+1	1	1z0-071	A.SELECT DISTINCT promo_category || ' has ' || promo_cost AS COSTS FROM promotions ORDER BY 1;Most Voted	t
+2	1	1z0-071	B.SELECT DISTINCT promo_cost || ' in ' || DISTINCT promo_category FROM promotions ORDER BY 1;	f
+3	1	1z0-071	C.SELECT DISTINCT promo_category, promo_cost FROM promotions ORDER BY 1;Most Voted	t
+4	1	1z0-071	D.SELECT promo_category DISTINCT promo_cost, FROM promotions ORDER BY 2;	f
+5	1	1z0-071	E.SELECT promo_cost, promo_category FROM promotions ORDER BY 1;	f
+1	2	1z0-071	A.SELECT product_id, unit_price, S "Discount", unit_price + surcharge - discount FROM products;	f
+2	2	1z0-071	B.SELECT product_id, (unit_price * 0.15 / (4.75 + 552.25)) FROM products;Most Voted	t
+3	2	1z0-071	C.SELECT product_id, (expiry_date - delivery_date) * 2 FROM products;Most Voted	t
+4	2	1z0-071	D.SELECT product_id, unit_price || 5 "Discount", unit_price + surcharge - discount FROM products;	f
+5	2	1z0-071	E.SELECT product_id, expiry_date * 2 FROM products;	f
+6	2	1z0-071	F.SELECT product_id, unit_price, unit_price + surcharge FROM products;Most Voted	t
+1	3	1z0-071	A.The BETWEEN condition always performs less well than using the >= and <= conditions.	f
+2	3	1z0-071	B.The BETWEEN condition always performs better than using the >= and <= conditions.	f
+3	3	1z0-071	C.The Oracle join syntax performs better than the SQL:1999 compliant ANSI join syntax.	f
+4	3	1z0-071	D.Table aliases can improve performance.Most Voted	t
+5	3	1z0-071	E.The join syntax used makes no difference to performance.Most Voted	t
+1	4	1z0-071	A.ADD_MONTHS adds a number of calendar months to a date.Most Voted	t
+2	4	1z0-071	B.CEIL requires an argument which is a numeric data type.	f
+3	4	1z0-071	C.CEIL returns the largest integer less than or equal to a specified number.	f
+4	4	1z0-071	D.LAST_DAY returns the date of the last day of the current month only.	f
+5	4	1z0-071	E.LAST_DAY returns the date of the last day of the month for the date argument passed to the function.Most Voted	t
+6	4	1z0-071	F.LAST_DAY returns the date of the last day of the previous month only.	f
+1	5	1z0-071	A.A synonym cannot be created for a PL/SQL package.	f
+2	5	1z0-071	B.A synonym can be available to all users.Most Voted	t
+3	5	1z0-071	C.A SEQUENCE can have a synonym.Most Voted	t
+4	5	1z0-071	D.Any user can drop a PUBLIC synonym.	f
+5	5	1z0-071	E.A synonym created by one user can refer to an object belonging to another user.Most Voted	t
+1	6	1z0-071	A.CONCAT joins two character strings together.Most Voted	t
+2	6	1z0-071	B.CONCAT joins two or more character strings together.	f
+3	6	1z0-071	C.FLOOR returns the largest positive integer less than or equal to a specified number.	f
+4	6	1z0-071	D.INSTR finds the offset within a character string, starting from position 0.	f
+5	6	1z0-071	E.INSTR finds the offset within a string of a single character only.	f
+6	6	1z0-071	F.FLOOR returns the largest integer less than or equal to a specified number.Most Voted	t
+1	7	1z0-071	A.The primary key constraint will be enabled and IMMEDIATE.Most Voted	t
+2	7	1z0-071	B.The foreign key constraint will be enabled and DEFERRED.	f
+3	7	1z0-071	C.The primary key constraint will be enabled and DEFERRED.	f
+4	7	1z0-071	D.The foreign key constraint will be disabled.Most Voted	t
+5	7	1z0-071	E.The foreign key constraint will be enabled and IMMEDIATE.	f
+1	8	1z0-071	A.All existing rows in the ORDERS table are updated.Most Voted	t
+2	8	1z0-071	B.The subquery is executed before the UPDATE statement is executed.	f
+3	8	1z0-071	C.The subquery is not a correlated subquery.	f
+4	8	1z0-071	D.The subquery is executed for every updated row in the ORDERS table.Most Voted	t
+5	8	1z0-071	E.The UPDATE statement executes successfully even if the subquery selects multiple rows.	f
+1	9	1z0-071	A.DELETE can use a WHERE clause to determine which row(s) should be removed.Most Voted	t
+2	9	1z0-071	B.TRUNCATE can use a WHERE clause to determine which row(s) should be removed.	f
+3	9	1z0-071	C.TRUNCATE leaves any indexes on the table in an UNUSABLE state.	f
+4	9	1z0-071	D.The result of a TRUNCATE can be undone by issuing a ROLLBACK.	f
+5	9	1z0-071	E.The result of a DELETE can be undone by issuing a ROLLBACK.Most Voted	t
+1	10	1z0-071	A.WHERE TO_NUMBER(start_date - SYSDATE) <= 25	f
+2	10	1z0-071	B.WHERE MONTHS_BETWEEN(start_date, SYSDATE) <= 25	f
+3	10	1z0-071	C.WHERE MONTHS_BETWEEN(SYSDATE, start_date) <= 25Most Voted	t
+4	10	1z0-071	D.WHERE ADD_MONTHS(start_date, 25) <= SYSDATE	f
+1	11	1z0-071	A.They can be nested.Most Voted	t
+2	11	1z0-071	B.They cannot be used in the VALUES clause of an INSERT statement.	f
+3	11	1z0-071	C.A scalar subquery expression that returns zero rows evaluates to zero.	f
+4	11	1z0-071	D.They can be used as default values for columns in a CREATE TABLE statement.	f
+5	11	1z0-071	E.A scalar subquery expression that returns zero rows evaluates to NULL.Most Voted	t
+6	11	1z0-071	F.They cannot be used in GROUP BY clauses.Most Voted	t
+1	12	1z0-071	A.Use the DEFINE command before executing the query.Most Voted	t
+2	12	1z0-071	B.Replace '&1' with '&&1' in the query.	f
+3	12	1z0-071	C.Use the UNDEFINE command before executing the query.	f
+4	12	1z0-071	D.Execute the SET VERIFY OFF command before executing the query.	f
+5	12	1z0-071	E.Execute the SET VERIFY ON command before executing the query.	f
+6	12	1z0-071	F.Store the query in a script and pass the substitution value to the script when executing it.Most Voted	t
+1	13	1z0-071	A.GRANT UPDATE ON customers.title, customers.address TO andrew;	f
+2	13	1z0-071	B.GRANT UPDATE (title, address) ON customers TO andrew;	f
+3	13	1z0-071	C.GRANT UPDATE (title, address) ON customers TO andrew WITH GRANT OPTION;Most Voted	t
+4	13	1z0-071	D.GRANT UPDATE ON customers.title, customers.address TO andrew WITH ADMIN OPTION;	f
+3	66	1z0-071	C.0 rows	f
+5	13	1z0-071	E.GRANT UPDATE ON customers.title, customers.address TO andrew WITH GRANT OPTION;	f
+6	13	1z0-071	F.GRANT UPDATE (title, address) ON customers TO andrew WITH ADMIN OPTION;	f
+1	14	1z0-071	A.It will remove the DEPARTMENTS table from the database.Most Voted	t
+2	14	1z0-071	B.It will drop all indexes on the DEPARTMENTS table.Most Voted	t
+3	14	1z0-071	C.It will remove all views that are based on the DEPARTMENTS table.	f
+4	14	1z0-071	D.It will remove all synonyms for the DEPARTMENTS table.	f
+5	14	1z0-071	E.Neither can it be rolled back nor can the DEPARTMENTS table be recovered.Most Voted	t
+6	14	1z0-071	F.It will delete all rows from the DEPARTMENTS table, but retain the empty table.	f
+1	15	1z0-071	A.It requires that data be contained in hierarchical data storage.	f
+2	15	1z0-071	B.It best supports relational databases.	f
+3	15	1z0-071	C.It provides independence for logical data structures being manipulated from the underlying physical data storage.	f
+4	15	1z0-071	D.It is the only language that can be used for both relational and object-oriented databases.	f
+5	15	1z0-071	E.It guarantees atomicity, consistency, isolation, and durability (ACID) features.	f
+6	15	1z0-071	F.It is used to define encapsulation and polymorphism for a relational table.	f
+1	16	1z0-071	A.Any user can create a PUBLIC synonym.	f
+2	16	1z0-071	B.A synonym has an object number.Most Voted	t
+3	16	1z0-071	C.All private synonym names must be unique in the database.	f
+4	16	1z0-071	D.A synonym can be created on an object in a package.	f
+5	16	1z0-071	E.A synonym can have a synonym.Most Voted	t
+1	17	1z0-071	A.TRUNC(MOD(25,3),-1) is invalid.	f
+2	17	1z0-071	B.ROUND(MOD(25,3),-1) is invalid.	f
+3	17	1z0-071	C.ROUND(MOD(25,3),-1) and TRUNC(MOD(25,3),-1) are both valid and give the same result.Most Voted	t
+4	17	1z0-071	D.ROUND(MOD(25,3),-1) and TRUNC(MOD(25,3),-1) are both valid but give different results.	f
+1	18	1z0-071	A.DML statements always start new transactions.	f
+2	18	1z0-071	B.DDL statements automatically commit only data dictionary updates caused by executing the DDL.	f
+3	18	1z0-071	C.A session can see uncommitted updates made by the same user in a different session.	f
+4	18	1z0-071	D.A DDL statement issued by a session with an uncommitted transaction automatically commits that transaction.Most Voted	t
+5	18	1z0-071	E.An uncommitted transaction is automatically committed when the user exits SQL*Plus.Most Voted	t
+1	19	1z0-071	A.ORDER BY 1, 2	f
+2	19	1z0-071	B.ORDER BY 1, lname DESCMost Voted	t
+3	19	1z0-071	C.WHERE city IN ('%AN%')	f
+4	19	1z0-071	D.WHERE city = '%AN%'	f
+5	19	1z0-071	E.WHERE city LIKE '%AN%'Most Voted	t
+6	19	1z0-071	F.ORDER BY last_name DESC, city ASC	f
+1	20	1z0-071	A.the access driver TYPE clause	f
+2	20	1z0-071	B.the DEFAULT DIRECTORY clauseMost Voted	t
+3	20	1z0-071	C.the REJECT LIMIT clause	f
+4	20	1z0-071	D.the LOCATION clauseMost Voted	t
+5	20	1z0-071	E.the ACCESS PARAMETERS clause	f
+1	21	1z0-071	A.A query can return data from unused columns, but no DML is possible on those columns.	f
+2	21	1z0-071	B.Unused columns retain their data until they are dropped.Most Voted	t
+3	21	1z0-071	C.Once a column has been set to unused, a new column with the same name can be added to the table.Most Voted	t
+4	21	1z0-071	D.The DESCRIBE command displays unused columns.	f
+5	21	1z0-071	E.A primary key column cannot be set to unused.	f
+6	21	1z0-071	F.A foreign key column cannot be set to unused.	f
+1	22	1z0-071	A.|| has a higher order of precedence than + (addition).	f
+2	22	1z0-071	B.+ (addition) has a higher order of precedence than * (multiplication).	f
+3	22	1z0-071	C.NOT has a higher order of precedence than AND and OR in a condition.Most Voted	t
+4	22	1z0-071	D.AND and OR have the same order of precedence in a condition.	f
+5	22	1z0-071	E.Operators are evaluated before conditions.Most Voted	t
+1	23	1z0-071	A.SELECT TO_CHAR(TO_DATE('29-10-2019') + INTERVAL '2' MONTH + INTERVAL '4' DAY - INTERVAL '120' SECOND, 'DD-MON-YYYY') AS "date" FROM DUAL;	f
+2	23	1z0-071	B.SELECT TO_CHAR(TO_DATE('29-10-2019') + INTERVAL '3' MONTH + INTERVAL '7' DAY - INTERVAL '360' SECOND, 'DD-MON-YYYY') AS "date" FROM DUAL;	f
+3	23	1z0-071	C.SELECT TO_CHAR(TO_DATE('29-10-2019') + INTERVAL '2' MONTH + INTERVAL '5' DAY - INTERVAL '120' SECOND, 'DD-MON-YYYY') AS "date" FROM DUAL;Most Voted	t
+4	23	1z0-071	D.SELECT TO_CHAR(TO_DATE('29-10-2019') + INTERVAL '2' MONTH + INTERVAL '5' DAY - INTERVAL '86410' SECOND, 'DD-MON- YYYY') AS "date" FROM DUAL;	f
+5	23	1z0-071	E.SELECT TO_CHAR(TO_DATE('29-10-2019') + INTERVAL '2' MONTH + INTERVAL '6' DAY - INTERVAL '120' SECOND, 'DD-MON-YYYY') AS "date" FROM DUAL;	f
+5	24	1z0-071	A. \n![](../images/0001600003.png)\n\t\t	f
+7	24	1z0-071	B. \n![](../images/0001600004.png)\n\t\t	f
+9	24	1z0-071	C. \n![](../images/0001600005.png)\n\t\t	f
+11	24	1z0-071	D. \n![](../images/0001700001.png)\n\t\t	f
+1	25	1z0-071	A.SELECT prod_id FROM sales WHERE quantity_sold > 55000 AND COUNT(*) > 10 GROUP BY COUNT(*) > 10;	f
+2	25	1z0-071	B.SELECT prod_id FROM sales WHERE quantity_sold > 55000 GROUP BY prod_id HAVING COUNT(*) > 10;Most Voted	t
+3	25	1z0-071	C.SELECT COUNT(prod_id) FROM sales GROUP BY prod_id WHERE quantity_sold > 55000;	f
+4	25	1z0-071	D.SELECT prod_id FROM sales WHERE quantity_sold > 55000 AND COUNT(*) > 10 GROUP BY prod_id HAVING COUNT(*) > 10;	f
+5	25	1z0-071	E.SELECT COUNT(prod_id) FROM sales WHERE quantity_sold > 55000 GROUP BY prod_id;Most Voted	t
+1	26	1z0-071	A.They return a single result row per table.	f
+2	26	1z0-071	B.They can be nested to any level.Most Voted	t
+3	26	1z0-071	C.They can accept only one argument.	f
+4	26	1z0-071	D.The argument can be a column name, variable, literal or an expression.Most Voted	t
+5	26	1z0-071	E.They can be used only in the WHERE clause of a SELECT statement.	f
+6	26	1z0-071	F.The data type returned can be different from the data type of the argument.Most Voted	t
+1	27	1z0-071	A.USER_TABLES displays all tables owned by the current user.Most Voted	t
+2	27	1z0-071	B.You must have ANY TABLE system privileges, or be granted object privileges on the table, to view a table in USER_TABLES.	f
+3	27	1z0-071	C.All users can query DBA_TABLES successfully.	f
+4	27	1z0-071	D.You must have ANY TABLE system privileges, or be granted object privileges on the table, to view a table in DBA_TABLES.	f
+5	27	1z0-071	E.ALL_TABLES displays all tables owned by the current user.	f
+6	27	1z0-071	F.You must have ANY TABLE system privileges, or be granted object privileges on the table, to view a table in ALL_TABLES.Most Voted	t
+1	28	1z0-071	A.Each row returned by the subquery can be inserted into only a single target table.	f
+2	28	1z0-071	B.A single WHEN condition can be used for multiple INTO clauses.Most Voted	t
+3	28	1z0-071	C.Each WHEN condition is tested for each row returned by the subquery.Most Voted	t
+4	28	1z0-071	D.It cannot have an ELSE clause.	f
+5	28	1z0-071	E.The total number of rows inserted is always equal to the number of rows returned by the subquery.	f
+1	29	1z0-071	A.COUNT(*) returns the number of rows in a table including duplicate rows and rows containing NULLs in any column.Most Voted	t
+2	29	1z0-071	B.It can only be used for NUMBER data types.	f
+3	29	1z0-071	C.COUNT(DISTINCT inv_amt) returns the number of rows excluding rows containing duplicates and NULLs in the INV_AMT column.Most Voted	t
+4	29	1z0-071	D.COUNT(inv_amt) returns the number of rows in a table including rows with NULL in the INV_AMT column	f
+5	29	1z0-071	E.A SELECT statement using the COUNT function with a DISTINCT keyword cannot have a WHERE clause.	f
+1	30	1z0-071	A.SELECT emp_id, ADD_MONTHS(hire_date, 6), NEXT_DAY('MONDAY') FROM employees;	f
+2	30	1z0-071	B.SELECT emp_id, NEXT_DAY(ADD_MONTHS(hire_date, 6), 1) FROM employees;	f
+3	30	1z0-071	C.SELECT emp_id, NEXT_DAY(MONTHS_BETWEEN(hire_date, SYSDATE), 6) FROM employees;	f
+4	30	1z0-071	D.SELECT emp_id, NEXT_DAY(ADD_MONTHS(hire_date, 6), 'MONDAY') FROM employees;Most Voted	t
+1	31	1z0-071	A.GLOBAL TEMPORARY TABLE space allocation occurs at session start.	f
+2	31	1z0-071	B.GLOBAL TEMPORARY TABLE rows inserted by a session are available to any other session whose user has been granted select on the table.	f
+3	31	1z0-071	C.A TRUNCATE command issued in a session causes all rows in a GLOBAL TEMPORARY TABLE for the issuing session to be deleted.Most Voted	t
+4	31	1z0-071	D.Any GLOBAL TEMPORARY TABLE rows existing at session termination will be deleted.Most Voted	t
+5	31	1z0-071	E.A DELETE command on a GLOBAL TEMPORARY TABLE cannot be rolled back.	f
+6	31	1z0-071	F.A GLOBAL TEMPORARY TABLE'S definition is available to multiple sessions.Most Voted	t
+1	32	1z0-071	A.It displays values for variables used only in the WHERE clause of a query.	f
+2	32	1z0-071	B.It displays values for variables created by the DEFINE command.Most Voted	t
+3	32	1z0-071	C.It can be used only in SQL*Plus.	f
+4	32	1z0-071	D.It displays values for variables prefixed with &&.	f
+5	32	1z0-071	E.It can be used in SQL Developer and SQL*Plus.Most Voted	t
+1	33	1z0-071	A.CREATE SEQUENCE emp_seq START WITH 1 INCREMENT BY 1 CYCLE;	f
+2	33	1z0-071	B.CREATE SEQUENCE emp_seq START WITH 1 INCREMENT BY 1 CACHE;	f
+3	33	1z0-071	C.CREATE SEQUENCE emp_seq;	f
+4	33	1z0-071	D.CREATE SEQUENCE emp_seq START WITH 1 INCREMENT BY 1 NOCACHE;Most Voted	t
+5	33	1z0-071	E.CREATE SEQUENCE emp_seq NOCACHE;Most Voted	t
+6	33	1z0-071	F.CREATE SEQUENCE emp_seq START WITH 1 CACHE;	f
+1	34	1z0-071	A.SELECT 1 - SYSDATE - DATE '2019-01-01' FROM DUAL;	f
+2	34	1z0-071	B.SELECT SYSDATE - DATE '2019-01-01' - 1 FROM DUAL;Most Voted	t
+3	34	1z0-071	C.SELECT SYSDATE / DATE '2019-01-01' - 1 FROM DUAL;	f
+4	34	1z0-071	D.SELECT SYSDATE - 1 - DATE '2019-01-01' FROM DUAL;Most Voted	t
+5	34	1z0-071	E.SELECT (SYSDATE - DATE '2019-01-01') / 1 FROM DUAL;Most Voted	t
+6	34	1z0-071	F.SELECT 1 / SYSDATE - DATE '2019-01-01' FROM DUAL;	f
+1	35	1z0-071	A.INSERT can be granted only on tables and sequences.	f
+2	35	1z0-071	B.DELETE can be granted on tables, views, and sequences.	f
+3	35	1z0-071	C.SELECT can be granted on tables, views, and sequences.Most Voted	t
+4	35	1z0-071	D.ALTER can be granted only on tables and sequences.Most Voted	t
+5	35	1z0-071	E.REFERENCES can be granted only on tables.	f
+1	36	1z0-071	A.The second ROLLBACK command replays the delete.	f
+2	36	1z0-071	B.The first ROLLBACK command restores the 101 rows that were deleted and commits the inserted row.	f
+3	36	1z0-071	C.The first ROLLBACK command restores the 101 rows that were deleted, leaving the inserted row still to be committed.Most Voted	t
+4	36	1z0-071	D.The second ROLLBACK command undoes the insert.Most Voted	t
+5	36	1z0-071	E.The second ROLLBACK command does nothing.	f
+1	37	1z0-071	A.A table can have multiple primary keys.	f
+2	37	1z0-071	B.A column definition can specify multiple data types.	f
+3	37	1z0-071	C.A table can have multiple foreign keys.Most Voted	t
+4	37	1z0-071	D.A VARCHAR2 column without data has a NULL value.Most Voted	t
+5	37	1z0-071	E.A NUMBER column without data has a zero value.	f
+1	38	1z0-071	A.An alias name must not contain space characters.	f
+2	38	1z0-071	B.An alias name must always be specified in quotes.	f
+3	38	1z0-071	C.An alias name must not be used in an ORDER BY clause.	f
+4	38	1z0-071	D.An alias name must not be used in a GROUP BY clause.Most Voted	t
+1	39	1z0-071	A.Create roles.	f
+2	39	1z0-071	B.Create FOREIGN KEY constraints that reference tables in other schemas.Most Voted	t
+3	39	1z0-071	C.Delete rows from tables in any schema except SYS.	f
+4	39	1z0-071	D.Set default and temporary tablespaces for a user.	f
+5	39	1z0-071	E.Execute a procedure or function in another schema.Most Voted	t
+1	40	1z0-071	A.ROLLBACK without the TO SAVEPOINT clause undoes all the transaction's changes, releases its locks, and erases all its savepoints.Most Voted	t
+2	40	1z0-071	B.ROLLBACK without the TO SAVEPOINT clause undoes all the transaction's changes but does not release its locks.	f
+3	40	1z0-071	C.ROLLBACK without the TO SAVEPOINT clause undoes all the transaction's changes but does not erase its savepoints.	f
+4	40	1z0-071	D.ROLLBACK TO SAVEPOINT undoes the transaction's changes made since the named savepoint and then ends the transaction.	f
+5	40	1z0-071	E.COMMIT ends the transaction and makes all its changes permanent.Most Voted	t
+6	40	1z0-071	F.COMMIT erases all the transaction's savepoints and releases its locks.Most Voted	t
+3	41	1z0-071	A. \n![](../images/0002600001.png)\n\t\t	f
+5	41	1z0-071	B. \n![](../images/0002600002.png)\n\t\t	f
+7	41	1z0-071	C. \n![](../images/0002600003.png)\n\t\t	f
+9	41	1z0-071	D. \n![](../images/0002700001.png)\n\t\t	f
+1	42	1z0-071	A.A column must be set as unused before it is dropped from a table.	f
+2	42	1z0-071	B.A primary key column cannot be dropped.	f
+3	42	1z0-071	C.Multiple columns can be dropped simultaneously using the ALTER TABLE command.Most Voted	t
+4	42	1z0-071	D.A column can be removed only if it contains no data.	f
+5	42	1z0-071	E.A column that is referenced by another column in any other table cannot be dropped.	f
+6	42	1z0-071	F.A column drop is implicitly committed.Most Voted	t
+1	43	1z0-071	A.A SELECT statement cannot contain a WHERE clause when querying a view containing a WHERE clause in its defining query.	f
+2	43	1z0-071	B.Views have no segment.Most Voted	t
+3	43	1z0-071	C.Views have no object number.	f
+4	43	1z0-071	D.Views can join tables only if they belong to the same schema.	f
+5	43	1z0-071	E.A view can be created that refers to a non-existent table in its defining query.Most Voted	t
+6	43	1z0-071	F.Rows inserted into a table using a view are retained in the table if the view is dropped.Most Voted	t
+1	44	1z0-071	A.To drop the table in this session, you must first truncate it.Most Voted	t
+2	44	1z0-071	B.Other sessions can view the committed row.	f
+3	44	1z0-071	C.You can add a column to the table in this session.	f
+4	44	1z0-071	D.You can add a foreign key to the table.	f
+5	44	1z0-071	E.When you terminate your session, the row will be deleted.Most Voted	t
+1	45	1z0-071	A.The names of employees earning the maximum salary will appear first in an unspecified order.	f
+2	45	1z0-071	B.All remaining employee names will appear in descending order.	f
+3	45	1z0-071	C.All remaining employee names will appear in an unspecified order.	f
+4	45	1z0-071	D.All remaining employee names will appear in ascending order.Most Voted	t
+5	45	1z0-071	E.The names of employees earning the maximum salary will appear first in ascending order.	f
+6	45	1z0-071	F.The names of employees earning the maximum salary will appear first in descending order.Most Voted	t
+1	46	1z0-071	A.When creating an external table, data can be selected only from a table whose rows are stored in database blocks.	f
+2	46	1z0-071	B.Creating an external table creates a directory object.	f
+3	46	1z0-071	C.When creating an external table, data can be selected from another external table or from a table whose rows are stored in database blocks.Most Voted	t
+4	46	1z0-071	D.Creating an external table creates a dump file that can be used by an external table in the same or a different database.Most Voted	t
+5	46	1z0-071	E.Creating an external table creates a dump file that can be used only by an external table in the same database.	f
+3	47	1z0-071	A. \n![](../images/0003100002.png)\n\t\t	f
+5	47	1z0-071	B. \n![](../images/0003100003.png)\n\t\t	f
+7	47	1z0-071	C. \n![](../images/0003100004.png)\n\t\t	f
+9	47	1z0-071	D. \n![](../images/0003200001.png)\n\t\t	f
+8	48	1z0-071	A. \n![](../images/0003300001.png)\n\t\t	f
+10	48	1z0-071	B. \n![](../images/0003300002.png)\n\t\t	f
+12	48	1z0-071	C. \n![](../images/0003300003.png)\n\t\t	f
+14	48	1z0-071	D. \n![](../images/0003300004.png)\n\t\t	f
+7	49	1z0-071	A. \n![](../images/0003400002.png)\n\t\t	f
+9	49	1z0-071	B. \n![](../images/0003400003.png)\n\t\t	f
+11	49	1z0-071	C. \n![](../images/0003400004.png)\n\t\t	f
+13	49	1z0-071	D. \n![](../images/0003500001.png)\n\t\t	f
+1	50	1z0-071	A.EXPIRY_DATE contains the SYSDATE by default if no date is assigned to it.	f
+2	50	1z0-071	B.PRODUCT_PRICE can be used in an arithmetic expression even if it has no value stored in it.Most Voted	t
+3	50	1z0-071	C.PRODUCT_NAME cannot contain duplicate values.	f
+4	50	1z0-071	D.EXPIRY_DATE cannot be used in arithmetic expressions.	f
+5	50	1z0-071	E.PRODUCT_PRICE contains the value zero by default if no value is assigned to it.	f
+6	50	1z0-071	F.PRODUCT_ID can be assigned the PRIMARY KEY constraint.Most Voted	t
+3	51	1z0-071	A. \n![](../images/0003600002.png)\n\t\t	f
+5	51	1z0-071	B. \n![](../images/0003600003.png)\n\t\t	f
+7	51	1z0-071	C. \n![](../images/0003600004.png)\n\t\t	f
+9	51	1z0-071	D. \n![](../images/0003600005.png)\n\t\t	f
+1	52	1z0-071	A.SELECT * FROM TABLE(123);	f
+2	52	1z0-071	B.SELECT * FROM "123";Most Voted	t
+3	52	1z0-071	C.SELECT * FROM \\'123\\';	f
+4	52	1z0-071	D.SELECT * FROM '123';	f
+1	53	1z0-071	A.An update to a table can result in updates to any or all of the table's indexes.Most Voted	t
+2	53	1z0-071	B.An update to a table can result in no updates to any of the table's indexes.Most Voted	t
+3	53	1z0-071	C.A UNIQUE index can be altered to be non-unique.	f
+4	53	1z0-071	D.When a table is dropped and is moved to the RECYCLE BIN, all indexes built on that table are permanently dropped.	f
+5	53	1z0-071	E.A table belonging to one user cannot have an index that belongs to a different user.	f
+1	54	1z0-071	A.The name of each column in the first SELECT list must match the name of the corresponding column in each subsequent SELECT list.	f
+2	54	1z0-071	B.None of the set operators can be used when selecting CLOB columns.	f
+3	54	1z0-071	C.There must be an equal number of columns in each SELECT list.Most Voted	t
+4	54	1z0-071	D.Each SELECT statement in the query can have an ORDER BY clause.	f
+5	54	1z0-071	E.The FOR UPDATE clause cannot be specified.Most Voted	t
+2	55	1z0-071	A. \n![](../images/0003900001.png)\n\t\t	f
+4	55	1z0-071	B. \n![](../images/0003900002.png)\n\t\t	f
+8	55	1z0-071	D. \n![](../images/0003900004.png)\n\t\t	f
+1	56	1z0-071	A.Two or more values are always returned from the subquery.	f
+2	56	1z0-071	B.They can contain HAVING clauses.Most Voted	t
+3	56	1z0-071	C.They can contain GROUP BY clauses.Most Voted	t
+4	56	1z0-071	D.They can return multiple columns.Most Voted	t
+5	56	1z0-071	E.They cannot contain a subquery.	f
+1	57	1z0-071	A.Increase the width of a numeric column.Most Voted	t
+2	57	1z0-071	B.Add a new column as the table's first column.	f
+3	57	1z0-071	C.Define a default value that is automatically inserted into a column containing nulls.	f
+4	57	1z0-071	D.Change a DATE column containing data to a NUMBER data type.	f
+5	57	1z0-071	E.Change the default value of a column.Most Voted	t
+6	57	1z0-071	F.Add a new NOT NULL column with a DEFAULT value.Most Voted	t
+1	58	1z0-071	A.Rows from unrelated tables cannot be joined.	f
+2	58	1z0-071	B.Relating data from a table with data from the same table is implemented with a self join.	f
+3	58	1z0-071	C.Implementing a relationship between two tables might require joining additional tables.	f
+4	58	1z0-071	D.Every relationship between the two tables must be implemented in a join condition.	f
+5	58	1z0-071	E.An inner join relates rows within the same table.	f
+1	59	1z0-071	A.Roles are assigned to users using the ALTER USER statement.	f
+2	59	1z0-071	B.Privileges are assigned to a role using the GRANT statement.Most Voted	t
+3	59	1z0-071	C.A role is a named group of related privileges that can only be assigned to a user.	f
+4	59	1z0-071	D.A single user can be assigned multiple roles.Most Voted	t
+5	59	1z0-071	E.Privileges are assigned to a role using the ALTER ROLE statement.	f
+6	59	1z0-071	F.Roles are assigned to roles using the ALTER ROLE statement.	f
+7	59	1z0-071	G.A single role can be assigned to multiple users.Most Voted	t
+1	60	1z0-071	A.invoice_date = '15-march-2019' : uses implicit conversionMost Voted	t
+2	60	1z0-071	B.qty_sold BETWEEN '101' AND '110' : uses implicit conversionMost Voted	t
+3	60	1z0-071	C.invoice_date > '01-02-2019' : uses implicit conversion	f
+4	60	1z0-071	D.qty_sold = '0554982' : requires explicit conversion	f
+5	60	1z0-071	E.CONCAT (qty_sold, invoice_date) : requires explicit conversion	f
+1	61	1z0-071	A.A full outer join returns matched and unmatched rows.Most Voted	t
+2	61	1z0-071	B.Outer joins can be used when there are multiple join conditions on two tables.Most Voted	t
+3	61	1z0-071	C.A full outer join must use Oracle syntax.	f
+4	61	1z0-071	D.Outer joins can only be used between two tables per query.	f
+5	61	1z0-071	E.A left or right outer join returns only unmatched rows.	f
+6	61	1z0-071	F.An inner join returns matched rows.Most Voted	t
+1	62	1z0-071	A. \n![](../images/0004200001.png)\n\t\t	f
+3	62	1z0-071	B. \n![](../images/0004300001.png)\n\t\t	f
+5	62	1z0-071	C. \n![](../images/0004300002.png)\n\t\t	f
+7	62	1z0-071	D. \n![](../images/0004300003.png)\n\t\t	f
+3	63	1z0-071	A. \n![](../images/0004400001.png)\n\t\t	f
+5	63	1z0-071	B. \n![](../images/0004400002.png)\n\t\t	f
+7	63	1z0-071	C. \n![](../images/0004400003.png)\n\t\t	f
+9	63	1z0-071	D. \n![](../images/0004400004.png)\n\t\t	f
+1	64	1z0-071	A.The Oracle join syntax supports creation of a Cartesian product of two tables.Most Voted	t
+2	64	1z0-071	B.The Oracle join syntax only supports right outer joins.	f
+3	64	1z0-071	C.The SQL:1999 compliant ANSI join syntax supports creation of a Cartesian product of two tables.Most Voted	t
+4	64	1z0-071	D.The Oracle join syntax performs less well than the SQL:1999 compliant ANSI join syntax.	f
+5	64	1z0-071	E.The Oracle join syntax supports natural joins.	f
+6	64	1z0-071	F.The Oracle join syntax performs better than the SQL:1999 compliant ANSI join syntax.	f
+7	64	1z0-071	G.The SQL:1999 compliant ANSI join syntax supports natural joins.Most Voted	t
+1	65	1z0-071	A.NVL must have expressions of the same data type.	f
+2	65	1z0-071	B.NVL can have any number of expressions in the list.	f
+3	65	1z0-071	C.NVL2 can have any number of expressions in the list.	f
+4	65	1z0-071	D.COALESCE stops evaluating the list of expressions when it finds the first non-null value.Most Voted	t
+5	65	1z0-071	E.The first expression in NVL2 is never returned.Most Voted	t
+6	65	1z0-071	F.COALESCE stops evaluating the list of expressions when it finds the first null value.	f
+1	66	1z0-071	A.an error	f
+2	66	1z0-071	B.2 rows	f
+4	66	1z0-071	D.1 rowMost Voted	t
+1	67	1z0-071	A.an error	f
+2	67	1z0-071	B.2 rows	f
+3	67	1z0-071	C.0 rows	f
+4	67	1z0-071	D.1 rowMost Voted	t
+1	68	1z0-071	A. \n![](../images/0004700001.png)\n\t\t	f
+3	68	1z0-071	B. \n![](../images/0004700002.png)\n\t\t	f
+5	68	1z0-071	C. \n![](../images/0004700003.png)\n\t\t	f
+7	68	1z0-071	D. \n![](../images/0004700004.png)\n\t\t	f
+1	69	1z0-071	A.when a CREATE TABLE AS SELECT statement is issued in the same session but fails with a syntax error	f
+2	69	1z0-071	B.when a DBA issues a successful SHUTDOWN TRANSACTIONAL statement and the user then issues a COMMITMost Voted	t
+3	69	1z0-071	C.when the session logs out successfullyMost Voted	t
+4	69	1z0-071	D.when a CREATE INDEX statement is executed successfully in the same sessionMost Voted	t
+5	69	1z0-071	E.when a DBA issues a successful SHUTDOWN IMMEDIATE statement and the user then issues a COMMIT	f
+6	69	1z0-071	F.when a COMMIT statement is issued by the same user from another session in the same database instance	f
+1	70	1z0-071	A.NOT NULL can be specified at the column and at the table level.	f
+2	70	1z0-071	B.A table can have only one PRIMARY KEY and one FOREIGN KEY constraint.	f
+3	70	1z0-071	C.A FOREIGN KEY column in a child table and the referenced PRIMARY KEY column in the parent table must have the same names.	f
+4	70	1z0-071	D.PRIMARY KEY and FOREIGN KEY constraints can be specified at the column and at the table level.Most Voted	t
+5	70	1z0-071	E.A table can have multiple PRIMARY KEY and multiple FOREIGN KEY constraints.	f
+6	70	1z0-071	F.A table can have only one PRIMARY KEY but may have multiple FOREIGN KEY constraints.Most Voted	t
+1	71	1z0-071	A.ORDER_IDMost Voted	t
+2	71	1z0-071	B.ORDER_TOTAL	f
+3	71	1z0-071	C.ORDER_DATE	f
+4	71	1z0-071	D.PRODUCT_ID	f
+5	71	1z0-071	E.STATUS	f
+6	71	1z0-071	F.SERIAL_NOMost Voted	t
+1	72	1z0-071	A.GROUP BY ch.channel_type, ROLLUP(t.month, co.country_code);Most Voted	t
+2	72	1z0-071	B.GROUP BY ch.channel_type, t.month, ROLLUP(co.country_code);	f
+3	72	1z0-071	C.GROUP BY CUBE(ch.channel_type, t.month, co.country_code);	f
+4	72	1z0-071	D.GROUP BY ch.channel_type, t.month, co.country_code;	f
+1	73	1z0-071	A.SELECT first_name, DISTINCT last_name FROM employees WHERE first_name <> NULL;	f
+2	73	1z0-071	B.SELECT first_name, DISTINCT last_name FROM employees WHERE first_name IS NOT NULL;	f
+3	73	1z0-071	C.SELECT DISTINCT * FROM employees WHERE first_name IS NOT NULL;Most Voted	t
+4	73	1z0-071	D.SELECT DISTINCT * FROM employees WHERE first_name <> NULL;	f
+5	74	1z0-071	A. \n![](../images/0005200003.png)\n\t\t	f
+7	74	1z0-071	B. \n![](../images/0005200004.png)\n\t\t	f
+9	74	1z0-071	C. \n![](../images/0005200005.png)\n\t\t	f
+11	74	1z0-071	D. \n![](../images/0005300001.png)\n\t\t	f
+1	75	1z0-071	A.Employees 100 and 200 will have the same SALARY as before the update command.	f
+2	75	1z0-071	B.Employee 100 will have JOB_ID set to the same value as the JOB_ID of employee 200.Most Voted	t
+3	75	1z0-071	C.Employee 200 will have JOB_ID set to the same value as the JOB_ID of employee 100.	f
+4	75	1z0-071	D.Employees 100 and 200 will have the same JOB_ID as before the update command.	f
+5	75	1z0-071	E.Employee 100 will have SALARY set to the same value as the SALARY of employee 200.Most Voted	t
+6	75	1z0-071	F.Employee 200 will have SALARY set to the same value as the SALARY of employee 100.	f
+1	76	1z0-071	A.64	f
+2	76	1z0-071	B.6Most Voted	t
+3	76	1z0-071	C.3	f
+4	76	1z0-071	D.12	f
+1	77	1z0-071	A.SYSDATE	f
+2	77	1z0-071	B.CURRENT_TIMESTAMPMost Voted	t
+3	77	1z0-071	C.LOCALTIMESTAMP	f
+4	77	1z0-071	D.CURRENT_DATE	f
+1	78	1z0-071	A.INTERVAL YEAR TO MONTH	f
+2	78	1z0-071	B.TIMESTAMP WITH TIMEZONE	f
+3	78	1z0-071	C.INTERVAL DAY TO SECONDMost Voted	t
+4	78	1z0-071	D.TIMESTAMP WITH LOCAL TIMEZONE	f
+5	78	1z0-071	E.TIMESTAMP	f
+1	79	1z0-071	A.The data type group of each column returned by the second query must match the data type group of the corresponding column returned by the first query.Most Voted	t
+2	79	1z0-071	B.The names and number of columns must be identical for all select statements in the query.	f
+3	79	1z0-071	C.The data type of each column returned by the second query must be implicitly convertible to the data type of the corresponding column returned by the first query.	f
+4	79	1z0-071	D.The data type of each column returned by the second query must exactly match the data type of the corresponding column returned by the first query.	f
+5	79	1z0-071	E.The number, but not names, of columns must be identical for all select statements in the query.Most Voted	t
+1	80	1z0-071	A.In a query containing multiple set operators, INTERSECT always takes precedence over UNION and UNION ALL.	f
+2	80	1z0-071	B.An expression in the first SELECT list must have a column alias for the expression.	f
+3	80	1z0-071	C.All set operators are valid on columns of all data types.	f
+4	80	1z0-071	D.CHAR columns of different lengths used with a set operator return a VARCHAR2 whose length equals the longest char value.Most Voted	t
+5	80	1z0-071	E.Queries using set operators do not perform implicit conversion across data type groups (e.g. character, numeric).Most Voted	t
+1	81	1z0-071	A.PROJECT_ID must be the primary key in the PROJECTS entity and foreign key in the STUDENTS entity.	f
+2	81	1z0-071	B.STUDENT_ID must be the primary key in the STUDENTS entity and foreign key in the projects entity.	f
+5	94	1z0-071	E.Tables in the defining query of a view must always exist in order to create the view.	f
+1	249	1z0-071	A.self joinMost Voted	t
+3	81	1z0-071	C.An associative table must be created with a composite key of STUDENT_ID and PROJECT_ID, which is the foreign key linked to the students and projects entities.Most Voted	t
+4	81	1z0-071	D.The ER must have a many-to-many relationship between the STUDENTS and PROJECTS entities that must be resolved into one-to-many relationships.Most Voted	t
+5	81	1z0-071	E.The ER must have a one-to-many relationship between the STUDENTS and PROJECTS entities.	f
+1	82	1z0-071	A.an activity	f
+2	82	1z0-071	B.a table	f
+3	82	1z0-071	C.a relationshipMost Voted	t
+4	82	1z0-071	D.an attributeMost Voted	t
+5	82	1z0-071	E.a unique identifier	f
+6	82	1z0-071	F.an entityMost Voted	t
+1	83	1z0-071	A.2	f
+2	83	1z0-071	B.1Most Voted	t
+3	83	1z0-071	C.3	f
+4	83	1z0-071	D.5 01-MAR-2019	f
+5	83	1z0-071	E.3 01-JAN-2015	f
+6	83	1z0-071	F.4 01-FEB-2015Most Voted	t
+1	84	1z0-071	A.SELECT COALESCE(0, SYSDATE) FROM DUAL;	f
+2	84	1z0-071	B.SELECT NVL('DATE', SYSDATZ) FROM DUAL;Most Voted	t
+3	84	1z0-071	C.SELECT COALESCE('DATE', SYSDATE) FROM DUAL;	f
+4	84	1z0-071	D.SELECT NVL('DATE', 200) FROM (SELECT NULL AS "DATE" FROM DUAL);Most Voted	t
+5	84	1z0-071	E.SELECT COALESCE('DATE', SYSDATE) FRCM (SELECT NULL AS "DATE" FROM DUAL);	f
+1	85	1z0-071	A.It must be an equijoin.	f
+2	85	1z0-071	B.The ON clause must be used.	f
+3	85	1z0-071	C.It must be an inner join.	f
+4	85	1z0-071	D.It can be an outer join.Most Voted	t
+5	85	1z0-071	E.The ON clause can be used.Most Voted	t
+6	85	1z0-071	F.The query must use two different aliases for the table.Most Voted	t
+1	86	1z0-071	A.It executes successfully but does not return any result.	f
+2	86	1z0-071	B.It returns the date for the first Monday of the next month.Most Voted	t
+3	86	1z0-071	C.It returns the date for the last Monday of the current month.	f
+4	86	1z0-071	D.It generates an error.	f
+1	87	1z0-071	A.WHERE and HAVING clauses can be used in the same statement only if applied to different table columns.	f
+2	87	1z0-071	B.The WHERE clause can be used to exclude rows after dividing them into groups.	f
+3	87	1z0-071	C.The HAVING clause can be used with aggregating functions in subqueries.Most Voted	t
+4	87	1z0-071	D.The WHERE clause can be used to exclude rows before dividing them into groups.Most Voted	t
+5	87	1z0-071	E.Aggregating functions and columns used in HAVING clauses must be specified in the SELECT list of a query.	f
+1	88	1z0-071	A.Indexes can be created on them.Most Voted	t
+2	88	1z0-071	B.Backup and recovery operations are available for these tables.	f
+3	88	1z0-071	C.Their data is always stored in the default temporary tablespace of the user who created them.	f
+4	88	1z0-071	D.If the ON COMMIT clause is transaction-specific, all rows in the table are deleted after each COMMIT OR ROLLBACK.Most Voted	t
+5	88	1z0-071	E.They can be created only by a user with the DBA role, but can be accessed by all users who can create a session.	f
+6	88	1z0-071	F.If the ON COMMIT clause is session-specific, the table is dropped when the session is terminated.	f
+1	89	1z0-071	A.A combination of object and system privileges can be granted to a role.Most Voted	t
+2	89	1z0-071	B.All types of schema objects have associated object privileges.	f
+3	89	1z0-071	C.Schema owners can grant object privileges on objects in their schema to any other user or role.Most Voted	t
+4	89	1z0-071	D.Only users with the DBA role can create roles.	f
+5	89	1z0-071	E.Only users with the GRANT ANY PRIVILEGE privilege can grant and revoke system privileges from other users.	f
+6	89	1z0-071	F.Object privileges granted on a table automatically apply to all synonyms for that table.Most Voted	t
+1	90	1z0-071	A.INSERT INTO employees VALUES (101, 'John', 'Smith', 12000, SYSDATE);	f
+2	90	1z0-071	B.INSERT INTO employees VALUES (101, 'John', 'Smith', 10, 12000, SYSDATE);	f
+3	90	1z0-071	C.INSERT INTO employees (employee_id, salary, first_name, hiredate, last_name) VALUES (101, 12100, 'John', SYSDATE, 'Smith');Most Voted	t
+4	90	1z0-071	D.INSERT INTO employees (employee_id, first_name, last_name, salary, hiresate)VALUES ( (SELECT 101, 'John', 'Smith'. 12000, SYSDATE FROM dual) );	f
+5	90	1z0-071	E.INSERT INTO employees SELECT 101, 'John', 'Smith', 12000, (SELECT SYSDATE FROM dual), 10 FROM dual;Most Voted	t
+6	90	1z0-071	F.INSERT INTO employees VALUES (101, 'John', ' ', 12000, SYSDATE, 10);	f
+1	91	1z0-071	A.The structure of the TEST table is removed.	f
+2	91	1z0-071	B.All the indexes on the TEST table are dropped.	f
+3	91	1z0-071	C.All the constraints on the TEST table are dropped.	f
+4	91	1z0-071	D.Removed rows can not be recovered using the ROLLBACK command.Most Voted	t
+5	91	1z0-071	E.All the rows in the TEST table are removed.Most Voted	t
+1	92	1z0-071	A.Sequences used to populate columns in the HR.EMPLOYEES table are dropped.	f
+2	92	1z0-071	B.Synonyms for HR.EMPLOYEES are dropped.	f
+3	92	1z0-071	C.Views referencing HR.EMPLOYEES are dropped.	f
+4	92	1z0-071	D.All constraints defined on HR.EMPLOYEES are dropped.Most Voted	t
+5	92	1z0-071	E.The HR.EMPLOYEES table may be moved to the recycle bin.Most Voted	t
+6	92	1z0-071	F.All indexes defined on HR.EMPLOYEES are droppedMost Voted	t
+1	93	1z0-071	A.ORDER BY CUST_NO	f
+2	93	1z0-071	B.ORDER BY 2, cust_idMost Voted	t
+3	93	1z0-071	C.ORDER BY 2, 1Most Voted	t
+4	93	1z0-071	D.ORDER BY "Last Name"Most Voted	t
+5	93	1z0-071	E.ORDER BY "CUST_NO"	f
+1	94	1z0-071	A.The WITH CHECK clause prevents certain rows from being updated or inserted in the underlying table through the view.Most Voted	t
+2	94	1z0-071	B.The WITH CHECK clause prevents certain rows from being displayed when querying the view.	f
+3	94	1z0-071	C.Views can be indexed.	f
+4	94	1z0-071	D.Views can be updated without the need to re-grant privileges on the view.Most Voted	t
+1	95	1z0-071	A.SELECT ‘The first_name is ‘‘ || first_name || ‘‘ FROM employees;	f
+2	95	1z0-071	B.SELECT ‘The first_name is ‘‘‘ || first_name || ‘‘‘‘ FROM employees;Most Voted	t
+3	95	1z0-071	C.SELECT ‘The first_name is ‘‘‘ || first_name || ‘‘‘ FROM employees;	f
+4	95	1z0-071	D.SELECT ‘The first_name is ‘ || first_name || ‘‘ FROM employees;Most Voted	t
+5	95	1z0-071	E.SELECT ‘The first_name is \\‘‘ || first_name || ‘\\‘‘ FROM employees;	f
+1	96	1z0-071	A.Setting an indexed column to unused results in an error.	f
+2	96	1z0-071	B.You can query the data dictionary to see the names of unused columns.	f
+3	96	1z0-071	C.You can specify multiple column names in an ALTER TABLE...SET UNUSED statement.Most Voted	t
+4	96	1z0-071	D.If you set all the columns of a table to unused, the table is automatically dropped.	f
+5	96	1z0-071	E.CASCADE CONSTRAINTS must be specified when setting a column to unused if that column is referenced in a constraint on another column.Most Voted	t
+1	97	1z0-071	A.WHERE INITCAP(SUBSTR(cust_name, INSTR(cust_name, ' ') + 1)) LIKE 'Mc%'Most Voted	t
+2	97	1z0-071	B.WHERE SUBSTR(cust_name, INSTR(cust_name, ' ') + 1) LIKE 'Mc%'	f
+3	97	1z0-071	C.WHERE SUBSTR(cust_name, INSTR(cust_name, ' ') + 1 ) LIKE 'Mc%' OR 'MC%'	f
+4	97	1z0-071	D.WHERE UPPER(SUBSTR(cust_name, INSTR(cust_name, ' ') + 1)) LIKE UPPER('MC%')Most Voted	t
+5	97	1z0-071	E.WHERE INITCAP(SUBSTR(cust_name, INSTR(cust_name, ' ’) + 1)) IN ('MC%', 'Mc%)	f
+1	98	1z0-071	A.the first VARCHAR2 column in the first SELECT of the compound query	f
+2	98	1z0-071	B.the first column in the first SELECT of the compound queryMost Voted	t
+3	98	1z0-071	C.the first NUMBER column in the first SELECT of the compound query	f
+4	98	1z0-071	D.the first NUMBER or VARCHAR2 column in the last SELECT of the compound query	f
+5	98	1z0-071	E.the first column in the last SELECT of the compound query	f
+1	99	1z0-071	A.In a character sort, the values are case-sensitive.Most Voted	t
+2	99	1z0-071	B.NULLS are not included in the sort operation.	f
+3	99	1z0-071	C.Numeric values are displayed in descending order if they have decimal positions.	f
+4	99	1z0-071	D.Column aliases can be used in the ORDER BY clause.Most Voted	t
+5	99	1z0-071	E.Only columns that are specified in the SELECT list can be used in the ORDER BY clause.	f
+1	100	1z0-071	A.4	f
+2	100	1z0-071	B.6Most Voted	t
+3	100	1z0-071	C.16	f
+4	100	1z0-071	D.0	f
+5	100	1z0-071	E.1	f
+6	100	1z0-071	F.10	f
+1	101	1z0-071	A.an error	f
+2	101	1z0-071	B.DURATION -----------+100	f
+3	101	1z0-071	C.DURATION -----------+08	f
+4	101	1z0-071	D.DURATION -----------+08-04Most Voted	t
+1	102	1z0-071	A.150	f
+2	102	1z0-071	B.200Most Voted	t
+3	102	1z0-071	C.160	f
+4	102	1z0-071	D.100	f
+5	102	1z0-071	E.16	f
+1	103	1z0-071	A.\n![](../images/image10.png)\n\t\t	f
+2	103	1z0-071	B.\n![](../images/image11.png)\n\t\t	f
+3	103	1z0-071	C.\n![](../images/image12.png)\n\t\t	f
+4	103	1z0-071	D.\n![](../images/image13.png)\n\t\t 	t
+5	103	1z0-071	E.\n![](../images/image14.png)\n\t\t	f
+1	104	1z0-071	A.The same table column can be part of a unique and non-unique index.Most Voted	t
+2	104	1z0-071	B.A descending index is a type of function-based index.Most Voted	t
+3	104	1z0-071	C.An INVINSIBLE index is not maintained when DML is performed on its underlying table.	f
+4	104	1z0-071	D.If a query filters on an indexed column then it will always be used during execution of the query.	f
+5	104	1z0-071	E.An index can be created as part of a CREATE TABLE statement.Most Voted	t
+6	104	1z0-071	F.An UNUSABLE index is maintained when DML is performed on its underlying table.	f
+1	105	1z0-071	A.only departments where the total salary is greater than 3000, returned in no particular order	f
+2	105	1z0-071	B.only departments where the total salary is greater than 3000, ordered by department	f
+3	105	1z0-071	C.all departments and a sum of the salaries of employees with a salary greater than 3000	f
+4	105	1z0-071	D.an error	f
+1	106	1z0-071	A.They can be indexed.Most Voted	t
+2	106	1z0-071	B.They can be referenced in the column expression of another virtual column.	f
+3	106	1z0-071	C.They cannot have a data type explicitly specified.	f
+4	106	1z0-071	D.They can be referenced in the set clause of an update statement as the name of the column to be updated.	f
+5	106	1z0-071	E.They can be referenced in the where clause of an update or delete statement.Most Voted	t
+1	107	1z0-071	A.SELECT TO_DATE('2019-01-01') FROM DUAL;	f
+2	107	1z0-071	B.SELECT DATE '2019-01-01' FROM DUAL;Most Voted	t
+3	107	1z0-071	C.SELECT '2019-01-01' FROM DUAL;	f
+4	107	1z0-071	D.SELECT TO_DATE('2019-01-01', 'YYYY-MM-DD') FROM DUAL;Most Voted	t
+5	107	1z0-071	E.SELECT TO_CHAR('2019-01-01') FROM DUAL;	f
+1	108	1z0-071	A.The DELETE statement executes successfully even if the subquery selects multiple rows.Most Voted	t
+2	108	1z0-071	B.The subquery is executed before the DELETE statement is executed.	f
+3	108	1z0-071	C.The subquery is not a correlated subquery.	f
+4	108	1z0-071	D.All existing rows in the EMPLOYEES table are deleted.	f
+5	108	1z0-071	E.The subquery is executed for every row in the EMPLOYEES table.Most Voted	t
+1	109	1z0-071	A.The SALARY column must have a value.	f
+2	109	1z0-071	B.The DEPTNO column in the EMP table can contain NULLS.Most Voted	t
+3	109	1z0-071	C.The COMMISION column can contain negative values.Most Voted	t
+4	109	1z0-071	D.The DEPTNO column in the EMP table can contain the value 1.	f
+5	109	1z0-071	E.The MANAGER column is a foreign key referencing the EMPNO column.Most Voted	t
+6	109	1z0-071	F.The DNAME column has a unique constraint.	f
+7	109	1z0-071	G.An index is created automatically in the MANAGER column.	f
+1	110	1z0-071	A.Creating an external table will automatically create a file using the specified directory and file name.	f
+2	110	1z0-071	B.A system privilege is required.Most Voted	t
+3	110	1z0-071	C.The same table name can be used for tables in different schemas.Most Voted	t
+4	110	1z0-071	D.A primary key constraint is mandatory.	f
+5	110	1z0-071	E.A CREATE TABLE statement can specify the maximum number of rows the table will contain.	f
+1	111	1z0-071	A.ORDER BY comm DESC NULLS LAST, enameMost Voted	t
+2	111	1z0-071	B.ORDER BY NVL(coram, 0) ASC NULLS FIRST, ename	f
+3	111	1z0-071	C.ORDER BY NVL(coram, 0) ASC NULLS LAST, ename	f
+4	111	1z0-071	D.ORDER BY NVL(ccmm, 0) DESC, ename	f
+1	112	1z0-071	A.SELECT customer_name FROM customers WHERE UPPER(customer_name) LIKE ‘MA*’;	f
+2	112	1z0-071	B.SELECT customer_name FROM customers WHERE customer_name = ‘*Ma*’;	f
+3	112	1z0-071	C.SELECT customer_name FROM customers WHERE customer_name LIKE ‘Ma*’;	f
+4	112	1z0-071	D.SELECT customer_name FROM customers WHERE UPPER(customer_name) LIKE ‘MA%’;	f
+5	112	1z0-071	E.SELECT customer_name FROM customers WHERE customer_name LIKE ‘%a%’;Most Voted	t
+6	112	1z0-071	F.SELECT customer_name FROM customers WHERE customer_name LIKE ‘Ma%’;Most Voted	t
+7	112	1z0-071	G.SELECT customer_name FROM customers WHERE customer_name LIKE ‘*Ma*’;	f
+1	113	1z0-071	A.A row whose UNIT_PRICE column contains the value 10235.95 will be displayed as $1,0236.	f
+2	113	1z0-071	B.A row whose UNIT_PRICE column contains the value 1023.95 will be displayed as $1,024.Most Voted	t
+3	113	1z0-071	C.A row whose UNIT_PRICE column contains the value 10235.95 will be displayed as $1,023.	f
+4	113	1z0-071	D.A row whose UNIT_PRICE column contains the value 10235.95 will be displayed as #######.Most Voted	t
+5	113	1z0-071	E.A row whose UNIT_PRICE column contains the value 1023.99 will be displayed as $1,023.	f
+1	114	1z0-071	A.Updates performed by a database user can be rolled back by another user by using the ROLLBACK command.	f
+2	114	1z0-071	B.A query can access only tables within the same schema.	f
+3	114	1z0-071	C.The database guarantees read consistency at select level on user-created tables.Most Voted	t
+4	114	1z0-071	D.A user can be the owner of multiple schemas in the same database.	f
+5	114	1z0-071	E.When you execute an update statement, the database instance locks each updated row.Most Voted	t
+1	115	1z0-071	A.For tables with multiple indexes and triggers, DELETE is faster than TRUNCATE.	f
+2	115	1z0-071	B.You can never TRUNCATE a table if foreign key constraints would be violated.Most Voted	t
+3	115	1z0-071	C.You can DELETE rows from a table with referential integrity constraints.	f
+4	115	1z0-071	D.For large tables, DELETE is faster than TRUNCATE.	f
+1	116	1z0-071	A.CASE is a function and DECODE is not.	f
+2	116	1z0-071	B.Neither CASE nor DECODE is a function.	f
+3	116	1z0-071	C.All conditions evaluated using CASE can also be evaluated using DECODE.	f
+4	116	1z0-071	D.All conditions evaluated using DECODE can also be evaluated using CASE.Most Voted	t
+5	116	1z0-071	E.DECODE is a function and CASE is not.Most Voted	t
+6	116	1z0-071	F.Both CASE and DECODE are functions.	f
+1	117	1z0-071	A.The code for pen is 10.Most Voted	t
+2	117	1z0-071	B.There is no row containing fountain pen.	f
+3	117	1z0-071	C.There is no row containing pen.	f
+4	117	1z0-071	D.There is no row containing pencil.Most Voted	t
+5	117	1z0-071	E.The code for fountain pen is 3.Most Voted	t
+6	117	1z0-071	F.The code for pen is 1.	f
+1	118	1z0-071	A.Both & and && can prefix a substitution variable name in queries and DML statements.Most Voted	t
+2	118	1z0-071	B.An & prefix to an undefined substitution variable, which is referenced twice in the same query, will prompt for a value twice.Most Voted	t
+3	118	1z0-071	C.& can prefix a substitution variable name only in queries.	f
+4	118	1z0-071	D.An && prefix to an undefined substitution variable, which is referenced multiple times in multiple queries, will prompt for a value once per query.	f
+5	118	1z0-071	E.The && prefix will not prompt for a value even if the substitution variable is not previously defined in the session.	f
+1	119	1z0-071	A.\n![](../images/image23.png)\n\t\t 	t
+2	119	1z0-071	B.\n![](../images/image24.png)\n\t\t	f
+3	119	1z0-071	C.\n![](../images/image25.png)\n\t\t	f
+4	119	1z0-071	D.\n![](../images/image26.png)\n\t\t	f
+1	120	1z0-071	A.\n![](../images/image29.png)\n\t\t 	t
+2	120	1z0-071	B.\n![](../images/image30.png)\n\t\t 	t
+3	120	1z0-071	C.\n![](../images/image31.png)\n\t\t	f
+4	120	1z0-071	D.\n![](../images/image32.png)\n\t\t	f
+5	120	1z0-071	E.\n![](../images/image33.png)\n\t\t	f
+1	121	1z0-071	A.SELECT INTERVAL '1' DAY - INTERVAL '1' MINUTE FROM DUALMost Voted	t
+2	121	1z0-071	B.SELECT SYSTIMESTAMP + INTERVAL '1' DAY FROM DUAL;Most Voted	t
+3	121	1z0-071	C.SELECT INTERVAL '1' DAY - SYSDATE FROM DUAL;	f
+4	121	1z0-071	D.SELECT INTERVAL '1' DAY + INTERVAL '1' MONTH FROM DUAL;	f
+5	121	1z0-071	E.SELECT SYSDATE * INTERVAL '1' DAY FROM DUAL;	f
+1	122	1z0-071	A.11-JUL-2019 6.00.00.00000000 AM -05:00	f
+2	122	1z0-071	B.11-JUL-2019 11.00.00.00000000 AM	f
+3	122	1z0-071	C.11-JUL-2019 6.00.00.00000000 AMMost Voted	t
+4	122	1z0-071	D.11-JUL-2019 11.00.00.00000000 AM -05:00	f
+1	123	1z0-071	A.User FIN_CLERK can grant SELECT on SCOTT.EMP to user FIN_MANAGER.	f
+2	123	1z0-071	B.Dropping user FINANCE will automatically revoke SELECT on SCOTT.EMP from user FIN_CLERK.	f
+3	123	1z0-071	C.User FINANCE can grant CREATE SESSION to user FIN_MANAGER.	f
+4	123	1z0-071	D.Revoking SELECT on SCOTT.EMP from user FINANCE will also revoke the privilege from user FIN_CLERK.Most Voted	t
+5	123	1z0-071	E.User FINANCE is unable to grant all on SCOTT.EMP to FIN_MANAGER.Most Voted	t
+1	124	1z0-071	A.An object privilege can be granted to other users only by the owner of that object.	f
+2	124	1z0-071	B.The owner of an object acquires all object privileges on that object by default.Most Voted	t
+3	124	1z0-071	C.The WITH GRANT OPTION clause can be used only by DBA users.	f
+4	124	1z0-071	D.An object privilege can be granted to a role only by the owner of that object.	f
+5	124	1z0-071	E.A table owner must grant the REFERENCES privilege to allow other users to create FOREIGN KEY constraints using that table.Most Voted	t
+1	125	1z0-071	A.SELECT dept_id, AVG(MAX(salary)) FROM employees GROUP BY dept_id HAVING hire_date > '01-JAN-19';	f
+2	125	1z0-071	B.SELECT dept_id, SUM(salary) FROM employees WHERE hire_date > '01-JAN-19' GROUP BY dept_id;Most Voted	t
+3	125	1z0-071	C.SELECT dept_id, MAX(SUM(salary)) FROM employees GROUP BY dept_id;	f
+4	125	1z0-071	D.SELECT dept_id, AVG(MAX(salary)) FROM employees GROUP BY dept_id, salary;	f
+5	125	1z0-071	E.SELECT AVG(MAX(salary)) FROM employees GROUP BY salary;Most Voted	t
+1	126	1z0-071	A.The + binary operator has the highest precedence in an expression in a SQL statement.	f
+2	126	1z0-071	B.The concatenation operator || is always evaluated before addition and subtraction in an expression.	f
+3	126	1z0-071	C.Multiple parentheses can be used to override the default precedence of operators in an expression.Most Voted	t
+4	126	1z0-071	D.NULLS influence the precedence of operators in an expression.	f
+5	126	1z0-071	E.Arithmetic operators with equal precedence are evaluated from left to right within an expression.Most Voted	t
+1	127	1z0-071	A.\n![](../images/image40.png)\n\t\t	f
+2	127	1z0-071	B.\n![](../images/image41.png)\n\t\t	f
+3	127	1z0-071	C.\n![](../images/image42.png)\n\t\t 	t
+4	127	1z0-071	D.\n![](../images/image43.png)\n\t\t 	t
+5	127	1z0-071	E.\n![](../images/image44.png)\n\t\t	f
+1	128	1z0-071	A.\n![](../images/image45.png)\n\t\t	f
+2	128	1z0-071	B.\n![](../images/image46.png)\n\t\t 	t
+3	128	1z0-071	C.\n![](../images/image47.png)\n\t\t 	t
+4	128	1z0-071	D.\n![](../images/image48.png)\n\t\t	f
+5	128	1z0-071	E.\n![](../images/image49.png)\n\t\t	f
+1	129	1z0-071	A.It will return rows from both SELECT statements including duplicate rows.Most Voted	t
+2	129	1z0-071	B.It will return rows from both SELECT statements after eliminating duplicate rows.	f
+3	129	1z0-071	C.It will return rows that are not common to both SELECT statements.	f
+4	129	1z0-071	D.It will return rows common to both SELECT statements.	f
+1	130	1z0-071	A.A sequence’s unallocated cached values are lost if the instance shuts down.Most Voted	t
+2	130	1z0-071	B.A sequence number that was allocated can be rolled back if a transaction fails.	f
+3	130	1z0-071	C.A sequence can only be dropped by a DBA.	f
+4	130	1z0-071	D.A sequence can issue duplicate values.Most Voted	t
+5	130	1z0-071	E.Sequences can always have gaps.Most Voted	t
+6	130	1z0-071	F.Two or more tables cannot have keys generated from the same sequence.	f
+1	131	1z0-071	A.\n![](../images/image52.png)\n\t\t	f
+2	131	1z0-071	B.\n![](../images/image53.png)\n\t\t	f
+3	131	1z0-071	C.\n![](../images/image54.png)\n\t\t 	t
+4	131	1z0-071	D.\n![](../images/image55.png)\n\t\t 	t
+1	132	1z0-071	A.SELECT NVL2(cust_credit_limit * .15, 'Not Available') FROM customers;	f
+2	132	1z0-071	B.SELECT NVL2(cust_credit_limit, TO_CHAR(cust_credit_limit * .15), 'Not Available') FROM customersMost Voted	t
+3	132	1z0-071	C.SELECT NVL(cust_credit_limit * .15, 'Not Available') FROM customers;	f
+4	132	1z0-071	D.SELECT NVL(TO_CHAR(cust_credit_limit * .15), 'Not Available') FROM customers;Most Voted	t
+5	132	1z0-071	E.SELECT TO_CHAR(NVL(cust_credit_iimit * .15, 'Not Available')) FROM customers;	f
+1	133	1z0-071	A.\n![](../images/image57.png)\n\t\t	f
+2	133	1z0-071	B.\n![](../images/image58.png)\n\t\t	f
+3	133	1z0-071	C.\n![](../images/image59.png)\n\t\t	f
+4	133	1z0-071	D.\n![](../images/image60.png)\n\t\t 	t
+1	134	1z0-071	A.The ROLLBACK statement does not release locks resulting from table updates.	f
+2	134	1z0-071	B.Data consistency is not guaranteed after a rollback.	f
+3	134	1z0-071	C.A transaction interrupted by a system failure is automatically rolled back.	f
+4	134	1z0-071	D.If the ROLLBACK statement is used without TO SAVEPOINT, then all savepoints in the transaction are deleted.	f
+5	134	1z0-071	E.Data Control Language (DCL) statements, such as GRANT and REVOKE, can be rolled back.	f
+1	135	1z0-071	A.An UNUSED column's space is reclaimed automatically when the row containing that column is next queried.	f
+2	135	1z0-071	B.A column that is set to UNUSED still counts towards the limit of 1000 columns per table.Most Voted	t
+3	135	1z0-071	C.A DROP COLUMN command can be rolled back.	f
+4	135	1z0-071	D.A primary key column referenced by another column as a foreign key can be dropped if using the CASCADE option.Most Voted	t
+5	135	1z0-071	E.An UNUSED column's space is reclaimed automatically when the block containing that column is next queried.	f
+6	135	1z0-071	F.Partition key columns cannot be dropped.Most Voted	t
+1	136	1z0-071	A.Create a directory object for a flat file.	f
+2	136	1z0-071	B.Create a directory object for an external table.	f
+3	136	1z0-071	C.Read data from an external table and load it into a table in the database.Most Voted	t
+4	136	1z0-071	D.Execute DML statements on an external table.	f
+5	136	1z0-071	E.Read data from a table in the database and insert it into an external table.Most Voted	t
+6	136	1z0-071	F.Query data from an external table.Most Voted	t
+1	137	1z0-071	A.Aggregate functions can be nested to any number of levels.	f
+2	137	1z0-071	B.The AVG function implicitly converts NULLS to zero.	f
+3	137	1z0-071	C.The MAX and MIN functions can be used on columns with character data types.Most Voted	t
+4	137	1z0-071	D.Aggregate functions can be used in any clause of a SELECT statement.	f
+1	138	1z0-071	A.They can insert each computed row into more than one table.Most Voted	t
+2	138	1z0-071	B.They can be performed on remote tables.	f
+3	138	1z0-071	C.They can be performed on external tables using SQL*Loader.	f
+4	138	1z0-071	D.They can be performed on views.	f
+5	138	1z0-071	E.They can be performed only by using a subquery.Most Voted	t
+6	138	1z0-071	F.They can be performed on relational tables.Most Voted	t
+1	139	1z0-071	A.They must be placed on the left side of the comparison operator or condition.	f
+2	139	1z0-071	B.They must be placed on the right side of the comparison operator or condition.	f
+3	139	1z0-071	C.They must return a row to prevent errors in the SQL statement.	f
+4	139	1z0-071	D.A SQL statement may have multiple single row subquery blocks.	f
+5	139	1z0-071	E.They can be used in the HAVING clause.	f
+6	139	1z0-071	F.They can be used in the WHERE clause.	f
+1	140	1z0-071	A.SELECT TO_DATE(SYSDATE, 'RRRR-MM-DD') FROM DUAL;	f
+2	140	1z0-071	B.SELECT TO_CHAR(SYSDATE, MM/DD/YYYY) FROM DUAL;Most Voted	t
+3	140	1z0-071	C.SELECT TO_DATE(ADD_MONTHS(SYSDATE, 6), 'dd-non-yyyy') FROM DUAL;	f
+4	140	1z0-071	D.SELECT TO_CHAR(ADD_MONTHS(SYSDATE, 6)) FROM DUAL;	f
+5	140	1z0-071	E.SELECT TO_CHAR(ADD_MONTHS(SYSDATE, 6), 'dd-mon-yyyy') FROM DUAL;Most Voted	t
+6	140	1z0-071	F.SELECT TO_DATE(TO_CHAR(SYSDATE, 'MM/DD/YYYY'), 'MM/DD/YYYY') FROM DUAL;	f
+1	141	1z0-071	A.After issuing a savepoint, you can roll back to the savepoint name within the current transaction.Most Voted	t
+2	141	1z0-071	B.They make uncommitted updates visible to sessions owned by other users.	f
+3	141	1z0-071	C.You can commit updates done between two savepoints without committing other updates in the current transaction.	f
+4	141	1z0-071	D.A ROLLBACK TO SAVEPOINT command issued before the start of a transaction results in an error.Most Voted	t
+5	141	1z0-071	E.They make uncommitted updates visible to other sessions owned by the same user.	f
+6	141	1z0-071	F.After issuing a savepoint, you cannot roll back the complete transaction.	f
+1	142	1z0-071	A.There is no row containing pencil.Most Voted	t
+2	142	1z0-071	B.The code for pen is 10.Most Voted	t
+3	142	1z0-071	C.There is no row containing fountain pen.	f
+4	142	1z0-071	D.The code for pen is 1.	f
+5	142	1z0-071	E.There is no row containing pen.	f
+6	142	1z0-071	F.The code for fountain pen is 3.Most Voted	t
+1	143	1z0-071	A.WHERE order_date > TO_DATE(‘JUL 10 2018’, ‘ MON DD YYYY’)Most Voted	t
+2	143	1z0-071	B.WHERE order_date > TO_DATE(ADD_MONTH(SYSDATE, 6), ‘MON DD YYYY’)	f
+3	143	1z0-071	C.WHERE order_date IN (TO_DATE(‘Oct 21 2018’, ‘Mon DD YYYY’), TO_CHAR(‘Nov 21 2018’, ‘Mon DD YYYY’))	f
+4	143	1z0-071	D.WHERE order_date > TO_CHAR(ADD_MONTHS(SYSDATE, 6), ‘MON DD YYYY’)	f
+5	143	1z0-071	E.WHERE TO_CHAR(order_date. ‘MON DD YYYY’) = ‘JAN 20 2019’Most Voted	t
+1	144	1z0-071	A.an error	f
+2	144	1z0-071	B.no rowsMost Voted	t
+3	144	1z0-071	C.1 row	f
+4	144	1z0-071	D.3 rows	f
+5	144	1z0-071	E.6 rows	f
+6	144	1z0-071	F.8 rows	f
+1	145	1z0-071	A.INDEX	f
+2	145	1z0-071	B.ALTER	f
+3	145	1z0-071	C.UPDATEMost Voted	t
+4	145	1z0-071	D.INSERTMost Voted	t
+5	145	1z0-071	E.DELETE	f
+1	146	1z0-071	A.\n![](../images/image64.png)\n\t\t	f
+2	146	1z0-071	B.\n![](../images/image65.png)\n\t\t	f
+3	146	1z0-071	C.\n![](../images/image66.png)\n\t\t 	t
+4	146	1z0-071	D.\n![](../images/image67.png)\n\t\t	f
+5	146	1z0-071	E.\n![](../images/image68.png)\n\t\t 	t
+1	147	1z0-071	A.The statement will execute successfully and a new row will be inserted into the SALES table.Most Voted	t
+2	147	1z0-071	B.A product can have a different unit price at different times.Most Voted	t
+3	147	1z0-071	C.The statement will fail if a row already exists in the SALES table for product 23.	f
+4	147	1z0-071	D.The statement will fail because a subquery may not be contained in a VALUES clause.	f
+5	147	1z0-071	E.A customer can exist in many countries.	f
+6	147	1z0-071	F.The SALES table has five foreign keys.Most Voted	t
+1	148	1z0-071	A.By default an ORDER BY clause sorts rows in descending order	f
+2	148	1z0-071	B.An ORDER BY clause will always precede a HAVING clause if both are used in the same top-level query.	f
+3	148	1z0-071	C.An ORDER BY clause always sorts NULL values last.	f
+4	148	1z0-071	D.By default an ORDER BY clause sorts rows in ascending order.Most Voted	t
+5	148	1z0-071	E.An ORDER BY clause can perform a binary sort.Most Voted	t
+6	148	1z0-071	F.An ORDER BY clause can perform a linguistic sort.Most Voted	t
+1	149	1z0-071	A.SELECT * FROM employees WHERE NVL2(salary + commission, salary + commission, salary) >= 20000;Most Voted	t
+2	149	1z0-071	B.SELECT * FROM employees WHERE salary + NVL2(commission, commission, 0) >= 20000Most Voted	t
+3	149	1z0-071	C.SELECT * FROM employees WHERE NVL(salary + commission, 0) >= 20000;	f
+4	149	1z0-071	D.SELECT * FROM employees WHERE salary + NULLIF(commission, 0) >= 20000;	f
+5	149	1z0-071	E.SELECT * FROM employees WHERE COALESCE(salary, commission) >= 20000;	f
+6	149	1z0-071	F.SELECT * FROM employees WHERE salary + NVL(commission, 0) >= 20000;Most Voted	t
+1	150	1z0-071	A.SELECT employee_name FROM employees WHERE (SYSDATE - hire_date) / 12 > 5;	f
+2	150	1z0-071	B.SELECT employee_name FROM employees WHERE (SYSTIMSSTAMF - hire_date) / 12 > INTERVAL '5' YEAR;	f
+2	164	1z0-071	B.SELECT * FROM customers WHERE city = ‘%D__’;	f
+3	150	1z0-071	C.SELECT employee_name FROM employees WHERE (CURRENT_DATE - hire_date) / 12 > 5	f
+4	150	1z0-071	D.SELECT employee_name FROM employees WHERE (CURRENT_DATE - hire_date) / 365 >Most Voted	t
+5	150	1z0-071	E.SELECT employee_name FROM employees WHERE (SYSDATE - hire_date) / 365 > 5;Most Voted	t
+6	150	1z0-071	F.SELECT employee_name FROM employees WHERE (SYSTIMESTAMP - hire_date) / 365 > INTERVAL '1825' DAY;	f
+1	151	1z0-071	A.SELECT "Hello! We're ready" FROM DUAL;	f
+2	151	1z0-071	B.SELECT 'Hello! We're ready' FROM DUAL;	f
+3	151	1z0-071	C.SELECT q'!Hello! We're ready!' FROM DUAL;Most Voted	t
+4	151	1z0-071	D.SELECT q'[Hello! We're ready]' FROM DUAL;Most Voted	t
+5	151	1z0-071	E.SELECT 'Hello! We\\'re ready’ ESCAPE '\\' FROM DUAL;	f
+1	152	1z0-071	A.It can be used from SQL Developer.Most Voted	t
+2	152	1z0-071	B.It displays the PRIMARY KEY constraint for any column or columns that have that constraint.	f
+3	152	1z0-071	C.It displays all constraints that are defined for each column.	f
+4	152	1z0-071	D.It displays the NOT NULL constraint for any columns that have that constraint.Most Voted	t
+5	152	1z0-071	E.It can be used only from SQL* Plus.	f
+6	152	1z0-071	F.It can be used to display the structure of an existing view.Most Voted	t
+1	153	1z0-071	A.The creator of a view to be dropped must have the DROP ANY VIEW privilege.	f
+2	153	1z0-071	B.Data selected by a view’s defining query is deleted from its underlying tables when the view is dropped.	f
+3	153	1z0-071	C.Views referencing a dropped view become invalid.Most Voted	t
+4	153	1z0-071	D.Read only views cannot be dropped.	f
+5	153	1z0-071	E.CASCADE CONSTRAINTS must be specified when referential integrity constraints on other objects refer to primary or unique keys in the view to be dropped.Most Voted	t
+1	154	1z0-071	A.The WHEN NOT MATCHED clause can be used to specify the deletions to be performed.	f
+2	154	1z0-071	B.The WHEN NOT MATCHED clause can be used to specify the updates to be performed.	f
+3	154	1z0-071	C.The WHEN NOT MATCHED clause can be used to specify the inserts to be performed.Most Voted	t
+4	154	1z0-071	D.The WHEN WATCHED clause can be used to specify the inserts to be performed.	f
+5	154	1z0-071	E.The WHEN WATCHED clause can be used to specify the updates to be performed.Most Voted	t
+1	155	1z0-071	A.Table aliases must be used.	f
+2	155	1z0-071	B.The SQL:1999 compliant ANSI join syntax must be used.	f
+3	155	1z0-071	C.The USING clause can be used.	f
+4	155	1z0-071	D.The Oracle join syntax can be used.	f
+5	155	1z0-071	E.The ON clause can be used.	f
+1	156	1z0-071	A.The PROD_NAME column cannot have a DEFAULT clause added to it.	f
+2	156	1z0-071	B.The EXPIRY_DATE column cannot be dropped.	f
+3	156	1z0-071	C.The EXPIRY_DATE column data type can be changed to TIMESTAMP.Most Voted	t
+4	156	1z0-071	D.The PROD_ID column can be renamed.Most Voted	t
+5	156	1z0-071	E.The PROD_ID column data type can be changed to VARCHAR2(2).	f
+1	157	1z0-071	A.It fails unless the expression is modified to SUBSTR(TO_CHAR(SYSDATE), 1, 5).	f
+2	157	1z0-071	B.It fails unless the expression is modified to SUBSTR(TO_CHAR(TRUNC(SYSDATE), 1, 5).	f
+3	157	1z0-071	C.It fails unless the expression is modified to TO_CHAR(SUBSTR(SYSDATE), 1, 5)).	f
+4	157	1z0-071	D.It executes successfully with an implicit data type conversion.Most Voted	t
+1	158	1z0-071	A.It processes NULLs in the selected columns.Most Voted	t
+2	158	1z0-071	B.It ignores NULLs.	f
+3	158	1z0-071	C.INTERSECT is of lower precedence than UNION or UNION ALL.	f
+4	158	1z0-071	D.Multiple INTERSECT operators are not possible in the same SQL statement.	f
+1	159	1z0-071	A.after successfully executing a CREATE TABLE statement followed by a CREATE INDEX statement	f
+2	159	1z0-071	B.after successfully executing a TRUNCATE statement followed by a DML statementMost Voted	t
+3	159	1z0-071	C.after successfully executing a DML statement following a failed DML statement	f
+4	159	1z0-071	D.after successfully executing a CREATE TABLE AS SELECT statement followed by a SELECT FOR UPDATE statementMost Voted	t
+5	159	1z0-071	E.after successfully executing a COMMIT or ROLLBACK followed by a DML statementMost Voted	t
+6	159	1z0-071	F.after successfully executing a COMMIT or ROLLBACK followed by a SELECT statement	f
+1	160	1z0-071	A.It returns matched and unmatched rows from both tables being joined.	f
+2	160	1z0-071	B.The Oracle join operator (+) must be used on both sides of the join condition in the WHERE clause.	f
+3	160	1z0-071	C.It returns only unmatched rows from both tables being joined.	f
+4	160	1z0-071	D.It includes rows that are returned by an inner join.	f
+5	160	1z0-071	E.It includes rows that are returned by a Cartesian product.	f
+1	161	1z0-071	A.It can be a left outer join.	f
+2	161	1z0-071	B.It must be an equijoin.	f
+3	161	1z0-071	C.It must be a full outer join.	f
+4	161	1z0-071	D.The join key column must have an index.	f
+5	161	1z0-071	E.It can be an inner join.	f
+1	162	1z0-071	A.SELECT * FROM customers WHERE customer_id - '0001';Most Voted	t
+2	162	1z0-071	B.SELECT * FROM customers WHERE customer_id - 0001;	f
+3	162	1z0-071	C.SELECT * FROM customers WHERE insert_date - DATE '2019-01-01';	f
+4	162	1z0-071	D.SELECT * FROM customers WHERE insert_date - '01-JAN-19';Most Voted	t
+5	162	1z0-071	E.SELECT * FROM customers WHERE TO_CHAR(customer_id) - '0001';	f
+1	163	1z0-071	A.The value varies depending on the setting of SESSIONTIMEZONE.Most Voted	t
+2	163	1z0-071	B.It returns a value of data type TIMESTAMP.Most Voted	t
+3	163	1z0-071	C.The date is in the time zone of DBTIMEZONE.	f
+4	163	1z0-071	D.It returns the same date as CURRENT_TIME.	f
+5	163	1z0-071	E.The time is in the time zone of DBTIMEZONE.	f
+6	163	1z0-071	F.It always returns the same value as SYSTEMTIMESTAMP.	f
+1	164	1z0-071	A.SELECT * FROM customers WHERE city LIKE ‘D__%’;Most Voted	t
+1	262	1z0-071	A.2	f
+3	164	1z0-071	C.SELECT * FROM customers WHERE city = ‘D__%’;	f
+4	164	1z0-071	D.SELECT * FROM customers WHERE city LIKE ‘D__’;	f
+1	165	1z0-071	A.It can be used with SET operators (UNION, INTERSECT etc.).	f
+2	165	1z0-071	B.It cannot be used with the DISTINCT keyword.Most Voted	t
+3	165	1z0-071	C.If the NOWAIT clause is added, the statement will automatically acquire locks from their owning transactions and not wait.	f
+4	165	1z0-071	D.The statement skips rows locked by other transactions.	f
+5	165	1z0-071	E.It can be used with joins.Most Voted	t
+1	166	1z0-071	A.\n![](../images/image76.png)\n\t\t 	t
+2	166	1z0-071	B.\n![](../images/image77.png)\n\t\t	f
+3	166	1z0-071	C.\n![](../images/image78.png)\n\t\t	f
+4	166	1z0-071	D.\n![](../images/image79.png)\n\t\t	f
+1	167	1z0-071	A.CROSS	f
+2	167	1z0-071	B.RIGHT OUTER	f
+3	167	1z0-071	C.LEFT OUTERMost Voted	t
+4	167	1z0-071	D.FULL OUTER	f
+1	168	1z0-071	A.A column with a FOREIGN KEY constraint can never contain a NULL value.	f
+2	168	1z0-071	B.A constraint can be disabled even if the constrained column contains data.Most Voted	t
+3	168	1z0-071	C.Constraints are enforced only during INSERT operations.	f
+4	168	1z0-071	D.All constraints can be defined at the table or column level.	f
+5	168	1z0-071	E.A column with a UNIQUE constraint can contain a NULL value.	f
+1	169	1z0-071	A.SELECT * FROM order_items WHERE quantity / 10 - TRUNC(quantity	f
+2	169	1z0-071	B.SELECT * FROM order_items WHERE MOD(quantity, 10) - 0;Most Voted	t
+3	169	1z0-071	C.SELECT * FROM  order_items WHERE FLOOR(quantity / 10) = TRUNC(quantity / 10);	f
+4	169	1z0-071	D.SELECT * FROM  order_items WHERE quantity = TRUNC(quantity,  -1);Most Voted	t
+5	169	1z0-071	E.SELECT * FROM  order_items WHERE quantity = ROUND(quantity,  1);	f
+1	170	1z0-071	A.A new index can be created or an existing one reused when a primary key constraint is created.Most Voted	t
+2	170	1z0-071	B.An INVINSIBLE index is maintained by DML operations on the underlying table.Most Voted	t
+3	170	1z0-071	C.If a query filters on an indexed column, the index will always be accessed during execution of the query.	f
+4	170	1z0-071	D.A DROP INDEX statement always prevents updates to the table during the drop operation.	f
+5	170	1z0-071	E.The same table column cannot be part of a unique and non-unique index.	f
+1	171	1z0-071	A.INTERVAL '0.5' DAY	f
+2	171	1z0-071	B.INTERVAL '720' MINUTEMost Voted	t
+3	171	1z0-071	C.INTERVAL '11:60' HOUR TO MINUTE	f
+4	171	1z0-071	D.INTERVAL '12:00' HOUR TO SECOND	f
+5	171	1z0-071	E.INTERVAL '0 12' DAY TO HOURMost Voted	t
+6	171	1z0-071	F.INTERVAL '12' HOURMost Voted	t
+1	172	1z0-071	A.The data dictionary is constantly updated to reflect changes to database objects, permissions, and data.Most Voted	t
+2	172	1z0-071	B.All user actions are recorded in the data dictionary.	f
+3	172	1z0-071	C.All users have permissions to access all information in the data dictionary by default.	f
+4	172	1z0-071	D.The SYS user owns all base tables and user-accessible views in the data dictionary.Most Voted	t
+5	172	1z0-071	E.Base tables in the data dictionary have the prefix DBA_.	f
+1	173	1z0-071	A.It can display multiple rows but only a single column.	f
+2	173	1z0-071	B.It can be accessed only by the SYS user.	f
+3	173	1z0-071	C.It can be accessed by any user who has the SELECT privilege in any schema.Most Voted	t
+4	173	1z0-071	D.It can display multiple rows and columns.	f
+5	173	1z0-071	E.It consists of a single row and single column of VARCHAR2 data type.Most Voted	t
+6	173	1z0-071	F.It can be used to display only constants or pseudo columns.	f
+1	174	1z0-071	A.For tables with multiple indexes and triggers DELETE is faster than TRUNCATE.	f
+2	174	1z0-071	B.For large tables TRUNCATE is faster than DELETE.Most Voted	t
+3	174	1z0-071	C.You can never TRUNCATE a table if foreign key constraints will be violated.	f
+4	174	1z0-071	D.You can never DELETE rows from a table if foreign key constraints will be violated.	f
+1	175	1z0-071	A.NOCACHE	f
+2	175	1z0-071	B.INCREMENT BY 10Most Voted	t
+3	175	1z0-071	C.START WITH 11	f
+4	175	1z0-071	D.MINVALUE 11	f
+5	175	1z0-071	E.CYCLE 11	f
+1	176	1z0-071	A.quantity * unit_priceMost Voted	t
+2	176	1z0-071	B.quantity	f
+3	176	1z0-071	C.total_paidMost Voted	t
+4	176	1z0-071	D.product_id	f
+5	176	1z0-071	E.quantity, unit_price	f
+1	177	1z0-071	A.PROMPT Enter table name &x -SELECT employee_id FROM &x WHERE last_name = ‘King’;	f
+2	177	1z0-071	B.DEFINE x = ‘employees’PROMPT Enter table name &x -SELECT employee_id FROM &x WHERE last_name = ‘King’;	f
+3	177	1z0-071	C.PROMPT Enter table name &x -SELECT employee_id FROM &&x WHERE last_name = ‘King’;	f
+4	177	1z0-071	D.PROMPT Enter table name &&x -SELECT employee_id FROM &x WHERE last_name = ‘King’;Most Voted	t
+1	178	1z0-071	A.SELECT REPLACE(REPLACE(cust_last_name, ‘son’, ‘’), ‘An’, ‘O’) FROM customers;Most Voted	t
+2	178	1z0-071	B.SELECT REPLACE(TRIM(TRAILING ‘son’ FROM cust_last_name), ‘An’, ‘O’) FROM customers;	f
+3	178	1z0-071	C.SELECT REPLACE(SUBSTR(cust_last_name, -3), ‘An’, ‘O’) FROM customers;	f
+4	178	1z0-071	D.SELECT INITCAP(REPLACE(TRIM(‘son’ FROM cust_last_name), ‘An’, ‘O’)) FROM customers;	f
+1	179	1z0-071	A.SELECT prod_id || q”’s not available” FROM product_status WHERE status = ‘OUT OF STOCK’;	f
+2	179	1z0-071	B.SELECT prod_id || q’(‘s not available)’ ‘CURRENT AVAILABILITY’ FROM product_status WHERE status = ‘OUT OF STOCK’;	f
+3	179	1z0-071	C.SELECT prod_id q’s not available” FROM product_status WHERE status = ‘OUT OF STOCK’;	f
+4	179	1z0-071	D.SELECT prod_id “CURRENT AVAILABILITY” || q’(‘s not available)’ FROM product_status WHERE status = ‘OUT OF STOCK’;	f
+5	179	1z0-071	E.SELECT prod_id || q’(‘s not available)’ FROM product_status WHERE status = ‘OUT OF STOCK’;Most Voted	t
+6	179	1z0-071	F.SELECT prod_id || q’(‘s not available)’ “CURRENT AVAILABILITY” FROM product status WHERE status = ‘OUT OF STOCK’;Most Voted	t
+1	180	1z0-071	A.INTERVAL YEAR TO MONTH columns only support monthly intervals within a single year.	f
+2	180	1z0-071	B.INTERVAL DAY TO SECOND columns support fractions of seconds.Most Voted	t
+3	180	1z0-071	C.INTERVAL YEAR TO MONTH columns support yearly intervals.Most Voted	t
+4	180	1z0-071	D.The YEAR field in an INTERVAL YEAR TO MONTH column must be a positive value.	f
+5	180	1z0-071	E.INTERVAL YEAR TO MONTH columns only support monthly intervals within a range of years.	f
+6	180	1z0-071	F.The value in an INTERVAL DAY TO SECOND column can be copied into an INTERVAL YEAR TO MONTH column.	f
+1	181	1z0-071	A.The data dictionary is accessible when the database is closed.	f
+2	181	1z0-071	B.The data dictionary does not store metadata in tables.	f
+3	181	1z0-071	C.Views with the prefix ALL_, DBA_ and USER_ are not all available for every type of metadata.	f
+4	181	1z0-071	D.Views with the prefix DBA_ display only metadata for objects in the SYS schema.	f
+5	181	1z0-071	E.Views with the prefix ALL_ display metadata for objects to which the current user has access.	f
+1	182	1z0-071	A.WHERE UPPER(cust_last_name) IN (‘AX’, ‘B%’)AND cust_credit_limit < 1000;	f
+2	182	1z0-071	B.WHERE (UPPER(cust_last_name) LIKE ‘A%’ OR UPPER(cust_last_name) LIKE ‘B%’)AND ROUND(cust_credit_limit) < 1000;Most Voted	t
+3	182	1z0-071	C.WHERE UPPER(cust_last_name) BETWEEN UPPER(‘A%’ AND ‘B%’)AND ROUND(cust_credit_limit) < 1000;	f
+4	182	1z0-071	D.WHERE (INITCAP(cust_last_name) LIKE ‘A%’ OR INITCAP(cust_last_name) LIKE ‘B%’)AND cust_credit_limit < 1000;Most Voted	t
+5	182	1z0-071	E.WHERE (UPPER(cust_last_name) LIKE INITCAP(‘A’) OR UPPER(cust_last_name) LIKE INITCAP(‘B’))AND ROUND(cust_credit_limit) < ROUND(1000);	f
+1	183	1z0-071	A.A substitution variable can be used only in a SELECT statement.	f
+2	183	1z0-071	B.A substitution variable used to prompt for a column name must be enclosed in double quotation marks.	f
+3	183	1z0-071	C.A substitution variable can be used with any clause in a SELECT statement.Most Voted	t
+4	183	1z0-071	D.A substation variable prefixed with && prompts only once for a value in a session unless it is set to undefined in the session.Most Voted	t
+5	183	1z0-071	E.A substitution variable prefixed with & always prompts only once for a value in a session.	f
+6	183	1z0-071	F.A substitution variable used to prompt for a column name must be enclosed in single quotation marks.	f
+1	184	1z0-071	A.They can return at most one row.Most Voted	t
+2	184	1z0-071	B.You must enclose them in parentheses.Most Voted	t
+3	184	1z0-071	C.You cannot correlate them with a table in the parent statement.	f
+4	184	1z0-071	D.They can return two columns.	f
+5	184	1z0-071	E.You can use them as a default value for a column.	f
+1	185	1z0-071	A.SELECT prod_id FROM products -UNION ALL -SELECT prod_id, prod_name FROM new_products;	f
+2	185	1z0-071	B.SELECT prod_id, exp_date FROM productsUNION ALL -SELECT prod_id, NULL FROM new_products;Most Voted	t
+3	185	1z0-071	C.SELECT * FROM products -MINUS -SELECT prod_id, FROM new_products;	f
+4	185	1z0-071	D.SELECT prod_id, prod_name FROM productsINTERSECT -SELECT 100, prod_name FROM new_products;	f
+5	185	1z0-071	E.SELECT * FROM products -UNION -SELECT * FROM new_products;Most Voted	t
+1	186	1z0-071	A.UPDATE statements can have different subqueries to specify the values for each updated column.	f
+2	186	1z0-071	B.INSERT INTO…SELECT…FROM statements automatically commit.	f
+3	186	1z0-071	C.DML statements require a primary key be defined on a table.	f
+4	186	1z0-071	D.DELETE statements can remove multiple rows based on multiple conditions.	f
+5	186	1z0-071	E.INSERT statements can insert NULLs explicitly into a column.	f
+1	187	1z0-071	A.The conditional INSERT FIRST statement always inserts a row into a single table.	f
+2	187	1z0-071	B.The unconditional INSERT ALL statement must have the same number of columns in both the source and target tables.	f
+3	187	1z0-071	C.They can transform a row from a source table into multiple rows in a target table.Most Voted	t
+4	187	1z0-071	D.The conditional INSERT ALL statement inserts rows into a singe table by aggregating source rows.	f
+5	187	1z0-071	E.They always use subqueries.Most Voted	t
+1	188	1z0-071	A.Using aggregate functions in the WHERE clause requires a subquery.Most Voted	t
+2	188	1z0-071	B.Using aggregate functions in the HAVING clause requires a subquery.	f
+3	188	1z0-071	C.Using single-row functions in the WHERE clause requires a subquery.	f
+4	188	1z0-071	D.Using single-row functions in the HAVING clause requires a subquery.	f
+1	189	1z0-071	A.ROLLBACK;	f
+2	189	1z0-071	B.ROLLBACK TO SAVEPOINT post_insert;Most Voted	t
+3	189	1z0-071	C.ROLLBACK TO post_insert;Most Voted	t
+4	189	1z0-071	D.COMMIT;	f
+5	189	1z0-071	E.COMMIT TO SAVEPOINT post_insert;	f
+1	190	1z0-071	A.SELECT MAX(salary)FROM employees -GROUP By department_id -HAVING MAX(salary) = MAX(MAX(salary));	f
+2	190	1z0-071	B.SELECT MAX(salary)FROM employees -GROUP By department_id;	f
+3	190	1z0-071	C.SELECT department_id, MAX(salary)FROM employees -GROUP By department_id;	f
+4	190	1z0-071	D.SELECT MAX(salary)FROM employees;Most Voted	t
+5	190	1z0-071	E.SELECT MAX(MAX(salary))FROM employees -GROUP By department_id;Most Voted	t
+1	191	1z0-071	A.SELECT dept_id, INSTR(last_name, ‘A’), SUM(salary) FROM employees GROUP BY dept_id;	f
+2	191	1z0-071	B.SELECT dept_id, STDDEV(last_name), SUM(salary) FROM employees GROUP BY dept_id;	f
+3	191	1z0-071	C.SELECT dept_id, LENGTH(last_name), SUM(salary) FROM employees GROUP BY dept_id;	f
+4	191	1z0-071	D.SELECT dept_id, MAX(last_name), SUM(salary) FROM employees GROUP BY dept_id;Most Voted	t
+1	192	1z0-071	A.SELECT join_date FROM employees WHERE join_datee > ’10-02-2018’;Most Voted	t
+2	192	1z0-071	B.SELECT join_date || ‘ ‘ || salary FROM employees;	f
+3	192	1z0-071	C.SELECT salary + ’120.50’ FROM employees;	f
+4	192	1z0-071	D.SELECT join_date + ‘20’ FROM employees;	f
+5	192	1z0-071	E.SELECT SUBSTR(join_date, 1, 2) -1’	f
+1	193	1z0-071	A.They can be temporary tables.	f
+2	193	1z0-071	B.DML statements can modify them.	f
+3	193	1z0-071	C.They can be used in queries containing joins.Most Voted	t
+4	193	1z0-071	D.They can be used in queries containing sorts.Most Voted	t
+5	193	1z0-071	E.They can be indexed.	f
+6	193	1z0-071	F.Their metadata is stored in the database.Most Voted	t
+1	194	1z0-071	A.The DELETE command will wait for HR’s transaction to end then return an error.	f
+2	194	1z0-071	B.The DELETE command will immediately delete the row.	f
+3	194	1z0-071	C.The DELETE command will wait for HR’s transaction to end then delete the row.	f
+4	194	1z0-071	D.The DELETE command will immediately return an error.Most Voted	t
+1	195	1z0-071	A.Views cannot be used to query rows from an underlying table if the table has a PRIMARY KEY and the PRIMARY KEY columns are not referenced in the defining query of the view.	f
+2	195	1z0-071	B.Delete statements can always be done on a table through a view.	f
+3	195	1z0-071	C.The WITH CHECK clause has no effect when deleting rows from the underlying table through the view.Most Voted	t
+4	195	1z0-071	D.Views cannot be used to add rows to an underlying table if the table has columns with NOT NULL constraints lacking default values which are not referenced in the defining query of the view.Most Voted	t
+5	195	1z0-071	E.Views cannot be used to add or modify rows in an underlying table if the defining query of the view contains the DISTINCT keyword,Most Voted	t
+6	195	1z0-071	F.Insert statements can always be done on a table through a view.	f
+1	196	1z0-071	A.TO_NUMBER(PROMO_BEGIN_DATE) – 5 will return a number.	f
+2	196	1z0-071	B.PROMO_BEGIN_DATE – SYSDATE will return a number.Most Voted	t
+3	196	1z0-071	C.PROMO_BEGIN_DATE – SYSDATE will return an error.	f
+4	196	1z0-071	D.PROMO_BEGIN_DATE – 5 will return a date.Most Voted	t
+5	196	1z0-071	E.TO_DATE(PROMO_BEGIN_DATE * 5) will return a date.	f
+1	197	1z0-071	A.CREATE PUBLIC SYNONYM emp FOR hcm.employee_records;	f
+2	197	1z0-071	B.CREATE GLOBAL SYNONYM emp FOR hcm.employee_records;	f
+3	197	1z0-071	C.CREATE SYNONYM emp FOR hcm.employee_records:	f
+4	197	1z0-071	D.CREATE SYNONYM SYS.emp FOR hcm.employee_records;	f
+5	197	1z0-071	E.CREATE SYNONYM PUBLIC.emp FOR hcm.employee_records;	f
+1	198	1z0-071	A.Column positions must be used in the ORDER BY clause.	f
+2	198	1z0-071	B.Only column names from the first SELECT statement in the compound query are recognized.Most Voted	t
+3	198	1z0-071	C.Each SELECT statement in the compound query must have its own ORDER BY clause.	f
+4	198	1z0-071	D.The first column in the first SELECT of the compound query with the UNION operator is used by default to sort output in the absence of an ORDER BY clause.Most Voted	t
+5	198	1z0-071	E.Each SELECT statement in the compound query can have its own ORDER BY clause.	f
+1	199	1z0-071	A.The number of columns in each SELECT in the compound query can be different.	f
+2	199	1z0-071	B.INTERSECT returns rows common to both sides of the compound query.Most Voted	t
+3	199	1z0-071	C.INTERSECT ignores NULLs.	f
+4	199	1z0-071	D.Columns named in each SELECT in the compound query can be different.Most Voted	t
+5	199	1z0-071	E.Reversing the order of the intersected tables can sometimes affect the output.	f
+1	200	1z0-071	A.c1 can be changed to NUMBER(10) and c2 can be changed to VARCHAR2(10).	f
+2	200	1z0-071	B.c1 can be changed to NUMBER(10) and c2 cannot be changed to VARCHAR2(10).	f
+3	200	1z0-071	C.c2 can be changed to NUMBER(5) but c1 cannot be changed to VARCHAR2(5).	f
+4	200	1z0-071	D.c1 can be changed to VARCHAR2(10) but c1 cannot be changed to NUMBER(10).	f
+5	200	1z0-071	E.c1 can be changed to VARCHAR2(5) but c2 can be changed to NUMBER(12,2).Most Voted	t
+1	201	1z0-071	A.Andrew will be unable to see the changes you have made.Most Voted	t
+2	201	1z0-071	B.Andrew will be unable to perform any INSERTs, UPDATEs, or DELETEs on the table.	f
+3	201	1z0-071	C.Andrew will be able to SELECT from the table, but be unable to modify any existing rows.	f
+4	201	1z0-071	D.Andrew will be able to see the changes you have made.	f
+5	201	1z0-071	E.Andrew will be able to modify any rows in the table that have not been modified by your transaction.Most Voted	t
+1	202	1z0-071	A.DELETE FROM scott.emp;	f
+2	202	1z0-071	B.ALTER SESSION SET NLS_DATE_FORMAT = ‘DD/MM/YYYY’;	f
+3	202	1z0-071	C.GRANT UPDATE ON scott.emp TO fin manager;Most Voted	t
+4	202	1z0-071	D.SELECT * FROM user_tab_prive;	f
+5	202	1z0-071	E.TRUNCATE TABLE emp;Most Voted	t
+1	203	1z0-071	A.SELECT * FROM orders ORDER BY order_idINTERSECT -SELECT * FROM invoices ORDER BY invoice_id;	f
+2	203	1z0-071	B.(SELECT * FROM ordersUNION ALL -SELECT * FROM invoices) ORDER BY order_id;	f
+3	203	1z0-071	C.SELECT order_id, order_date FROM ordersUNION ALL -SELECT invoice_id, invoice_date FROM invoices ORDER BY order_id;Most Voted	t
+4	203	1z0-071	D.SELECT * FROM orders -MINUS -SELECT * FROM invoices ORDER BY 1;Most Voted	t
+5	203	1z0-071	E.SELECT order_id invoice_id, order_date FROM ordersMINUS -SELECT invoice_id, invoice_date FROM invoices ORDER BY invoice_id;Most Voted	t
+6	203	1z0-071	F.SELECT * FROM orders ORDER BY order_idUNION -SELECT * FROM invoices;	f
+7	203	1z0-071	G.SELECT order_id, order_date FROM ordersINTERSECT -SELECT invoice_id, invoice_date FROM invoices ORDER BY invoice_id;	f
+1	204	1z0-071	A.SELECT NULLIF (NULL, 100) FROM DUAL;	f
+2	204	1z0-071	B.SELECT NULLIF (100, ‘A’) FROM DUAL;	f
+3	204	1z0-071	C.SELECT NULLIF (100, 100) FROM DUAL;Most Voted	t
+4	204	1z0-071	D.SELECT COALESCE (100, NULL, 200) FROM DUAL;Most Voted	t
+5	204	1z0-071	E.SELECT COALESCE (100, ‘A’) FROM DUAL;	f
+1	205	1z0-071	A.SELECT COUNT(NVL(list_price, 0)) FROM product_information WHERE list_price is NULL;Most Voted	t
+2	262	1z0-071	B.1	f
+2	205	1z0-071	B.SELECT COUNT(list_price) FROM product_information WHERE list_price = NULL;	f
+3	205	1z0-071	C.SELECT COUNT(list_price) FROM product_information WHERE list_price IS NULL;	f
+4	205	1z0-071	D.SELECT COUNT(DISTINCT list_price) FROM product_information WHERE list_price IS NULL;	f
+1	206	1z0-071	A.Both the query and the subquery can select only zero rows or one row.	f
+2	206	1z0-071	B.Both the query and the subquery can select any number of rows.	f
+3	206	1z0-071	C.The query can select only zero rows or one row, but the subquery can select any number of rows.	f
+4	206	1z0-071	D.The query can select any number of rows, but the subquery can select only zero rows or one row.Most Voted	t
+1	207	1z0-071	A.DELETE order_id FROM orders WHERE order_total < 1000;	f
+2	207	1z0-071	B.DELETE orders WHERE order_total < 1000Most Voted	t
+3	207	1z0-071	C.DELETE * FROM orders WHERE order_total < 1000;	f
+4	207	1z0-071	D.DELETE FROM orders;Most Voted	t
+5	207	1z0-071	E.DELETE FROM orders WHERE order_total < 1000;Most Voted	t
+1	208	1z0-071	A.SELECT cust_first_name, cust_credit_limit * .05 AS due_amountFROM customers -WHERE cust_income_level IS NOT NULLAND cust_credit_limit IS NOT NULLMost Voted	t
+2	208	1z0-071	B.SELECT cust_first_name, cust_credit_limit * .05 AS due_amountFROM customers -WHERE cust_income_level <> NULL -AND due_amount <> NULL;	f
+3	208	1z0-071	C.SELECT cust_first_name, cust_credit_limit * .05 AS due_amountFROM customers -WHERE cust_income_level != NULL -AND cust_credit_level != NULL;	f
+4	208	1z0-071	D.SELECT cust_first_name, cust_credit_limit * .05 AS due_amountFROM customers -WHERE cust_income_level != NULL -AND due_amount != NULL;	f
+5	208	1z0-071	E.SELECT cust_first_name, cust_credit_limit * .05 AS due_amountFROM customers -WHERE cust_income_level IS NOT NULLAND due_amount IS NOT NULL;	f
+1	209	1z0-071	A.The foreign key constraint on DEPT_ID must be defined at the table level instead of the column level.	f
+2	209	1z0-071	B.The NOT NULL constraint on ENAME must be defined at the column level instead of the table level.Most Voted	t
+3	209	1z0-071	C.The primary key constraint on EMP_ID must have a name.	f
+4	209	1z0-071	D.One of the LONG columns must be changed to a VARCHAR2 or CLOB.Most Voted	t
+5	209	1z0-071	E.The word CONSTRAINT in the foreign key constraint on DEPT_ID must be changed to FOREIGN KEY.	f
+1	210	1z0-071	A.SELECT TO_NUMBER(INTERVAL ‘800’ SECOND, ‘HH24:MM’) FROM DUAL;	f
+2	210	1z0-071	B.SELECT TO_CHAR(INTERVAL ‘800’ SECOND, ‘HH24:MM’) FROM DUAL;Most Voted	t
+3	210	1z0-071	C.SELECT TO_NUMBER(TO_DATE(INTERVAL ‘800’ SECOND)) FROM DUAL;	f
+4	210	1z0-071	D.SELECT TO_DATE(TO_NUMBER(INTERVAL ‘800’ SECOND)) FROM DUAL;	f
+5	210	1z0-071	E.SELECT TO_DATE(INTERVAL ‘800’ SECOND, ‘HH24:MM’) FROM DUAL;	f
+1	211	1z0-071	A.SELECT TO_DATE(SYSDATE, 'FMDAY, DD MONTH, YYYY') FROM DUAL;	f
+2	211	1z0-071	B.SELECT TO_CHAR(SYSDATE, 'FMDD, DAY MONTH, YYYY') FROM DUAL;	f
+3	211	1z0-071	C.SELECT TO_CHAR(SYSDATE, 'FMDAY, DD MONTH, YYYY') FROM DUAL;Most Voted	t
+4	211	1z0-071	D.SELECT TO_CHAR(SYSDATE, 'FMDAY, DDTH MONTH, YYYY') EROM DUAL;	f
+1	212	1z0-071	A.Using <> ANY will display all the product names except the product named Fork.Most Voted	t
+2	212	1z0-071	B.Using IN will display all the product names.	f
+3	212	1z0-071	C.Using NOT IN or <> ANY will give the same result.	f
+4	212	1z0-071	D.Using <> ANY will display all the product names.	f
+5	212	1z0-071	E.Using NOT IN or <> ANY will give the same result.	f
+1	213	1z0-071	A.Only if the salary is 20000 or less and the employee id is 125 or higher, insert EMPLOYEE_ID, MANAGER_ID, and SALARY into the MGR_HISTORY table.	f
+2	213	1z0-071	B.Regardless of salary and employee id, insert EMPLOYEE_ID, MANAGER_ID, and SALARY into the MGR_HISTORY table.	f
+3	213	1z0-071	C.Regardless of salary, only if the employee id is less than 125, insert EMPLOYEE_ID, MANAGER_ID, and SALARY into the MGR_HISTORY table.	f
+4	213	1z0-071	D.Only if the salary is 20000 or less and the employee id is less than 125, insert EMPLOYEE_ID, MANAGER_ID, and SALARY into the MGR_HISTORY table.Most Voted	t
+1	214	1z0-071	A.A GLOBAL TEMPORARY TABLE can have only one index.	f
+2	214	1z0-071	B.A GLOBAL TEMPORARY TABLE can be referenced in the defining query of a viewMost Voted	t
+3	214	1z0-071	C.DML on GLOBAL TEMPORARY TABLES generates no REDO.	f
+4	214	1z0-071	D.A GLOBAL TEMPORARY TABLE cannot have a PUBLIC SYNONYM.	f
+5	214	1z0-071	E.A GLOBAL TEMPORARY TABLE can have multiple indexes.Most Voted	t
+6	214	1z0-071	F.A trigger can be created on a GLOBAL TEMPORARY TABLE.Most Voted	t
+1	215	1z0-071	A.WHERE borrowed_date = SYSDATE AND (transaction_type = 'RM' AND member_id = 'A101' OR member_id = 'A102');	f
+2	215	1z0-071	B.WHERE borrowed_date = SYSDATE AND (transaction_type = 'RM' AND (member_id = 'A101' OR member_id = 'A102'));	f
+3	215	1z0-071	C.WHERE borrowed_date = SYSDATE AND transaction_type = 'RM' OR member_id IN ('A101', 'A102');Most Voted	t
+4	215	1z0-071	D.WHERE borrowed_date = SYSDATE AND (transaction_type = 'RM' OR member_id IN ('A101', 'A102');	f
+5	215	1z0-071	E.WHERE (borrowed_date = SYSDATE AND transaction_type = 'RM') OR member_id IN ('A101', 'A102');Most Voted	t
+1	216	1z0-071	A.SELECT TO_CHAR(SYSDATE, 'DD-MON-YYYY') - '01-JAN-2019' FROM	f
+2	216	1z0-071	B.SELECT ROUND(SYSDATE - '01-JAN-2019') FROM DUAL;	f
+3	216	1z0-071	C.SELECT ROUND(SYSDATE – TO_DATE('01/JANUARY/2019')) FROM DUAL;Most Voted	t
+4	216	1z0-071	D.SELECT TO_DATE(SYSDATE, 'DD/MONTH/YYYY') - '01/JANUARY/2019' FROM DUAL;	f
+5	216	1z0-071	E.SELECT SYSDATE - TO_DATE('01-JANUARY-2019') FROM DUAL;Most Voted	t
+1	217	1z0-071	A.CREATE INDEX price_idx ON products (price);Most Voted	t
+2	217	1z0-071	B.ALTER TABLE products SET UNUSED (expiry_date);	f
+3	217	1z0-071	C.DROP TABLE products;Most Voted	t
+4	217	1z0-071	D.ALTER TABLE products DROP COLUMN expiry_date;	f
+5	217	1z0-071	E.TRUNCATE TABLE products;	f
+6	217	1z0-071	F.ALTER TABLE products DROP UNUSED COLUMNS;Most Voted	t
+1	218	1z0-071	A.Users must have the required privileges on the underlying objects to use public synonyms.Most Voted	t
+2	218	1z0-071	B.Synonyms can be created for roles.	f
+3	218	1z0-071	C.Synonyms cannot be created for sequences.	f
+4	218	1z0-071	D.Synonyms cannot be created for synonyms.	f
+5	218	1z0-071	E.Synonyms can be created for packages.Most Voted	t
+6	218	1z0-071	F.Users must have the DBA role to create public synonyms.	f
+1	219	1z0-071	A.SELECT	f
+2	219	1z0-071	B.GROUP BYMost Voted	t
+3	219	1z0-071	C.WHERE	f
+4	219	1z0-071	D.ORDER BY	f
+1	220	1z0-071	A.Sequence ORD_SEQ is guaranteed not to generate duplicate numbers.	f
+2	220	1z0-071	B.Sequence ORD_SEQ cycles back to 1 after every 5000 numbers and can cycle 20 times.	f
+3	220	1z0-071	C.Column ORD_NO gets the next number from sequence and ORD_SEQ whenever a row is inserted into ORD_ITEMS and no explicit value is given for ORD_NO.Most Voted	t
+4	220	1z0-071	D.If sequence ORD_SEQ is dropped then the default value for column ORD_NO will be NULL for rows inserted into ORD_ITEMS.	f
+5	220	1z0-071	E.Any user inserting rows into table ORD_ITEMS must have been granted access to sequence ORD_SEQ.Most Voted	t
+1	221	1z0-071	A.A TIMESTAMP WITH LOCAL TIMEZONE data type column is stored in the database using the time zone of the session that inserted the row.	f
+2	221	1z0-071	B.The SESSIONTIMEZONE function can return an offset from Universal Coordinated Time (UTC).Most Voted	t
+3	221	1z0-071	C.The DBTIMEZONE function can return an offset from Universal Coordinated Time (UTC).Most Voted	t
+4	221	1z0-071	D.The CURRENT_TIMESTAMP function returns data without time zone information.	f
+5	221	1z0-071	E.A TIMESTAMP data type column contains information about year, month, and day.Most Voted	t
+1	222	1z0-071	A.You use ALTER INDEX to make an INVISIBLE index VISIBLE.Most Voted	t
+2	222	1z0-071	B.An INVISIBLE index consumes no storage.	f
+3	222	1z0-071	C.The query optimizer never considers INVISIBLE indexes when determining execution plans.	f
+4	222	1z0-071	D.You can only create one INVISIBLE index on the same column list.	f
+5	222	1z0-071	E.All INSERT, UPDATE, and DELETE statements maintain entries in the index.Most Voted	t
+1	223	1z0-071	A.A subquery cannot be used in the select list.	f
+2	223	1z0-071	B.< ANY returns true if the argument is less than the highest value returned by the subquery.Most Voted	t
+3	223	1z0-071	C.< ANY returns true if the argument is less than the lowest value returned by the subquery.	f
+4	223	1z0-071	D.A subquery can be used in a HAVING clause.Most Voted	t
+5	223	1z0-071	E.A subquery cannot be used in a FROM clause.	f
+6	223	1z0-071	F.A subquery can be used in a WHERE clause.Most Voted	t
+7	223	1z0-071	G.= ANY can only evaluate the argument against a subquery if it returns two or more values.	f
+1	224	1z0-071	A.A one-to-one relationship is always a self-referencing relationship.	f
+2	224	1z0-071	B.A relationship can be mandatory for both entities.Most Voted	t
+3	224	1z0-071	C.A many-to-many relationship can be implemented only by using foreign keys.	f
+4	224	1z0-071	D.A one-to-many relationship in one direction is a one-to-one relationship in the other direction.Most Voted	t
+5	224	1z0-071	E.A table name can be specified just once when selecting data from a table having a self-referencing relationship.	f
+1	225	1z0-071	A.They can use INNER JOIN and LEFT JOIN.Most Voted	t
+2	225	1z0-071	B.They require the EXISTS operator in the join condition.	f
+3	225	1z0-071	C.They require the NOT EXISTS operator in the join condition.	f
+4	225	1z0-071	D.They require table aliases.Most Voted	t
+5	225	1z0-071	E.They have no join condition.	f
+6	225	1z0-071	F.They are always equijoins.	f
+1	226	1z0-071	A.42	f
+2	226	1z0-071	B.0	f
+3	226	1z0-071	C.14Most Voted	t
+4	226	1z0-071	D.28	f
+1	227	1z0-071	A.providing graphical capabilities	f
+2	227	1z0-071	B.processing sets of data	f
+3	227	1z0-071	C.providing database transaction control	f
+4	227	1z0-071	D.providing update capabilities for data in external files	f
+5	227	1z0-071	E.providing variable definition capabilities	f
+1	228	1z0-071	A.\n![](../images/image113.png)\n\t\t	f
+2	228	1z0-071	B.\n![](../images/image114.png)\n\t\t 	t
+3	228	1z0-071	C.\n![](../images/image115.png)\n\t\t	f
+4	228	1z0-071	D.\n![](../images/image116.png)\n\t\t 	t
+1	229	1z0-071	A.A PRIMARY KEY constraint can be added after a table has been created and populated.Most Voted	t
+2	229	1z0-071	B.A FOREIGN KEY column can contain NULLs.Most Voted	t
+3	229	1z0-071	C.A CHECK constraint can refer to values in other rows.	f
+4	229	1z0-071	D.A NOT NULL constraint can be defined at the table level.	f
+5	229	1z0-071	E.A UNIQUE constraint can use a pre-existing index on the constrained column or columns.Most Voted	t
+6	229	1z0-071	F.A UNIQUE constraint permits NULLs.Most Voted	t
+7	229	1z0-071	G.A column can have only one CHECK constraint.	f
+1	230	1z0-071	A.1, 2 and 3	f
+2	230	1z0-071	B.2, 3 and 4	f
+3	230	1z0-071	C.1 only	f
+4	230	1z0-071	D.2 and 3 onlyMost Voted	t
+1	231	1z0-071	A.It will return the five employees earning the lowest salaries, in ascending order.Most Voted	t
+2	231	1z0-071	B.It will return the six employees earning the highest salaries, in descending order.	f
+3	231	1z0-071	C.It will return the six employees earning the lowest salaries, in ascending order.	f
+4	231	1z0-071	D.It will return the five employees earning the highest salaries, in descending order.	f
+1	232	1z0-071	A.INSERT INTO rate_list VALUES (0.999) produces an error.	f
+2	232	1z0-071	B.INSERT INTO rate_list VALUES (-.9) inserts the value as -.9.Most Voted	t
+3	232	1z0-071	C.INSERT INTO rate_list VALUES (87654.556) inserts the value as 87654.6.	f
+4	232	1z0-071	D.INSERT INTO rate_list VALUES (-10) produces an error.	f
+5	232	1z0-071	E.INSERT INTO rate_list VALUES (-99.99) inserts the value as 99.99.	f
+6	232	1z0-071	F.INSERT INTO rate_list VALUES (0.551) inserts the value as .55.Most Voted	t
+1	233	1z0-071	A.1 and 4 give different results.	f
+2	233	1z0-071	B.2 returns the value 20.Most Voted	t
+3	233	1z0-071	C.3 returns an error.	f
+4	233	1z0-071	D.1 and 4 give the same result.Most Voted	t
+5	233	1z0-071	E.2 and 3 give the same result.	f
+1	234	1z0-071	A.SELECT last_name, (monthly_salary * 12) + (monthly_salary * 12 * NVL(monthly_commission_pct, 0)) AS annual_comp FROM employees;Most Voted	t
+2	234	1z0-071	B.SELECT last_name, (monthly_salary * 12) + (monthly_salary * 12 * monthly_commission_pct) AS annual_comp FROM employees;	f
+3	234	1z0-071	C.SELECT last_name, (monthly_salary + monthly_commission_pct) * 12 AS annual_comp FROM employees;	f
+4	234	1z0-071	D.SELECT last_name, (monthly_salary * 12) + (monthly_commission_pct * 12) AS annual_comp FROM employees;	f
+1	235	1z0-071	A.1 and 3Most Voted	t
+2	235	1z0-071	B.2 and 3	f
+3	235	1z0-071	C.1, 2, and 3	f
+4	235	1z0-071	D.1 and 2	f
+1	236	1z0-071	A.\n![](../images/image124.png)\n\t\t	f
+2	236	1z0-071	B.\n![](../images/image125.png)\n\t\t 	t
+3	236	1z0-071	C.\n![](../images/image126.png)\n\t\t	f
+4	236	1z0-071	D.\n![](../images/image127.png)\n\t\t	f
+1	237	1z0-071	A.Both statements will execute successfully if you add E.AVG_SAL to the select list.	f
+2	237	1z0-071	B.Both statements will display departments with no employees.Most Voted	t
+3	237	1z0-071	C.Only the second statement will execute successfully if you add E.AVG_SAL to the select list.Most Voted	t
+4	237	1z0-071	D.Only the first statement will display departments with no employees.	f
+5	237	1z0-071	E.Only the second statement will display departments with no employees.	f
+6	237	1z0-071	F.Only the first statement will execute successfully if you add E.AVG_SAL to the select list.	f
+1	238	1z0-071	A.It can use subqueries to produce source rows.	f
+2	238	1z0-071	B.It can update the same row of the target table multiple times.	f
+3	238	1z0-071	C.It can update, insert, or delete rows conditionally in multiple tables.	f
+4	238	1z0-071	D.It can use views to produce source rows.	f
+5	238	1z0-071	E.It can merge rows only from tables.	f
+6	238	1z0-071	F.It can combine rows from multiple tables conditionally to insert into a single table.	f
+1	239	1z0-071	A.Primary key columns allow null values.	f
+2	239	1z0-071	B.Every primary or unique key value must refer to a matching foreign key value.	f
+3	239	1z0-071	C.Every foreign key value must refer to a matching primary or unique key value.	f
+4	239	1z0-071	D.Foreign key columns allow null values.	f
+5	239	1z0-071	E.Unique key columns allow null values.	f
+1	240	1z0-071	A.table1 JOIN table2 USING (column1, column2)	f
+2	240	1z0-071	B.table1 JOIN table2 ON (table1.column BETWEEN table2.column1 AND table2.column2)	f
+3	240	1z0-071	C.table1 NATURAL JOIN table2	f
+4	240	1z0-071	D.table1 JOIN table2 ON (table1.column >= table2.column)	f
+5	240	1z0-071	E.table1 JOIN table2 ON (table1.column = table2.column) WHERE table2.column LIKE ‘A%’	f
+1	241	1z0-071	A.Duplicates are eliminated automatically by the UNION ALL operator.	f
+2	241	1z0-071	B.The output is sorted by the UNION ALL operator.	f
+3	241	1z0-071	C.The names of columns selected in each SELECT statement must be identical.	f
+4	241	1z0-071	D.NULLs are not ignored during duplicate checking.	f
+5	241	1z0-071	E.The number of columns selected in each SELECT statement must be identical.	f
+1	242	1z0-071	A.Query any table in a database.Most Voted	t
+2	242	1z0-071	B.Execute a procedure in another schema.	f
+3	242	1z0-071	C.Log in to a database instance.Most Voted	t
+4	242	1z0-071	D.Access flat files, which are stored in an operating system directory, via the UTL_FILE package.Most Voted	t
+5	242	1z0-071	E.Use the WITH GRANT OPTION clause.	f
+1	243	1z0-071	A.GRANT CREATE SEQUENCE TO manager, emp;Most Voted	t
+2	243	1z0-071	B.GRANT CREATE TABLE, emp TO manager;Most Voted	t
+3	243	1z0-071	C.GRANT CREATE ANY SESSION, CREATE ANY TABLE TO manager;	f
+4	243	1z0-071	D.GRANT SELECT, INSERT ON hr.employees TO manager WITH GRANT OPTION;	f
+5	243	1z0-071	E.GRANT CREATE TABLE, SELECT ON hr.employees TO manager;	f
+1	244	1z0-071	A.SELECT INITCAP(TRIM(‘H’ FROM ‘Hello World’)) FROM DUAL;	f
+2	244	1z0-071	B.SELECT SUBSTR(‘Hello World’, 2) FROM DUAL;	f
+3	244	1z0-071	C.SELECT LOWER(SUBSTR(‘Hello World’, 2, 1)) FROM DUAL;	f
+4	244	1z0-071	D.SELECT LOWER(TRIM(‘H’ FROM ‘Hello World’)) FROM DUAL;Most Voted	t
+5	244	1z0-071	E.SELECT LOWER(SUBSTR(‘Hello World’, 2)) FROM DUAL;Most Voted	t
+1	245	1z0-071	A.\n![](../images/image130.png)\n\t\t	f
+2	245	1z0-071	B.\n![](../images/image131.png)\n\t\t	f
+3	245	1z0-071	C.\n![](../images/image132.png)\n\t\t	f
+4	245	1z0-071	D.\n![](../images/image133.png)\n\t\t 	t
+1	246	1z0-071	A.Drop pseudocolumns from a table.	f
+2	246	1z0-071	B.Restrict all DML statements on a table.Most Voted	t
+3	246	1z0-071	C.Lock a set of rows in a table.	f
+4	246	1z0-071	D.Rename a table.Most Voted	t
+5	246	1z0-071	E.Drop all columns simultaneously from a table.	f
+6	246	1z0-071	F.Enable or disable constraints on a table.Most Voted	t
+1	247	1z0-071	A.The default length for a CHAR column is always one character.	f
+2	247	1z0-071	B.A VARCHAR2 blank-pads column values only in the data stored is non-numeric and contains no special characters.	f
+3	247	1z0-071	C.A VARCHAR2 column definition does not require the length to be specified.	f
+4	247	1z0-071	D.A CHAR column definition does not require the length to be specified.Most Voted	t
+2	249	1z0-071	B.RIGHT OUTER JOIN with self join	f
+5	247	1z0-071	E.A BLOB stores unstructured binary data within the database.Most Voted	t
+6	247	1z0-071	F.A BFILE stores unstructured binary data in operating system files.Most Voted	t
+1	248	1z0-071	A.UPDATE can be granted only on tables and views.Most Voted	t
+2	248	1z0-071	B.DELETE can be granted on tables, views, and sequences.	f
+3	248	1z0-071	C.SELECT can be granted on tables and views.	f
+4	248	1z0-071	D.ALTER can be granted only on tables and sequences.Most Voted	t
+5	248	1z0-071	E.REFERENCES can be granted only on tables and views.Most Voted	t
+6	248	1z0-071	F.INSERT can be granted on tables, views, and sequences.	f
+3	249	1z0-071	C.LEFT OUTER JOIN with self join	f
+4	249	1z0-071	D.FULL OUTER JOIN with self join	f
+5	249	1z0-071	E.subqueryMost Voted	t
+1	250	1z0-071	A.Rolling back to a SAVEPOINT can undo a CREATE INDEX statement.	f
+2	250	1z0-071	B.Only one SAVEPOINT may be issued in a transaction.	f
+3	250	1z0-071	C.Rolling back to a SAVEPOINT can undo a DELETE statement.	f
+4	250	1z0-071	D.A SAVEPOINT does not issue a COMMIT.	f
+5	250	1z0-071	E.Rolling back to a SAVEPOINT can undo a TRUNCATE statement.	f
+1	251	1z0-071	A.SELECT customer_id AS “CUSTOMER_ID”, transaction_date AS “DATE”, amount + 100 DUES FROM transactions;Most Voted	t
+2	251	1z0-071	B.SELECT customer_id AS ‘CUSTOMER_ID’, transaction_date AS DATE, amount + 100 ‘DUES’ FROM transactions;	f
+3	251	1z0-071	C.SELECT customer_id AS “CUSTOMER_ID”, transaction_date AS DATE, amount + 100 “DUES” FROM transactions;	f
+4	251	1z0-071	D.SELECT customer_id AS CUSTOMER_ID, transaction_date AS TRANS_DATE, amount + 100 “DUES AMOUNT” FROM transactions;Most Voted	t
+5	251	1z0-071	E.SELECT customer_id CUSTID, transaction_date TRANS_DATE, amount + 100 DUES FROM transactions;	f
+1	252	1z0-071	A.WITH GRANT OPTTON cannot be used when granting an object privilege to PUBLIC.Most Voted	t
+2	252	1z0-071	B.WITH GRANT OPTION can be used when granting an object privilege to both users and roles.	f
+3	252	1z0-071	C.Revoking an object privilege that was granted with the WITH GRANT OPTION clause has a cascading effect.C. Adding a primary key constraint to an existing table in another schema requires a system privilege.Most Voted	t
+4	252	1z0-071	D.Adding a foreign key constraint pointing to a table in another schema requires the REFERENCES object privilege.Most Voted	t
+5	252	1z0-071	E.Revoking a system privilege that was granted with WITH ADMIN OPTION has a cascading effect.	f
+1	253	1z0-071	A.DML statements cannot be used on them.Most Voted	t
+2	253	1z0-071	B.You can populate them from existing data in the database by using the CREATE TABLE AS SELECT command.Most Voted	t
+3	253	1z0-071	C.Their data can be retrieved by using only SQL or PL/SQL.	f
+4	253	1z0-071	D.Indexes can be created on them.	f
+5	253	1z0-071	E.Their metadata and actual data are both stored outside the database.	f
+1	254	1z0-071	A.ALTER VIEW emp_view ADD (employee.manager_id);	f
+2	254	1z0-071	B.ALTER VIEW emp_view MODIFY (SELECT employee_id, employee_name, department_name, manager_idFROM employees e, departments d -WHERE e.department_id = d.department_id);	f
+3	254	1z0-071	C.ALTER VIEW emp_view ADD (SELECT manager_id FROM employees);	f
+4	254	1z0-071	D.CREATE OR REPLACE VIEW emp_view ASSELECT employee_id, employee_name, department_name, manager_idFROM employees e, departments d -WHERE e.department_id = d.department_id;Most Voted	t
+1	255	1z0-071	A.System privileges always set privileges for an entire database.	f
+2	255	1z0-071	B.PUBLIC can be revoked from a user.	f
+3	255	1z0-071	C.All roles are owned by the SYS schema.	f
+4	255	1z0-071	D.A user has all object privileges for every object in their schema by default.Most Voted	t
+5	255	1z0-071	E.A role is owned by the user who created it.	f
+6	255	1z0-071	F.A role can contain a combination of several privileges and roles.Most Voted	t
+7	255	1z0-071	G.PUBLIC acts as a default role granted to every user in a database.Most Voted	t
+1	256	1z0-071	A.\n![](../images/image137.png)\n\t\t	f
+2	256	1z0-071	B.\n![](../images/image138.png)\n\t\t	f
+3	256	1z0-071	C.\n![](../images/image139.png)\n\t\t	f
+4	256	1z0-071	D.\n![](../images/image140.png)\n\t\t	f
+1	257	1z0-071	A.It can be used for system and object privileges.	f
+2	257	1z0-071	B.The grantee can grant the object privilege to any user in the database, with or without including this option.Most Voted	t
+3	257	1z0-071	C.The grantee must have the GRANT ANY OBJECT PRIVILEGE system privilege to use this option.	f
+4	257	1z0-071	D.It cannot be used to pass on privileges to PUBLIC by the grantee.	f
+5	257	1z0-071	E.It can be used when granting privileges to roles.	f
+6	257	1z0-071	F.It can be used to pass on privileges to other users by the grantee.Most Voted	t
+1	258	1z0-071	A.SELECT dept_id, join_date, SUM(salary) FROM employees GROUP BY dept_id;	f
+2	258	1z0-071	B.SELECT dept_id, join_date, SUM(salary) FROM employees GROUP BY dept_id, join_date;	f
+3	258	1z0-071	C.SELECT dept_id, MAX(AVG(salary)) FROM employees GROUP BY dept_id;	f
+4	258	1z0-071	D.SELECT dept_id, AVG(MAX(salary)) FROM employees GROUP BY dept_id;	f
+1	259	1z0-071	A.SELECT CURRVAL FROM emp_seq;	f
+2	259	1z0-071	B.SELECT emp_seq.CURRVAL FROM DUAL;Most Voted	t
+3	259	1z0-071	C.SELECT NEXTVAL FROM emp_seq;	f
+4	259	1z0-071	D.SELECT emp_seq.NEXTVAL FROM DUAL;	f
+1	260	1z0-071	A.SALES1 is created with 55,000 rows.Most Voted	t
+2	260	1z0-071	B.SALES1 has NOT NULL constraints on any selected columns which had those constraints in the SALES table.Most Voted	t
+3	260	1z0-071	C.SALES1 is created with no rows.	f
+4	260	1z0-071	D.SALES1 is created with 1 row	f
+5	260	1z0-071	E.SALES1 has PRIMARY KEY and UNIQUE constraints on any selected columns which had those constraints in the SALES table.	f
+1	261	1z0-071	A.TRUNC : can be used with NUMBER and DATE valuesMost Voted	t
+2	261	1z0-071	B.FLOOR : returns the smallest integer greater than or equal to a specified number	f
+3	261	1z0-071	C.MOD : returns the quotient of a division operation	f
+4	261	1z0-071	D.CEIL : can be used for positive and negative numbersMost Voted	t
+5	261	1z0-071	E.CONCAT : can be used to combine any number of values	f
+3	262	1z0-071	C.3	f
+4	262	1z0-071	D.5D. 5 01-MAR-2019Most Voted	t
+5	262	1z0-071	E.3 01-JAN-2019	f
+6	262	1z0-071	F.4 01-FEB-2019	f
+1	263	1z0-071	A.You can add a USING clause with a join condition.	f
+2	263	1z0-071	B.You can add an ON clause with a join condition.	f
+3	263	1z0-071	C.You can add a WHERE clause with filtering criteria.Most Voted	t
+4	263	1z0-071	D.It returns the number of rows in bricks plus the number of rows in COLORS.	f
+5	263	1z0-071	E.It returns the same rows as SELECT * FROM bricks CROSS JOIN colors;.Most Voted	t
+1	264	1z0-071	A.Line 3	f
+2	264	1z0-071	B.Line 5	f
+3	264	1z0-071	C.Line 7	f
+4	264	1z0-071	D.Line 8Most Voted	t
+1	265	1z0-071	A.It is used to specify an equijoin of columns that have the same name in both tables.Most Voted	t
+2	265	1z0-071	B.It can never be used with a full outer join.	f
+3	265	1z0-071	C.It can never be used with a natural join.Most Voted	t
+4	265	1z0-071	D.All column names in a USING clause must be qualified with a table name or table alias.	f
+5	265	1z0-071	E.It is used to specify an explicit join condition involving operators.	f
+1	266	1z0-071	A.SYSDATE can be queried only from the dual table.	f
+2	266	1z0-071	B.SYSDATE can be used in expressions only if the default date format is DD-MON-RR.	f
+3	266	1z0-071	C.CURRENT_DATE returns the current date and time as per the session time zone.	f
+4	266	1z0-071	D.CURRENT_TIMESTAMP returns the same date as CURRENT_DATE.	f
+5	266	1z0-071	E.CURRENT_TIMESTAMP returns the same date and time as SYSDATE with additional details of fractional seconds.	f
+6	266	1z0-071	F.SYSDATE and CURRENT__DATE return the current date and time set for the operating system of the database server.	f
+1	267	1z0-071	A.A new column with the name DEPARTMENT_ID can be added to the EMPLOYEES table.	f
+2	267	1z0-071	B.No updates can be made to the data in the DEPARTMENT_ID column.	f
+3	267	1z0-071	C.The DEPARTMENT_ID column can be recovered from the recycle bin.Most Voted	t
+4	267	1z0-071	D.The storage space occupied by the DEPARTMENT_ID column is released only after a COMMIT is issued.	f
+5	267	1z0-071	E.A query can display data from the DEPARTMENT_ID column.	f
+6	267	1z0-071	F.The DEPARTMENT_ID column is set to null for all rows in the table.	f
+1	268	1z0-071	A.It can include the CREATE..INDEX statement for creating an index to enforce the primary key constraint.	f
+2	268	1z0-071	B.The owner of the table should have space quota available on the tablespace where the table is defined.Most Voted	t
+3	268	1z0-071	C.It implicitly executes a commit.Most Voted	t
+4	268	1z0-071	D.It implicitly rolls back any pending transactions.	f
+5	268	1z0-071	E.A user must have the CREATE ANY TABLE privilege to create tables.Most Voted	t
+6	268	1z0-071	F.The owner of the table must have the UNLIMITED TABLESPACE system privilege.	f
+1	269	1z0-071	A.ALTER TABLE products DROP COLUMN expiry_date;	f
+2	269	1z0-071	B.TRUNCATE TABLE products;	f
+3	269	1z0-071	C.DROP TABLE products;Most Voted	t
+4	269	1z0-071	D.CREATE INDEX price_idx ON products (price);Most Voted	t
+5	269	1z0-071	E.ALTER TABLE products DROP UNUSED COLUMNS;Most Voted	t
+6	269	1z0-071	F.ALTER TABLE products SET UNUSED (expiry_date);	f
+1	270	1z0-071	A.Primary key and foreign key constraints can be defined at both the column and table level.Most Voted	t
+2	270	1z0-071	B.A table can have only one primary key and one foreign key.	f
+3	270	1z0-071	C.The foreign key columns and parent table primary key columns must have the same names.	f
+4	270	1z0-071	D.A table can have only one primary key but multiple foreign keys.Most Voted	t
+5	270	1z0-071	E.Only the primary key can be defined at the column and table level.	f
+6	270	1z0-071	F.It is possible for child rows that have a foreign key to remain in the child table at the time the parent row is deleted.Most Voted	t
+7	270	1z0-071	G.It is possible for child rows that have a foreign key to be deleted automatically from the child table at the time the parent row is deleted.Most Voted	t
+1	271	1z0-071	A.The statement executes successfully only if the subquery does not return multiple rows.	f
+2	271	1z0-071	B.The subquery is not a correlated subquery.	f
+3	271	1z0-071	C.The subquery is evaluated once for each row selected by the outer query.	f
+4	271	1z0-071	D.The subquery is executed for every row in the EMP_HISTORY table.Most Voted	t
+5	271	1z0-071	E.The subquery is a correlated subquery.	f
+1	272	1z0-071	A.You must have the UNLIMITED TABLESPACE privilege.	f
+2	272	1z0-071	B.You must have either the SELECT privilege on the table or the SELECT ANY TABLE privilege.	f
+3	272	1z0-071	C.You must have the CREATE ANY INDEX privilege.	f
+4	272	1z0-071	D.You have the UNLIMITED TABLESPACE privilege or sufficient quota for the tablespace to contain the index.Most Voted	t
+5	272	1z0-071	E.You have either the INDEX privilege on the table or the CREATE ANY INDEX privilege.Most Voted	t
+\.
+
+
+--
+-- Data for Name: relative_path_questions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.relative_path_questions (number, exam, text) FROM stdin;
+1	1z0-071	Examine the description of the PROMOTIONS table:\n\n![](../images/0000200001.png)\n\t\t\nYou want to display the unique promotion costs in each promotion category.\nWhich two queries can be used? (Choose two.)
+2	1z0-071	Examine the description of the PRODUCTS table:\n\n![](../images/0000300001.png)\n\t\t\nWhich three queries use valid expressions? (Choose three.)
+3	1z0-071	What is true about non-equijoin statement performance? (Choose two.)
+4	1z0-071	Which two are true? (Choose two.)
+5	1z0-071	Which three statements are true about Oracle synonyms? (Choose three.)
+6	1z0-071	Which two are true? (Choose two.)
+7	1z0-071	Examine these SQL statements which execute successfully:\n\n![](../images/0000600001.png)\n\t\t\nWhich two statements are true after execution? (Choose two.)
+8	1z0-071	Examine this SQL statement:\n\n![](../images/0000700001.png)\n\t\t\nWhich two are true? (Choose two.)
+9	1z0-071	Which two statements are true about TRUNCATE and DELETE? (Choose two.)
+10	1z0-071	The STORES table has a column START_DATE of data type DATE, containing the date the row was inserted.\nYou only want to display details of rows where START_DATE is within the last 25 months.\nWhich WHERE clause can be used?
+11	1z0-071	Which three are true about scalar subquery expressions? (Choose three.)
+12	1z0-071	Examine this query:\n\n![](../images/0000900001.png)\n\t\t\nWhich two methods should you use to prevent prompting for a hire date value when this query is executed? (Choose two.)
+13	1z0-071	You need to allow user ANDREW to:\n1. Modify the TITLE and ADDRESS columns of your CUSTOMERS table.\n2. GRANT that permission to other users.\nWhich statement will do this?
+14	1z0-071	You own table DEPARTMENTS, referenced by views, indexes, and synonyms.\nExamine this command which executes successfully:\nDROP TABLE departments PURGE;\nWhich three statements are true? (Choose three.)
+15	1z0-071	Which three statements are true about Structured Query Language (SQL)? (Choose three.)
+16	1z0-071	Which two statements are true about Oracle synonyms? (Choose two.)
+17	1z0-071	Which is true about the ROUND, TRUNC and MOD functions?
+18	1z0-071	Which two are true about transactions in the Oracle Database? (Choose two.)
+19	1z0-071	Examine the description of the MEMBERS table:\n\n![](../images/0001200001.png)\n\t\t\nExamine the partial query:\nSELECT city, last_name AS lname FROM members ...;\nYou want to display all cities that contain the string AN. The cities must be returned in ascending order, with the last names further sorted in descending order.\nWhich two clauses must you add to the query? (Choose two.)
+20	1z0-071	Examine this partial command:\n\n![](../images/0001300001.png)\n\t\t\nWhich two clauses are required for this command to execute successfully? (Choose two.)
+21	1z0-071	Which two are true about unused columns? (Choose two.)
+22	1z0-071	Which two are true about the precedence of operators and conditions? (Choose two.)
+23	1z0-071	In your session, the NLS_DATE_FORMAT is DD-MM-YYYY.\nThere are 86400 seconds in a day.\nExamine this result:\nDATE -\n-----------\n02-JAN-2020\nWhich statement returns this?
+24	1z0-071	Examine the data in the INVOICES table:\n\n![](../images/0001600001.png)\n\t\t\nExamine the data in the CURRENCIES table:\n\n![](../images/0001600002.png)\n\t\t\nWhich query returns the currencies in CURRENCIES that are not present in INVOICES?\nA.\n\n![](../images/0001600003.png)\n\t\t\nB.\n\n![](../images/0001600004.png)\n\t\t\nC.\n\n![](../images/0001600005.png)\n\t\t\nD.\n\n![](../images/0001700001.png)\n\t\t
+25	1z0-071	The SALES table has columns PROD_ID and QUANTITY_SOLD of data type NUMBER.\nWhich two queries execute successfully? (Choose two.)
+26	1z0-071	Which three statements are true about single-row functions? (Choose three.)
+27	1z0-071	Which two statements are true about *_TABLES views? (Choose two.)
+28	1z0-071	Which two statements are true about conditional INSERT ALL? (Choose two.)
+29	1z0-071	Which two statements are true about the COUNT function? (Choose two.)
+30	1z0-071	The EMPLOYEES table contains columns EMP_ID of data type NUMBER and HIRE_DATE of data type DATE.\nYou want to display the date of the first Monday after the completion of six months since hiring.\nThe NLS_TERRITORY parameter is set to AMERICA in the session and, therefore, Sunday is the first day of the week.\nWhich query can be used?
+31	1z0-071	Which three statements are true about GLOBAL TEMPORARY TABLES? (Choose three.)
+32	1z0-071	Which two statements are true about the SET VERIFY ON command? (Choose two.)
+188	1z0-071	Which statement is true about using functions in WHERE and HAVING?
+33	1z0-071	Examine this list of requirements for a sequence:\n1. Name: EMP_SEQ\n2. First value returned: 1\n3. Duplicates are never permitted.\n4. Provide values to be inserted into the EMPLOYEES.EMPLOYEE_ID column.\n5. Reduce the chances of gaps in the values.\nWhich two statements will satisfy these requirements? (Choose two.)
+34	1z0-071	Which three queries execute successfully? (Choose three.)
+35	1z0-071	Which two are true about granting object privileges on tables, views, and sequences? (Choose two.)
+36	1z0-071	Examine the description of the BOOKS table:\n\n![](../images/0002200001.png)\n\t\t\nThe table has 100 rows.\nExamine this sequence of statements issued in a new session:\nINSERT INTO books VALUES ('ADV112', 'Adventures of Tom Sawyer', NULL, NULL);\nSAVEPOINT a;\nDELETE FROM books;\nROLLBACK TO SAVEPOINT a;\nROLLBACK;\nWhich two statements are true? (Choose two.)
+37	1z0-071	Which two statements are true about an Oracle database? (Choose two.)
+38	1z0-071	Examine the data in the EMP table:\n\n![](../images/0002400001.png)\n\t\t\nYou execute this query:\n\n![](../images/0002400002.jpg)\n\t\t\nWhy does an error occur?
+39	1z0-071	Which two actions can you perform with object privileges? (Choose two.)
+40	1z0-071	No user-defined locks are used in your database.\nWhich three are true about Transaction Control Language (TCL)? (Choose three.)
+41	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/0002500001.png)\n\t\t\nWhich two queries return rows for employees whose manager works in a different department? (Choose two.)\nA.\n\n![](../images/0002600001.png)\n\t\t\nB.\n\n![](../images/0002600002.png)\n\t\t\nC.\n\n![](../images/0002600003.png)\n\t\t\nD.\n\n![](../images/0002700001.png)\n\t\t\nE.\n\n![](../images/0002700002.png)\n\t\t
+42	1z0-071	Which three are true about dropping columns from a table? (Choose three.)
+43	1z0-071	Which three statements are true about views in an Oracle Database? (Choose three.)
+44	1z0-071	You start a session and execute these commands successfully:\n\n![](../images/0002900001.png)\n\t\t\nWhich two are true? (Choose two.)
+45	1z0-071	Examine this statement:\n\n![](../images/0002900002.png)\n\t\t\nWhich two statements are true? (Choose two.)
+46	1z0-071	Which two are true about external tables that use the ORACLE_DATAPUMP access driver? (Choose two.)
+47	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/0003100001.png)\n\t\t\nWhich statement will fail?\nA.\n\n![](../images/0003100002.png)\n\t\t\nB.\n\n![](../images/0003100003.png)\n\t\t\nC.\n\n![](../images/0003100004.png)\n\t\t\nD.\n\n![](../images/0003200001.png)\n\t\t
+48	1z0-071	Examine the data in the NEW_EMPLOYEES table:\n\n![](../images/0003200002.png)\n\t\t\nExamine the data in the EMPLOYEES table:\n\n![](../images/0003200003.png)\n\t\t\nYou want to:\n1. Update existing employee details in the EMPLOYEES table with data from the NEW_EMPLOYEES table.\n2. Add new employee details from the NEW_EMPLOYEES table to the EMPLOYEES table.\nWhich statement will do this?\nA.\n\n![](../images/0003300001.png)\n\t\t\nB.\n\n![](../images/0003300002.png)\n\t\t\nC.\n\n![](../images/0003300003.png)\n\t\t\nD.\n\n![](../images/0003300004.png)\n\t\t
+49	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/0003400001.png)\n\t\t\nFor each employee in department 90 you want to display:\n1. their last name\n2. the number of complete weeks they have been employed\nThe output must be sorted by the number of weeks, starting with the longest serving employee first.\nWhich statement will accomplish this?\nA.\n\n![](../images/0003400002.png)\n\t\t\nB.\n\n![](../images/0003400003.png)\n\t\t\nC.\n\n![](../images/0003400004.png)\n\t\t\nD.\n\n![](../images/0003500001.png)\n\t\t
+50	1z0-071	Examine the description of the PRODUCT_DETAILS table:\n\n![](../images/0003500002.png)\n\t\t\nWhich two statements are true? (Choose two.)
+51	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/0003600001.png)\n\t\t\nWhich two queries will result in an error? (Choose two.)\nA.\n\n![](../images/0003600002.png)\n\t\t\nB.\n\n![](../images/0003600003.png)\n\t\t\nC.\n\n![](../images/0003600004.png)\n\t\t\nD.\n\n![](../images/0003600005.png)\n\t\t\nE.\n\n![](../images/0003700001.png)\n\t\t\nF.\n\n![](../images/0003700002.png)\n\t\t
+52	1z0-071	You create a table named 123.\nWhich statement runs successfully?
+53	1z0-071	Which two statements are true regarding indexes? (Choose two.)
+54	1z0-071	Which two are true about queries using set operators (UNION, UNION ALL, INTERSECT and MINUS)? (Choose two.)
+55	1z0-071	BOOK_SEQ is an existing sequence in your schema.\nWhich two CREATE TABLE commands are valid? (Choose two.)\nA.\n\n![](../images/0003900001.png)\n\t\t\nB.\n\n![](../images/0003900002.png)\n\t\t\nC. C.\n\n![](../images/0003900003.png)\n\t\t\nD.\n\n![](../images/0003900004.png)\n\t\t\nE.\n\n![](../images/0003900005.png)\n\t\t
+56	1z0-071	Which three statements are true about multiple row subqueries? (Choose three.)
+57	1z0-071	Which three actions can you perform on an existing table containing data? (Choose three.)
+58	1z0-071	Which two statements are true about selecting related rows from two tables based on an Entity Relationship Diagram (ERD)? (Choose two.)
+59	1z0-071	Which three statements about roles are true? (Choose three.)
+60	1z0-071	The INVOICE table has a QTY_SOLD column of data type NUMBER and an INVOICE_DATE column of data type DATE.\nNLS_DATE_FORMAT is set to DD-MON-RR.\nWhich two are true about data type conversions involving these columns in query expressions? (Choose two.)
+61	1z0-071	Which three statements are true about inner and outer joins? (Choose three.)
+95	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/image6.png)\n\t\t\nWhich two statements will run successfully? (Choose two.)
+62	1z0-071	Which statement will execute successfully?\nA.\n\n![](../images/0004200001.png)\n\t\t\nB.\n\n![](../images/0004300001.png)\n\t\t\nC.\n\n![](../images/0004300002.png)\n\t\t\nD.\n\n![](../images/0004300003.png)\n\t\t
+63	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/0004300004.png)\n\t\t\nWhich two queries return all rows for employees whose salary is greater than the average salary in their department? (Choose two.)\nA.\n\n![](../images/0004400001.png)\n\t\t\nB.\n\n![](../images/0004400002.png)\n\t\t\nC.\n\n![](../images/0004400003.png)\n\t\t\nD.\n\n![](../images/0004400004.png)\n\t\t\nE.\n\n![](../images/0004400005.png)\n\t\t
+64	1z0-071	Which three statements are true about the Oracle join and ANSI join syntax? (Choose three.)
+65	1z0-071	Which two are true about the NVL, NVL2, and COALESCE functions? (Choose two.)
+66	1z0-071	Examine this statement:\n\n![](../images/0004600001.png)\n\t\t\nWhat is returned upon execution?
+67	1z0-071	Examine this statement:\n\n![](../images/0004600002.png)\n\t\t\nWhat is returned upon execution?
+68	1z0-071	Which two statements execute successfully? (Choose two.)\nA.\n\n![](../images/0004700001.png)\n\t\t\nB.\n\n![](../images/0004700002.png)\n\t\t\nC.\n\n![](../images/0004700003.png)\n\t\t\nD.\n\n![](../images/0004700004.png)\n\t\t\nE.\n\n![](../images/0004700005.png)\n\t\t
+69	1z0-071	An Oracle Database session has an uncommitted transaction in progress which updated 5000 rows in a table.\nIn which three situations does the transaction complete thereby committing the updates? (Choose three.)
+70	1z0-071	Which two are true about using constraints? (Choose two.)
+71	1z0-071	Examine this statement:\n\n![](../images/0004900001.png)\n\t\t\nOn which two columns of the table will an index be created automatically? (Choose two.)
+72	1z0-071	Examine this partial query:\n\n![](../images/0005000001.jpg)\n\t\t\nExamine this output:\n\n![](../images/0005000002.png)\n\t\t\nWhich GROUP BY clause must be added so the query returns the results shown?
+73	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/0005100001.png)\n\t\t\nWhich statement will execute successfully, returning distinct employees with non-null first names?
+74	1z0-071	Examine the description of the BRICKS table:\n\n![](../images/0005200001.png)\n\t\t\nExamine the description of the BRICKS_STAGE table:\n\n![](../images/0005200002.png)\n\t\t\nWhich two queries execute successfully? (Choose two.)\nA.\n\n![](../images/0005200003.png)\n\t\t\nB.\n\n![](../images/0005200004.png)\n\t\t\nC.\n\n![](../images/0005200005.png)\n\t\t\nD.\n\n![](../images/0005300001.png)\n\t\t\nE.\n\n![](../images/0005300002.png)\n\t\t
+75	1z0-071	Table EMPLOYEES contains columns including EMPLOYEE_ID, JOB_ID and SALARY.\nOnly the EMPLOYEE_ID column is indexed.\nRows exist for employees 100 and 200.\nExamine this statement:\n\n![](../images/0005300003.png)\n\t\t\nWhich two statements are true? (Choose two.)
+76	1z0-071	Examine these two queries and their output:\nSELECT deptno, dname FROM dept;\n\n![](../images/0005400001.png)\n\t\t\nSELECT emame, job, deptno FROM emp ORDER BY deptno;\n\n![](../images/0005500001.png)\n\t\t\nNow examine this query:\n\n![](../images/0005500002.png)\n\t\t\nHow many rows will be displayed?
+77	1z0-071	You want to return the current date and time from the user session, with a data type of TIMESTAMP WITH TIME ZONE.\nWhich function will do this?
+78	1z0-071	You have been tasked to create a table for a banking application.\nOne of the columns must meet three requirements:\n1) Be stored in a format supporting date arithmetic without using conversion functions\n2) Store a loan period of up to 10 years\n3) Be used for calculating interest for the number of days the loan remains unpaid\nWhich data type should you use?
+79	1z0-071	Which two are true about a SQL statement using SET operators such as UNION? (Choose two.)
+80	1z0-071	Which two are true about queries using set operators such as UNION? (Choose two.)
+81	1z0-071	Examine this business rule:\nEach student can work on multiple projects and each project can have multiple students.\nYou must design an Entity Relationship (ER) model for optimal data storage and allow for generating reports in this format:\nSTUDENT_ID FIRST_NAME LAST_NAME PROJECT_ID PROJECT_NAME PROJECT_TASK\nWhich two statements are true? (Choose two.)
+82	1z0-071	Which three are key components of an Entity Relationship Model? (Choose three.)
+83	1z0-071	Examine the data in the ORDERS table:\n\n![](../images/image1.png)\n\t\t\nExamine the data in the INVOICES table:\n\n![](../images/image2.png)\n\t\t\nExamine this query:\n\n![](../images/image3.png)\n\t\t
+84	1z0-071	Which two will execute successfully? (Choose two.)
+85	1z0-071	Which three statements are true about a self join? (Choose three.)
+86	1z0-071	You execute this query:\nSELECT TO_CHAR(NEXT_DAY(LAST_DAY(SYSDATE), 'MON'), 'dd "Monday for" fmMonth rrrr')\nFROM DUAL;\nWhat is the result?
+87	1z0-071	Which two statements are true about the WHERE and HAVING clauses in a SELECT statement? (Choose two.)
+88	1z0-071	Which two are true about global temporary tables? (Choose two.)
+89	1z0-071	Which three are true about privileges? (Choose three.)
+90	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/image4.png)\n\t\t\nWhich two statements will insert a row into the EMPLOYEES table? (Choose two.)
+91	1z0-071	Examine this command:\nTRUNCATE TABLE test;\nTable truncated.\nWhich two are true? (Choose two.)
+92	1z0-071	You issued this command:\nDROP TABLE hr.employees;\nWhich three statements are true? (Choose three.)
+93	1z0-071	Examine this statement:\n\n![](../images/image5.png)\n\t\t\nIdentify three ORDER BY clauses, any one of which will complete the query successfully. (Choose three.)
+94	1z0-071	Which two statements are true about views? (Choose two.)
+96	1z0-071	Which two are true about unused columns? (Choose two.)
+97	1z0-071	Examine the data in the CUST_NAME column of the CUSTOMERS table:\n\n![](../images/image7.png)\n\t\t\nYou want to display the CUST_NAME values where the last name starts with Mc or MC.\nWhich two WHERE clauses give the required result? (Choose two.)
+98	1z0-071	Which is the default column or columns for sorting output from compound queries using SET operators such as INTERSECT in a SQL statement?
+99	1z0-071	Which two statements are true about the ORDER BY clause? (Choose two.)
+100	1z0-071	Examine the BRICKS table:\n\n![](../images/image8.png)\n\t\t\nYou write this query:\n\n![](../images/image9.png)\n\t\t\nHow many rows will the query return?
+101	1z0-071	Examine this query:\nSELECT INTERVAL ‘100’ MONTH DURATION FROM DUAL;\nWhat will be the output?
+102	1z0-071	Examine this query:\nSELECT TRUNC(ROUND(156.00,-2),-1) FROM DUAL;\nWhat is the result?
+103	1z0-071	You want to write a query that prompts for two column names and the where condition each time it is executed in a session but only prompts for the table name the first time it is executed.\nThe variables used in your query are never undefined in your session.\nWhich query can be used?
+104	1z0-071	Which three statements are true about indexes and their administration in an Oracle database? (Choose three.)
+105	1z0-071	Examine this description of the EMP table:\n\n![](../images/image15.png)\n\t\t\nYou execute this query:\n\n![](../images/image16.png)\n\t\t\nWhat is the result?
+106	1z0-071	Which two are true about virtual columns? (Choose two.)
+107	1z0-071	A session's NLS_DATE_FORMAT is set to DD Mon YYYY.\nWhich two queries return the value 1 Jan 2019? (Choose two.)
+108	1z0-071	Examine this SQL statement:\n\n![](../images/image17.png)\n\t\t\nWhich two are true? (Choose two.)
+109	1z0-071	Examine this constraint information:\n\n![](../images/image18.png)\n\t\t\nWhich three statements are true? (Choose three.)
+110	1z0-071	Which two are true about creating tables in an Oracle database? (Choose two.)
+111	1z0-071	Examine this partial statement:\nSELECT ename, sal, comm FROM emp\nNow examine this output:\n\n![](../images/image19.png)\n\t\t\nWhich ORDER BY clause will generate the displayed output?
+112	1z0-071	Examine the description of the CUSTOMERS table:\n\n![](../images/image20.png)\n\t\t\nWhich two SELECT statements will return these results: (Choose two.)\n\n![](../images/image21.png)\n\t\t
+113	1z0-071	The PRODUCT_INFORMATION table has a UNIT_PRICE column of data type NUMBER(8,2).\nEvaluate this SQL statement:\nSELECT TO_CHAR(unit_price, '$9,999') FROM product_information;\nWhich two statements are true about the output? (Choose two.)
+114	1z0-071	Which two statements are true about Oracle databases and SQL? (Choose two.)
+115	1z0-071	Which statement is true about TRUNCATE and DELETE?
+116	1z0-071	Which two statements are true? (Choose two.)
+117	1z0-071	Examine these statements executed in a single Oracle session:\n\n![](../images/image22.png)\n\t\t\nWhich three statements are true? (Choose three.)
+118	1z0-071	Which is true about the & and && prefixes with substitution variables? (Choose all that apply.)
+119	1z0-071	Which statement will return a comma-separated list of employee names in alphabetical order for each department in the EMP table?
+120	1z0-071	Examine the data in the COLORS table:\n\n![](../images/image27.png)\n\t\t\nExamine the data in the BRICKS table:\n\n![](../images/image28.png)\n\t\t\nWhich two queries return all the rows from COLORS? (Choose two.)
+121	1z0-071	Which two queries execute successfully? (Choose two.)
+122	1z0-071	Examine these statements which execute successfully:\n\n![](../images/image34.png)\n\t\t\nExamine the result:\n\n![](../images/image35.png)\n\t\t\nIf LOCALTIMESTAMP was selected at the same time, what would it return?
+123	1z0-071	Examine these statements which execute successfully:\n\n![](../images/image36.png)\n\t\t\nWhich two are true? (Choose two.)
+124	1z0-071	Which two are true about granting privileges on objects? (Choose two.)
+125	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/image37.png)\n\t\t\nWhich two queries will execute successfully? (Choose two.)
+126	1z0-071	Which two statements are true about the rules of precedence for operators? (Choose two.)
+127	1z0-071	Examine data in the BRICKS table:\n\n![](../images/image38.png)\n\t\t\nExamine the BOXES table:\n\n![](../images/image39.png)\n\t\t\nWhich two queries only return CUBE? (Choose two.)
+128	1z0-071	Which two statements will return the names of the three employees with the lowest salaries? (Choose two.)
+129	1z0-071	Examine this query which executes successfully:\n\n![](../images/image50.png)\n\t\t\nWhat will be the result?
+130	1z0-071	Which three statements are true about sequences in a single instance Oracle database? (Choose three.)
+131	1z0-071	Examine this description of the PRODUCTS table:\n\n![](../images/image51.png)\n\t\t\nYou successfully execute this command:\nCREATE TABLE new_prices (prod_id NUMBER(2), price NUMBER(8,2))\nWhich two statements execute without errors? (Choose two.)
+132	1z0-071	The CUSTOMERS table has a CUST_CREDIT_LIMIT column of data type number.\nWhich two queries execute successfully? (Choose two.)
+133	1z0-071	Examine this statement which executes successfully:\n\n![](../images/image56.png)\n\t\t\nWhich statement will violate the CHECK constraint?
+134	1z0-071	Which two are true about rollbacks? (Choose two.)
+135	1z0-071	Which three statements are true about dropping and unused columns in an Oracle database? (Choose three.)
+136	1z0-071	Which three actions can you perform by using the ORACLE_DATAPUMP access driver? (Choose three.)
+137	1z0-071	Which statement is true about aggregate functions?
+138	1z0-071	Which three are true about multitable INSERT statements? (Choose three.)
+139	1z0-071	Which three statements are true regarding single row subqueries? (Choose three.)
+140	1z0-071	In your session NLS_DATE_FORMAT is set to DD-MON-RR.\nWhich two queries display the year as four digits? (Choose two.)
+141	1z0-071	Which two are true about savepoints? (Choose two.)
+142	1z0-071	Examine these statements executed in a single Oracle session:\n\n![](../images/image61.png)\n\t\t\nWhich three statements are true? (Choose three.)
+187	1z0-071	Which two are true about multitable INSERT statements?
+143	1z0-071	The ORDERS table has a column ORDER_DATE of data type DATE.\nThe default display format for a date is DD-MON-RR.\nWhich two WHERE conditions demonstrate the correct usage of conversion functions? (Choose two.)
+144	1z0-071	Examine this query:\n\n![](../images/image62.png)\n\t\t\nWhat is the result?
+145	1z0-071	Which two object privileges can be restricted to a subset of columns in a table? (Choose two.)
+146	1z0-071	Examine the description of the BOOKS table:\n\n![](../images/image63.png)\n\t\t\nExamine these requirements:\n1. Display book titles for books purchased before January 17, 2007 costing less than 500 or more than 1000.\n2. Sort the titles by date of purchase, starting with the most recently purchased book.\nWhich two queries can be used? (Choose two.)
+147	1z0-071	View the Exhibit and examine the description of the tables.\nYou execute this SQL statement:\n\n![](../images/image69.png)\n\t\t\nWhich three statements are true? (Choose three.)
+148	1z0-071	Which three statements are true about an ORDER BY clause? (Choose three.)
+149	1z0-071	Examine the description of EMPLOYEES table:\n\n![](../images/image70.png)\n\t\t\nWhich three queries return all rows for which SALARY + COMMISSION is greater than 20000? (Choose three.)
+150	1z0-071	Examine the description of EMPLOYEES table:\n\n![](../images/image71.png)\n\t\t\nThe session time zone is the same as the database server.\nWhich two statements will list only the employees who have been working with the company for more than five years? (Choose two.)
+151	1z0-071	Which two queries return the string Hello! We're ready? (Choose two.)
+152	1z0-071	Which three statements are true about the DESCRIBE command? (Choose three.)
+153	1z0-071	Which two statements are true about dropping views? (Choose two.)
+154	1z0-071	Which two are true about the MERGE statement? (Choose two.)
+155	1z0-071	Which two statements are true regarding non-equijoins? (Choose two.)
+156	1z0-071	Examine the description of the PRODUCTS table which contains data:\n\n![](../images/image72.png)\n\t\t\nWhich two are true? (Choose two.)
+157	1z0-071	Examine this query:\nSELECT SUBSTR(SYSDATE, 1, 5) "Result" FROM DUAL;\nWhich statement is true?
+158	1z0-071	Which statement is true about the INTERSECT operator used in compound queries?
+159	1z0-071	You currently have an active transaction in your session and have been granted SELECT access to\nV$TRANSACTION.\nExecuting:\nSELECT xid, status FROM v$transaction;\nin your session returns:\n\n![](../images/image73.png)\n\t\t\nIn which three situations will re-executing this query still return a row but with a different XID, indicating a new transaction has started? (Choose three.)
+160	1z0-071	Which two statements are true about a full outer join? (Choose two.)
+161	1z0-071	Which two statements are true about a self join? (Choose two.)
+162	1z0-071	Examine the description of the CUSTOMERS table:\n\n![](../images/image74.png)\n\t\t\nWhich two statements will do an implicit conversion? (Choose two.)
+163	1z0-071	Which two statements are true about CURRENT_TIMESTAMP? (Choose two.)
+164	1z0-071	Examine the description of the CUSTOMERS table:\n\n![](../images/image75.png)\n\t\t\nYou want to display details of all customers who reside in cities starting with the letter D followed by at least two characters.\nWhich query can be used?
+165	1z0-071	Which two are true about using the FOR UPDATE clause in a SELECT statement? (Choose two.)
+166	1z0-071	You must find the number of employees whose salary is lower than employee 110.\nWhich statement fails to do this?
+167	1z0-071	Examine this statement which returns the name of each employee and their manager:\n\n![](../images/image80.png)\n\t\t\nYou want to extend the query to include employees with no manager. What must you add before JOIN to do this?
+168	1z0-071	Which two are true about constraints? (Choose two.)
+169	1z0-071	Examine the ORDER_ITEMS table:\n\n![](../images/image81.png)\n\t\t\nWhich two queries return rows where QUANTITY is a multiple of ten? (Choose two.)
+170	1z0-071	Which two statements are true about indexes and their administration in an Oracle database? (Choose two.)
+171	1z0-071	Examine this incomplete query:\nSELECT DATE '2019-01-01' +\nFROM DUAL;Which three clauses can replace  to add 12 hours to the date? (Choose three.)
+172	1z0-071	Which two are true about the data dictionary? (Choose two.)
+173	1z0-071	Which two statements are true about the DUAL table: (Choose two.)
+174	1z0-071	Which statement is true about TRUNCATE and DELETE?
+175	1z0-071	Examine these statements and the result:\n\n![](../images/image82.png)\n\t\t\nNow examine this command:\n\n![](../images/image83.png)\n\t\t\nWhat must replace MISSING CLAUSE for CUSTOMER_SEQ.NEXTVAL to return 11?
+176	1z0-071	Examine the description of the ORDER_ITEMS table:\n\n![](../images/image84.png)\n\t\t\nExamine this incomplete query:\n\n![](../images/image85.png)\n\t\t\nWhich two can replace\nso the query completes successfully?
+177	1z0-071	Which set of commands will prompt only once for the name of the table to use in the query?
+178	1z0-071	The CUSTOMERS table has a CUST_LAST_NAME column of data type VARCHAR2.\nThe table has two rows whose CUST_LAST_NAME values are Anderson and Ausson.\nWhich query produces output for CUST_LAST_NAME containing Oder for the first row and Aus for the second?
+179	1z0-071	Examine the description of the PRODUCT_STATUS table:\n\n![](../images/image86.png)\n\t\t\nThe STATUS column contains the values IN STOCK or OUT OF STOCK for each row. Which two queries will execute successfully?
+180	1z0-071	Which two statements are true about INTERVAL data types?
+181	1z0-071	Which two statements are true about the data dictionary?
+182	1z0-071	Examine the description of the CUSTOMERS table:\n\n![](../images/image87.png)\n\t\t\nYou need to display last names and credit limits of all customers whose last name starts with A or B in lower or upper case, and whose credit limit is below 1000.\nExamine this partial query:\nSELECT cust_last_name, cust_credit_limit FROM customers\nWhich two WHERE conditions give the required result?
+183	1z0-071	Which two statements are true about substitution variables?
+184	1z0-071	Which two are true about scalar subquery expressions?
+185	1z0-071	Examine the description PRODUCTS table:\n\n![](../images/image88.png)\n\t\t\nExamine the description of the NEW_PRODUCTS table:\n\n![](../images/image89.png)\n\t\t\nWhich two queries execute successfully?
+186	1z0-071	Which three statements are true about Data Manipulation Language (DML)?
+189	1z0-071	You execute these commands:\n\n![](../images/image90.png)\n\t\t\nWhich two, used independently, can replace\nso the query returns 1?
+190	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/image91.png)\n\t\t\nWhich two queries return the highest salary in the table?
+191	1z0-071	Examine this data in the EMPLOYEES table:\n\n![](../images/image92.png)\n\t\t\nWhich statement will execute successfully?
+192	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/image93.png)\n\t\t\nNLS_DATE_FORMAT is set to DD-MON-YY.\nWhich query requires explicit data type conversion?
+193	1z0-071	Which three statements are true about external tables? (Choose three.)
+194	1z0-071	Table HR.EMPLOYEES contains a row where the EMPLOYEE_ID is 109.\nUser ALICE has no privileges to access HR.EMPLOYEES.\nUser ALICE starts a session.\nUser HR starts a session and successfully executes these statements:\nGRANT DELETE ON employees TO alice;\nUPDATE employees SET salary = 24000 WHERE employee_id = 109;\nIn her existing session ALICE then executes:\nDELETE FROM hr.employees WHERE employee_id = 109;\nWhat is the result?
+195	1z0-071	Which three statements are true about performing DML operations on a view with no INSTEAD OF triggers defined? (Choose three.)
+196	1z0-071	In the PROMOTIONS table, the PROMO_BEGIN_DATE column is of data type DATE and the default date format is DD-MON-RR.\nWhich two statements are true about expressions using PROMO_BEGIN_DATE contained in a query? (Choose two.)
+197	1z0-071	You have the privileges to create any type of synonym.\nWhich statement will create a synonym called EMP for the HCM.EMPLOYEE_RECORDS table that is accessible to all users?
+198	1z0-071	Which two statements are true about the ORDER BY clause when used with a SQL statement containing a SET operator such as UNION?
+199	1z0-071	Which two statements are true about the results of using the INTERSECT operator in compound queries? (Choose two.)
+200	1z0-071	Examine these statements:\n\n![](../images/image94.png)\n\t\t\nWhich is true about modifying the columns in ALTER_TEST?
+201	1z0-071	You and your colleague Andrew have these privileges on the EMPLOYEE_RECORDS table:\n1. SELECT\n2. INSERT\n3. UPDATE\n4. DELETE\nYou connect to the database instance and perform an update to some of the rows in EMPLOYEE_RECORDS, but do not commit yet.\nAndrew connects to the database instance and queries the table.\nNo other users are accessing the table.\nWhich two statements are true at this point? (Choose two.)
+202	1z0-071	Which two statements cause changes to the data dictionary? (Choose two.)
+203	1z0-071	Examine the description of the ORDERS table:\n\n![](../images/image95.png)\n\t\t\nExamine the description of the INVOICES table:\n\n![](../images/image96.png)\n\t\t\nWhich three statements execute successfully? (Choose three.)
+204	1z0-071	Which two queries execute successfully? (Choose two.)
+205	1z0-071	Examine the description of the PRODUCT_INFORMATION table:\n\n![](../images/image97.png)\n\t\t\nWhich query retrieves the number of products with a null list price?
+206	1z0-071	Examine this partial statement:\n\n![](../images/image98.png)\n\t\t\nWhich is true?
+207	1z0-071	The ORDERS table has a primary key constraint on the ORDER_ID column.\nThe ORDER_ITEMS table has a foreign key constraint on the ORDER_ID column, referencing the primary key of the ORDERS table.\nThe constraint is defined with ON DELETE CASCADE.\nThere are rows in the ORDERS table with an ORDER_TOTAL of less than 1000.\nWhich three DELETE statements execute successfully? (Choose three.)
+208	1z0-071	Examine the description of the CUSTOMERS table:\n\n![](../images/image99.png)\n\t\t\nFor customers whose income level has a value, you want to display the first name and due amount as 5% of their credit limit. Customers whose due amount is null should not be displayed.\nWhich query should be used?
+209	1z0-071	Examine this statement:\n\n![](../images/image100.png)\n\t\t\nWhich two things must be changed for it to execute successfully? (Choose two.)
+210	1z0-071	Which statement executes successfully?
+211	1z0-071	The SYSDATE function displays the current Oracle Server date as:\n21-MAY-19\nYou wish to display the date as -\nMONDAY, 21 MAY, 2019 -\nWhich statement will do this?
+212	1z0-071	Examine this query and its output:\n\n![](../images/image101.png)\n\t\t\nExamine this query with an incomplete WHERE clause:\n\n![](../images/image102.png)\n\t\t\nWhich two are true about operators that can be used in the WHERE clause? (Choose two.)
+213	1z0-071	Examine this statement which executes successfully:\n\n![](../images/image103.png)\n\t\t\nWhich is true?
+214	1z0-071	Which three statements are true about GLOBAL TEMPORARY TABLES? (Choose three.)
+215	1z0-071	Examine the description of the BOOKS_TRANSACTIONS table:\n\n![](../images/image104.png)\n\t\t\nExamine this partial SQL statement:\nSELECT * FROM books_transactions\nWhich two WHERE conditions give the same result? (Choose two.)
+216	1z0-071	You need to calculate the number of days from 1st January 2019 until today.\nDates are stored in the default format of DD-MON-RR.\nWhich two queries give the required output? (Choose two.)
+217	1z0-071	Examine this description of the PRODUCTS table:\n\n![](../images/image105.png)\n\t\t\nRows exist in this table with data in all the columns. You put the PRODUCTS table in read-only mode.\nWhich three commands execute successfully on PRODUCTS? (Choose three.)
+218	1z0-071	Which two statements are true about Oracle synonyms? (Choose two.)
+219	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/image106.png)\n\t\t\nYou write this failing statement:\n\n![](../images/image107.png)\n\t\t\nWhich clause causes the error?
+220	1z0-071	Evaluate these commands which execute successfully:\n\n![](../images/image108.png)\n\t\t\nWhich two statements are true about the ORD_ITEMS table and the ORD_SEQ sequence? (Choose two.)
+221	1z0-071	Which three statements are true about time zones, date data types, and timestamp data types in an Oracle database? (Choose three.)
+222	1z0-071	Which two statements about INVISIBLE indexes are true? (Choose two.)
+223	1z0-071	Which three are true about subqueries? (Choose three.)
+224	1z0-071	Which two statements are true about Entity Relationships? (Choose two.)
+225	1z0-071	Which two are true about self joins? (Choose two.)
+226	1z0-071	Examine these statements and results:\n\n![](../images/image109.png)\n\t\t\nHow many rows are retrieved by the last query?
+227	1z0-071	Which two are SQL features? (Choose two.)
+228	1z0-071	Examine the description of the COUNTRIES table:\n\n![](../images/image110.png)\n\t\t\nExamine the description of the DEPARTMENTS table:\n\n![](../images/image111.png)\n\t\t\nExamine the description of the LOCATIONS table:\n\n![](../images/image112.png)\n\t\t\nWhich two queries will return a list of countries with no departments? (Choose two.)
+229	1z0-071	Which four statements are true about constraints on Oracle tables? (Choose four.)
+230	1z0-071	User HR has CREATE SESSION, CREATE ANY TABLE and UNLIMITED TABLESPACE privileges.\nUser SCOTT has CREATE SESSION, CREATE TABLE and UNLIMITED TABLESPACE privileges.\nHR successfully executes this statement:\n\n![](../images/image117.png)\n\t\t\nHR attempts to execute:\n1. INSERT INTO scott.products VALUES (1, 'LAPTOP');\nSCOTT attempts to execute:\n2. SELECT * FROM products;\n3. INSERT INTO scott.products VALUES (2, 'HDD');\n4. CREATE SYNONYM prod FOR products;\nWhich will execute successfully?
+231	1z0-071	Examine the contents of the EMP table:\n\n![](../images/image118.png)\n\t\t\nExamine this query that executes successfully:\n\n![](../images/image119.png)\n\t\t\nWhat is the result?
+232	1z0-071	You create a table by using this command:\nCREATE TABLE rate_list (rate NUMBER(6,2));\nWhich two are true about executing statements? (Choose two.)
+233	1z0-071	Examine this list of queries:\n\n![](../images/image120.png)\n\t\t\nWhich two statements are true? (Choose two.)
+234	1z0-071	Examine the data in the EMPLOYEES table:\n\n![](../images/image121.png)\n\t\t\nWhich statement will compute the total annual compensation for each employee?
+235	1z0-071	Examine the data in the PRODUCTS table:\n\n![](../images/image122.png)\n\t\t\nExamine these queries:\n\n![](../images/image123.png)\n\t\t\nWhich queries generate the same output?
+236	1z0-071	Which statement fails to execute successfully?
+237	1z0-071	Examine these statements which execute successfully:\n\n![](../images/image128.png)\n\t\t\nBoth statements display departments ordered by their average salaries.\nWhich two are true? (Choose two.)
+238	1z0-071	Which three are true about the MERGE statement? (Choose three.)
+239	1z0-071	Which three statements are true about defining relations between tables in a relational database? (Choose three.)
+240	1z0-071	Which two join conditions in a FROM clause are non-equijoins? (Choose two.)
+241	1z0-071	Which two statements are true regarding the UNION and UNION ALL operators? (Choose two.)
+242	1z0-071	Which three actions can you perform only with system privileges? (Choose three.)
+243	1z0-071	1. MANAGER is an existing role with no privileges or roles.\n2. EMP is an existing role containing the CREATE TABLE privilege.\n3. EMPLOYEES is an existing table in the HR schema.\nWhich two commands execute successfully? (Choose two.)
+244	1z0-071	Which two statements will convert the string Hello World to ello world? (Choose two.)
+245	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/image129.png)\n\t\t\nExamine these requirements:\n1.\tDisplay the last name, date of hire and the number of years of service for each employee.\n2.\tIf the employee has been employed 5 or more years but less than 10, display “5+ years of service”.\n3.\tIf the employee has been employed 10 or more years but less than 15, display “10+ years of service”.\n4.\tIf the employee has been employed 15 or more years, display “15+ years of service”.\n5.\tIf none of these conditions matches, display “<5 years of service”.\n6.\tSort the results by the HIRE_DATE column.\nWhich statement satisfies all the requirements?
+246	1z0-071	Which three actions can you perform by using the ALTER TABLE command? (Choose three.)
+247	1z0-071	Which three statements are true about built-in data types? (Choose three.)
+248	1z0-071	Which three are true about granting object privileges on tables, views, and sequences? (Choose three.)
+249	1z0-071	Examine the description of the CUSTOMERS table:\n\n![](../images/image134.png)\n\t\t\nCUSTNO is the PRIMARY KEY.\nYou must determine if any customers’ details have been entered more than once using a different CUSTNO, by listing all duplicate names.\nWhich two methods can you use to get the required result? (Choose two.)
+250	1z0-071	Which two statements are true regarding a SAVEPOINT? (Choose two.)
+251	1z0-071	Examine the description of the TRANSACTIONS table:\n\n![](../images/image135.png)\n\t\t\nWhich two SQL statements execute successfully? (Choose two.)
+252	1z0-071	Which three are true about system and object privileges? (Choose three.)
+253	1z0-071	Which two statements are true about external tables? (Choose two.)
+254	1z0-071	Examine this schema information:\n1. EMPLOYEES.DEPARTMENT_ID has a foreign key referencing DEPARTMENTS.DEPARTMENT_ID.\n2. EMP_VIEW is based on the EMPLOYEES and DEPARTMENTS tables.\n3. EMP_VIEW has columns EMPLOYEE_ID, EMPLOYEE_NAME and DEPARTMENT_NAME.\nYou must add a new column, MANAGER_ID, from the EMPLOYEES table, to the view,  showing each employee’s manager.\nWhich statement will do this?
+255	1z0-071	Which three are true about privileges and roles? (Choose three.)
+256	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/image136.png)\n\t\t\nExamine these requirements:\n1. Display the manager id and salary of the lowest paid employee for that manager.\n2. Exclude anyone whose manager is not known.\n3. Exclude any managers where the minimum salary is 6000 or less.\n4. Sort the output by minimum salary with the highest salary shown first.\nWhich statement will do this?
+257	1z0-071	Which two are true about the WITH GRANT OPTION clause? (Choose two.)
+258	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/image141.png)\n\t\t\nWhich query is valid?
+259	1z0-071	Which statement will return the last sequence number generated by the EMP_SEQ sequence?
+260	1z0-071	Examine the description of the SALES table:\n\n![](../images/image142.png)\n\t\t\nThe SALES table has 55,000 rows.\nExamine this statement:\n\n![](../images/image143.png)\n\t\t\nWhich two statements are true? (Choose two.)
+261	1z0-071	Which two statements are true about single row functions? (Choose two.)
+262	1z0-071	Examine the data in the ORDERS table:\n\n![](../images/image144.png)\n\t\t\nExamine the data in the INVOICES table:\n\n![](../images/image145.png)\n\t\t\nExamine this query:\n\n![](../images/image146.png)\n\t\t\nWhich three rows will it return? (Choose three.)
+263	1z0-071	Examine this query:\nSELECT * FROM bricks, colors -\nWhich two statements are true? (Choose two.)
+264	1z0-071	Examine the description of the EMPLOYEES table:\n\n![](../images/image147.png)\n\t\t\nExamine this query:\n\n![](../images/image148.png)\n\t\t\nWhich line produces an error?
+265	1z0-071	Which two are true about the USING clause when joining tables? (Choose two.)
+266	1z0-071	Which two statements are true about date/time functions in a session where\nNLS_DATE_FORMAT is set to DD-MON-YYYY HH24:MI:SS? (Choose two.)
+267	1z0-071	You execute this command:\nALTER TABLE employees SET UNUSED (department_id);\nWhich two are true? (Choose two.)
+268	1z0-071	Which three are true about the CREATE TABLE command? (Choose three.)
+269	1z0-071	Examine this description of the PRODUCTS table:\n\n![](../images/image149.png)\n\t\t\nRows exist in this table with data in all the columns. You put the PRODUCTS table in read-only mode.\nWhich three commands execute successfully on PRODUCTS? (Choose three.)
+270	1z0-071	Which four statements are true regarding primary and foreign key constraints and the effect they can have on table data? (Choose four.)
+271	1z0-071	Examine this statement:\n\n![](../images/image150.png)\n\t\t\nWhich two are true? (Choose two.)
+272	1z0-071	Which two are true to create an index in your own schema for a table owned by another schema? (Choose two.)
+\.
+
+
+--
+-- Data for Name: my_first_dbt_model; Type: TABLE DATA; Schema: staging; Owner: postgres
+--
+
+COPY staging.my_first_dbt_model (id) FROM stdin;
+1
+\N
+\.
+
+
+--
+-- Name: seq_imageslink; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.seq_imageslink', 236, true);
+
+
+--
+-- Name: seq_markdown; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.seq_markdown', 273, true);
 
 
 --
@@ -3879,7 +11015,7 @@ SELECT pg_catalog.setval('public.seq_questions', 273, true);
 -- Name: seq_questionslink; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.seq_questionslink', 273, true);
+SELECT pg_catalog.setval('public.seq_questionslink', 7, true);
 
 
 --
@@ -3888,6 +11024,46 @@ SELECT pg_catalog.setval('public.seq_questionslink', 273, true);
 
 ALTER TABLE ONLY public.answers
     ADD CONSTRAINT answer_pk PRIMARY KEY (number, question_number, question_exam);
+
+
+--
+-- Name: browserless_answers b_answer_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.browserless_answers
+    ADD CONSTRAINT b_answer_pk PRIMARY KEY (number, question_number, question_exam);
+
+
+--
+-- Name: browserless_companies b_company_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.browserless_companies
+    ADD CONSTRAINT b_company_pk PRIMARY KEY (name);
+
+
+--
+-- Name: browserless_discussions b_discussion_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.browserless_discussions
+    ADD CONSTRAINT b_discussion_pk PRIMARY KEY (number, question_number, question_exam);
+
+
+--
+-- Name: browserless_exams b_exam_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.browserless_exams
+    ADD CONSTRAINT b_exam_pk PRIMARY KEY (name);
+
+
+--
+-- Name: browserless_questions b_question_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.browserless_questions
+    ADD CONSTRAINT b_question_pk PRIMARY KEY (number, exam);
 
 
 --
@@ -3915,6 +11091,14 @@ ALTER TABLE ONLY public.exams
 
 
 --
+-- Name: market_depth_raw market_depth_raw_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.market_depth_raw
+    ADD CONSTRAINT market_depth_raw_pkey PRIMARY KEY ("Ticker");
+
+
+--
 -- Name: questions question2_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3936,6 +11120,38 @@ ALTER TABLE ONLY public.questionslink
 
 ALTER TABLE ONLY public.answers
     ADD CONSTRAINT answer_question_fk FOREIGN KEY (question_number, question_exam) REFERENCES public.questions(number, exam) ON DELETE CASCADE;
+
+
+--
+-- Name: browserless_answers b_answer_question_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.browserless_answers
+    ADD CONSTRAINT b_answer_question_fk FOREIGN KEY (question_number, question_exam) REFERENCES public.browserless_questions(number, exam) ON DELETE CASCADE;
+
+
+--
+-- Name: browserless_discussions b_discussion_question_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.browserless_discussions
+    ADD CONSTRAINT b_discussion_question_fk FOREIGN KEY (question_number, question_exam) REFERENCES public.browserless_questions(number, exam) ON DELETE CASCADE;
+
+
+--
+-- Name: browserless_exams b_exam_company_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.browserless_exams
+    ADD CONSTRAINT b_exam_company_fk FOREIGN KEY (company) REFERENCES public.browserless_companies(name) ON DELETE CASCADE;
+
+
+--
+-- Name: browserless_questions b_question_exam_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.browserless_questions
+    ADD CONSTRAINT b_question_exam_fk FOREIGN KEY (exam) REFERENCES public.browserless_exams(name) ON DELETE CASCADE;
 
 
 --
@@ -3966,5 +11182,5 @@ ALTER TABLE ONLY public.questions
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ekj3v93oDc6czprvw4gYylgtZmepp9tUaxSaQenScso5hG4pNhUHyv3hrMmzU24
+\unrestrict YGffdq0nxWmguLB4ETC2yWrLb9OedbL6JN1lHS3sBGG641pnl9PfAyKuWPbIdLQ
 
