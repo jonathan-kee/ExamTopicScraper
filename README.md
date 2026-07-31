@@ -45,12 +45,13 @@ the answers to the question but even they may be wrong, please do research caref
 1) ALTER SEQUENCE seq_questionsLink RESTART WITH 1;
 2) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgres.js 'examtopics Scrum PSM I Exam question ' 'PSM I' 258
 3) The below command will download the documents and scrape data into database
+- cd static_page
 - java -jar /Users/jonathankee/examTopicScraper/static_page/Download/build/libs/Download-all.jar
 - java -jar /Users/jonathankee/examTopicScraper/static_page/Document/build/libs/Document-all.jar
 ^
 There is always a chance something will go wrong here:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_findMissingAnswers.sql
-- tsc && node ./build/commands/rescrapeDataMissingAnswers.js
+- tsc && node ./build/commands/rescrapeDataMissingAnswers.js '1z0-071'
 
 There's still dirty data 
 - select question_number
@@ -66,7 +67,12 @@ verify with missing answers link again
 4) Run the following before scrapeImages:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_scrapeImage.sql
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_scrapeImage.sql
+- cd static_page
 - java -jar /Users/jonathankee/examTopicScraper/static_page/Image/build/libs/Image-all.jar
+- Copy over the files to images
+rm -rf images/*
+cp /Users/jonathankee/examTopicScraper/static_page/src/main/resources/images/* /Users/jonathankee/examTopicScraper/images/
+
 
 5) Run the following before scrapeImages:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_cleanImages.sql
