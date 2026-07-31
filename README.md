@@ -66,7 +66,7 @@ verify with missing answers link again
 4) Run the following before scrapeImages:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_scrapeImage.sql
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_scrapeImage.sql
-- tsc && node ./build/commands/scrapeImages.js
+- java -jar /Users/jonathankee/examTopicScraper/static_page/Image/build/libs/Image-all.jar
 
 5) Run the following before scrapeImages:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_cleanImages.sql
