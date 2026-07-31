@@ -35,8 +35,9 @@ the answers to the question but even they may be wrong, please do research caref
 
 # Browserless Test Pipeline commands
 1) npm run unitTest -- build/test/extractAllRawDocument.test.js
-2) java -jar /Users/jonathankee/examTopicScraper/static_page/build/libs/static_page-1.0-SNAPSHOT-all.jar
-3) Run markdown code
+2) java -jar /Users/jonathankee/examTopicScraper/static_page/Download/build/libs/Download-all.jar
+3) java -jar /Users/jonathankee/examTopicScraper/static_page/Document/build/libs/Document-all.jar
+4) Run markdown code
 
 # Browserless Production Pipeline commands
 - tsc --build --clean 
@@ -44,7 +45,8 @@ the answers to the question but even they may be wrong, please do research caref
 1) ALTER SEQUENCE seq_questionsLink RESTART WITH 1;
 2) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgres.js 'examtopics Scrum PSM I Exam question ' 'PSM I' 258
 3) The below command will download the documents and scrape data into database
-- java -jar /Users/jonathankee/examTopicScraper/static_page/build/libs/static_page-1.0-SNAPSHOT-all.jar
+- java -jar /Users/jonathankee/examTopicScraper/static_page/Download/build/libs/Download-all.jar
+- java -jar /Users/jonathankee/examTopicScraper/static_page/Document/build/libs/Document-all.jar
 ^
 There is always a chance something will go wrong here:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_findMissingAnswers.sql
