@@ -1,11 +1,13 @@
 import fs from "fs";
 
 export class Markdown {
+    private exam: string 
     private questionNumber: number
     private question: string
     private answers: string[]
     private discussions: string[]
-    constructor(questionNumber: number, question: string, answers: string[], discussions: string[]) {
+    constructor(exam:string, questionNumber: number, question: string, answers: string[], discussions: string[]) {
+        this.exam = exam;
         this.questionNumber = questionNumber;
         this.question = question; // string is immutable
         this.answers = Array.from(answers); // clone to prevent external modification
@@ -28,7 +30,9 @@ export class Markdown {
     }
 
     public toFile(): void {
-        fs.writeFileSync("./markdowns2/question" + this.questionNumber + ".md", this.toString());
+        // Safely creates folder if it doesn't exist
+        fs.mkdirSync("./markdowns2/"+ this.exam+ "/", { recursive: true });
+        fs.writeFileSync("./markdowns2/"+ this.exam+ "/question" + this.questionNumber + ".md", this.toString());
         console.log("Question, Answers, Discussions saved as " + this.questionNumber + ".md");
     }
 }
