@@ -50,6 +50,17 @@ There is always a chance something will go wrong here:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_findMissingAnswers.sql
 - tsc && node ./build/commands/rescrapeDataMissingAnswers.js
 
+There's still dirty data 
+- select question_number
+from answers
+where length(text) = 0
+
+delete the dirty data
+- delete from answers
+where length(text) = 0
+
+verify with missing answers link again
+
 4) Run the following before scrapeImages:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_scrapeImage.sql
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_scrapeImage.sql
