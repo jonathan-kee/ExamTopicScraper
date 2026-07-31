@@ -3,6 +3,7 @@ import * as browser from '../modules/browser/index.js'
 import * as db from '../modules/db/index.js'
 import { Page } from 'puppeteer';
 
+// The number it input is wrong, but it might not matter
 // There are dependencies for this function, need to run SQL in this order:
 // 1) docker_pg_findMissingAnswers.sql
 // 2) docker_pg_schema.sql
@@ -35,22 +36,24 @@ let rescrapeDataMissingAnswers = async () => {
             console.log("Load Discussions button not detected");
         }
 
+        let genericExam = process.argv[2]
+        
         // Answers
         let answers = []
         try {
-            answers = await schema.Answer.create(page, questionsnumber, '1z0-071');
+            answers = await schema.Answer.create(page, questionsnumber, genericExam);
         } catch (error) {
             console.log("cannot find answers")
-            answers = await schema.Answer.newCreate(page, questionsnumber, '1z0-071');
+            answers = await schema.Answer.newCreate(page, questionsnumber, genericExam);
         }
 
         for (let i = 0; i < answers.length; i++) {
-            console.log(answers[i]);
             await schema.Answer.merge(answers[i]);
         }
     }
 
-    const result = await db.DatabaseManager.executeQuery("select number, link from missing_answers_link;")
+    let genericExam = process.argv[2] // '1z0-071'
+    const result = await db.DatabaseManager.executeQuery("select number, link from missing_answers_link where exam = '" + genericExam + "';" )
 
     for (let i = 0; i < (result.rowCount ?? 0); i++) {
         const questionsNumber = result.rows[i].number
