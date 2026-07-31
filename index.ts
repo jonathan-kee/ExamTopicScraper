@@ -58,8 +58,17 @@ let scrapeData = async () => {
         console.log('\n');
 
         // Answers
-        let answers = await schema.Answer.create(page, i, '1z0-071');
-        console.log(answers);
+        let answers = []
+        try {
+            answers = await schema.Answer.create(page, i, '1z0-071');
+        } catch (error){
+            console.log("cannot find answers")
+            answers = await schema.Answer.newCreate(page, i, '1z0-071');
+        }
+         
+       for (let i = 0; i < answers.length; i++) {
+            await schema.Answer.merge(answers[i]);
+        }
 
         console.log('\n');
 
