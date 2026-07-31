@@ -69,6 +69,7 @@ verify with missing answers link again
 5) Run the following before scrapeImages:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_cleanImages.sql
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_format_markdown.sql
+- ALTER SEQUENCE seq_markdown RESTART WITH 1;
 - tsc && node ./build/commands/markdown.js
 
 # Browser Pipeline commands
