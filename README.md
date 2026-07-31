@@ -78,7 +78,7 @@ cp /Users/jonathankee/examTopicScraper/static_page/src/main/resources/images/* /
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_cleanImages.sql
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_format_markdown.sql
 - ALTER SEQUENCE seq_markdown RESTART WITH 1;
-- tsc && node ./build/commands/markdown.js
+- tsc && node ./build/commands/markdown.js '1z0-071' 272
 
 # Browser Pipeline commands
 - tsc --build --clean 
