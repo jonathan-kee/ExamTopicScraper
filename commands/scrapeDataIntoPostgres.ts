@@ -18,10 +18,9 @@ import { Page } from 'puppeteer';
 let scrapeDataIntoPostgres = async () => {
     console.log("Starting test");
 
-    let genericExam = process.argv[2] // '1z0-071'
-
     // same lambda()
-    const scrapeDataLambda = async (page: Page, i: number) => {
+    // This is a curried lambda
+    const scrapeDataLambda = async (genericExam:string) => async (page: Page, i: number) => {
         try {
             console.log("Page loaded");
             await page.locator('.popup-overlay.show').wait();
@@ -77,9 +76,11 @@ let scrapeDataIntoPostgres = async () => {
     }
 
     // same lambda()
+    let genericExam:string = process.argv[2]; // '1z0-071'
+    let genericNumberOfQuestion:number = Number.parseInt(process.argv[3]); // '272'
     const result = await db.DatabaseManager.executeQuery("SELECT last_value FROM seq_questions;")
     let sequenceLastValue: number = result.rows[0].last_value;
-    await browser.BrowserManager.manageBrowserAndPage("http://127.0.0.1:9222", sequenceLastValue, scrapeDataLambda);
+    await browser.BrowserManager.manageBrowserAndPage("http://127.0.0.1:9222", sequenceLastValue, genericNumberOfQuestion, (await scrapeDataLambda(genericExam)).apply);
 }
 
 scrapeDataIntoPostgres()

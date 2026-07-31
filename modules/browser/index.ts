@@ -13,7 +13,7 @@ function randomDelay(min: number, max: number) {
 // Todo 
 export class BrowserManager {
     /** Single source of truth for browser operations */
-    static async manageBrowserAndPage(browserURL: string, lastSequenceNumber: number, scrapeDataLambda: (page: Page, questionNumber: number) => Promise<void>) {
+    static async manageBrowserAndPage(browserURL: string, lastSequenceNumber: number, genericQuestionNumber: number, scrapeDataLambda: (page: Page, questionNumber: number) => Promise<void>) {
         let browser;
         let page;
         try {
@@ -21,7 +21,7 @@ export class BrowserManager {
             browser = await puppeteer.connect({ browserURL });
             // One Page Session
             page = await browser.newPage();
-            await BrowserManager.reusePage(page, lastSequenceNumber, scrapeDataLambda);
+            await BrowserManager.reusePage(page, lastSequenceNumber, genericQuestionNumber, scrapeDataLambda);
 
         } catch (generalError) {
             // handle the error
@@ -63,11 +63,11 @@ export class BrowserManager {
         }
     }
 
-    static async reusePage(page: Page, lastSequenceNumber: number, scrapeDataLambda: (page: Page, questionNumber: number) => Promise<void>) {
+    static async reusePage(page: Page, lastSequenceNumber: number, genericQuestionNumber:number, scrapeDataLambda: (page: Page, questionNumber: number) => Promise<void>) {
         // Reuse Page Session
         // 272 is not reusable, you get number with max count
         // 272 should be part of the lambda scope since it's the implementation
-        for (let i = lastSequenceNumber; i <= 272;) {
+        for (let i = lastSequenceNumber; i <= genericQuestionNumber;) {
             const questionslinkResult = await db.DatabaseManager.executeQuery(`SELECT link FROM questionslink where number = ${i};`)
             const questionslink: string = questionslinkResult.rows[0].link;
 
@@ -232,7 +232,7 @@ export class BrowserManager {
 
         const result = await db.DatabaseManager.executeQuery("SELECT last_value FROM seq_questions;");
         let sequenceLastValue: number = result.rows[0].last_value;
-        await BrowserManager.manageBrowserAndPage("http://127.0.0.1:9222", sequenceLastValue, scrapeDataLambda);
+        await BrowserManager.manageBrowserAndPage("http://127.0.0.1:9222", sequenceLastValue, 272, scrapeDataLambda);
     }
 
 }
