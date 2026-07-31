@@ -87,7 +87,7 @@ cp /Users/jonathankee/examTopicScraper/static_page/src/main/resources/images/* /
 2) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgres.js 'examtopics Scrum PSM I Exam question ' 'PSM I' 258
 3) (Optional) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgresHardcode.js
 4) ALTER SEQUENCE seq_questions RESTART WITH 1;
-5) tsc && node ./build/commands/scrapeDataIntoPostgres.js 'PSM I'
+5) tsc && node ./build/commands/scrapeDataIntoPostgres.js 'PSM I' '258'
 ^
 There is always a chance something will go wrong here:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_findMissingAnswers.sql
