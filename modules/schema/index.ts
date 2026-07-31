@@ -217,7 +217,7 @@ VALUES ($1, $2, $3, $4, $5);
     public static async merge(answer: Answer) {
         console.log("merge Answer")
 
-        const query = `
+        const oldQuery = `
 MERGE INTO answers
 USING (
 SELECT CAST($1 AS integer) AS number, CAST($2 AS integer) AS question_number, CAST($3 AS text) AS question_exam, CAST($4 AS text) AS text, CAST($5 AS boolean) AS is_correct
@@ -229,8 +229,30 @@ WHEN NOT MATCHED THEN
     INSERT (number, question_number, question_exam, text, is_correct) VALUES (src.number, src.question_number, src.question_exam, src.text, src.is_correct); 
         `
 
+        const newQuery = `
+MERGE INTO answers AS dst
+USING (
+    SELECT 
+        $1::integer AS number, 
+        $2::integer AS question_number, 
+        $3::text    AS question_exam, 
+        $4::text    AS text, 
+        $5::boolean AS is_correct
+) AS src
+ON dst.number = src.number 
+   AND dst.question_number = src.question_number 
+   AND dst.question_exam = src.question_exam 
+WHEN MATCHED THEN
+    UPDATE SET 
+        text = src.text, 
+        is_correct = src.is_correct
+WHEN NOT MATCHED THEN
+    INSERT (number, question_number, question_exam, text, is_correct) 
+    VALUES (src.number, src.question_number, src.question_exam, src.text, src.is_correct);
+    `;
+
         const values = [
-            answer.number,
+            answer.number,  // The number is completely wrong
             answer.questionNumber,
             answer.questionExam,
             answer.text,
@@ -239,10 +261,11 @@ WHEN NOT MATCHED THEN
 
         let result = null;
         try {
-            result = await db.DatabaseManager.executeQuery(query, values);
-        } catch {
-            console.log("Missing questions insertion data")
-            throw Error("Missing questions insertion data");
+            result = await db.DatabaseManager.executeQuery(newQuery, values);
+            console.log("Merge result:", result);
+        } catch (error) {
+            console.error("Failed to merge answer:", error);
+            throw error;
         }
         console.log(result);
     }
