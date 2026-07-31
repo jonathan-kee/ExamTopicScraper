@@ -18,6 +18,8 @@ import { Page } from 'puppeteer';
 let scrapeDataIntoPostgres = async () => {
     console.log("Starting test");
 
+    let genericExam = process.argv[2] // '1z0-071'
+
     // same lambda()
     const scrapeDataLambda = async (page: Page, i: number) => {
         try {
@@ -48,17 +50,17 @@ let scrapeDataIntoPostgres = async () => {
         }
 
         // Question
-        let question = await schema.Question.create(page, i, '1z0-071');
+        let question = await schema.Question.create(page, i, genericExam);
         console.log(question);
         await schema.Question.insert(question);
 
         // Answers
         let answers = []
         try {
-            answers = await schema.Answer.create(page, i, '1z0-071');
+            answers = await schema.Answer.create(page, i, genericExam);
         } catch (error) {
             console.log("cannot find answers")
-            answers = await schema.Answer.newCreate(page, i, '1z0-071');
+            answers = await schema.Answer.newCreate(page, i, genericExam);
         }
 
         for (let i = 0; i < answers.length; i++) {
@@ -67,7 +69,7 @@ let scrapeDataIntoPostgres = async () => {
         }
 
         // Discussions
-        let discussions = await schema.Discussion.create(page, i, '1z0-071');
+        let discussions = await schema.Discussion.create(page, i, genericExam);
         for (let i = 0; i < discussions.length; i++) {
             console.log(discussions[i]);
             await schema.Discussion.insert(discussions[i]);
