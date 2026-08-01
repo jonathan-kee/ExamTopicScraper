@@ -1,4 +1,4 @@
-CREATE TABLE relative_path_questions AS
+CREATE OR REPLACE VIEW relative_path_questions AS
 with relative_path_questions as (
         SELECT
             number,
@@ -15,7 +15,7 @@ with relative_path_questions as (
 )
 select * from relative_path_questions;
 
-CREATE TABLE relative_path_answers AS
+CREATE OR REPLACE VIEW relative_path_answers AS
 with relative_path_answers as (
         SELECT
             number,
