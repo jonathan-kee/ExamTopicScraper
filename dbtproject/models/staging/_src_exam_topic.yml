@@ -1,0 +1,11 @@
+sources:
+  - name: exam_topic sources
+    database: exam_topic
+    schema: scrape
+    tables:
+      - name: answers
+      - name: companies
+      - name: discussions
+      - name: exams
+      - name: questions
+      - name: questionslink
