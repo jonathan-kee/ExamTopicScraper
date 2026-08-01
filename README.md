@@ -46,7 +46,7 @@ the answers to the question but even they may be wrong, please do research caref
 2) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgres.js 'examtopics Scrum PSM I Exam question ' 'PSM I' 258
 3) The below command will download the documents and scrape data into database
 - cd static_page
-- java -jar /Users/jonathankee/examTopicScraper/static_page/Download/build/libs/Download-all.jar
+- java -jar /Users/jonathankee/examTopicScraper/static_page/Download/build/libs/Download-all.jar "1z0-071"
 - java -jar /Users/jonathankee/examTopicScraper/static_page/Document/build/libs/Document-all.jar
 ^
 There is always a chance something will go wrong here:
