@@ -105,6 +105,64 @@ cp /Users/jonathankee/examTopicScraper/static_page/src/main/resources/images/* /
 5) Run the following before scrapeImages:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_cleanImages.sql
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_format_markdown.sql
+
+Modify question_exam = '1z0-071'
+```sql 
+WITH relative_path_answers as (
+        SELECT
+            number,
+            question_number,
+            question_exam,
+            regexp_replace(
+        text,
+        'https?://[^/\s'']+/[^\s'']+/([^\s'']+\.[^\s'']+)',
+        '
+![](../../images/\1)
+		',
+        'g'
+    ) as text,
+            is_correct
+        from {{source('exam_topic sources','answers')}}
+        where question_exam = '1z0-071'
+),
+clean_dirty_relative_path_answers as (
+        SELECT
+            number,
+            question_number,
+            question_exam,
+            CASE 
+    WHEN text LIKE '%pngMost%' THEN 
+      REPLACE(REPLACE(text, 'pngMost', 'png'), 'Voted', '')
+    ELSE 
+      text
+  END AS text,
+            is_correct
+        from relative_path_answers
+)
+select * from clean_dirty_relative_path_answers
+```
+
+Modify exam = '1z0-071
+```sql
+WITH relative_path_questions as (
+        SELECT
+            number,
+            exam,
+            regexp_replace(
+        text,
+        'https?://[^/\s'']+/[^\s'']+/([^\s'']+\.[^\s'']+)',
+        '
+![](../../images/\1)
+		',
+        'g'
+    ) as text
+        from {{source('exam_topic sources','questions')}}
+        where exam = '1z0-071'
+)
+select * from relative_path_questions
+
+```
+
 - ALTER SEQUENCE seq_markdown RESTART WITH 1;
 - tsc && node ./build/commands/markdown.js '1z0-071' 272
 
