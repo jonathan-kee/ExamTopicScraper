@@ -53,21 +53,49 @@ There is always a chance something will go wrong here:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_findMissingAnswers.sql
 - tsc && node ./build/commands/rescrapeDataMissingAnswers.js '1z0-071'
 
-There's still dirty data 
-- select question_number
-from answers
-where length(text) = 0
-
-delete the dirty data
-- delete from answers
-where length(text) = 0
-
-verify with missing answers link again
+Example code to verify if the dirty data is clean:
+select *
+from scrape."stg_cleanAnswersDirtyData"
+where question_number = 24;
 
 4) Run the following before scrapeImages:
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_seq_scrapeImage.sql
 - docker exec -i postgres-container psql -U postgres -d postgres < ./sql/docker_pg_scrapeImage.sql
 - cd static_page
+
+Modify exam & question_exam appropriately:
+```sql
+WITH image_url_questions AS (
+	SELECT regexp_matches(
+		text,
+		'https?://[^/\s'']+/[^\s'']+\.[^\s'']+',
+		'g'
+	) AS url
+	FROM {{source('exam_topic sources','questions')}}
+    WHERE exam = '1z0-071'
+),
+image_url_answers as (
+	SELECT regexp_matches(
+		text,
+		'https?://[^/\s'']+/[^\s'']+\.[^\s'']+',
+		'g'
+	) AS url
+	FROM {{source('exam_topic sources','answers')}}
+    WHERE question_exam = '1z0-071'
+),
+all_image_url as (
+	select unnest(url) from image_url_questions
+	union
+	select unnest(url) from image_url_answers
+	order by unnest
+)
+SELECT 
+	DENSE_RANK() OVER (ORDER BY unnest) as number,
+	unnest as url
+FROM all_image_url
+ORDER BY unnest
+```
+
 - java -jar /Users/jonathankee/examTopicScraper/static_page/Image/build/libs/Image-all.jar
 - Copy over the files to images
 rm -rf images/*
