@@ -74,3 +74,8 @@ CREATE TABLE scrape.discussions
 CREATE SEQUENCE scrape.seq_questions START WITH 1 INCREMENT BY 1;
 SELECT last_value FROM scrape.seq_questions;
 SELECT nextval('scrape.seq_questions') as next_value;
+
+
+CREATE SEQUENCE scrape.seq_imagesLink START WITH 1 INCREMENT BY 1;
+SELECT last_value FROM scrape.seq_imagesLink;
+SELECT nextval('scrape.seq_imagesLink') as next_value;
