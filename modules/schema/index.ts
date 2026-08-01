@@ -43,7 +43,7 @@ export class Question {
         console.log("Inserting Question")
 
         const query = `
-INSERT INTO questions
+INSERT INTO scrape.questions
     (number, exam, text)
 VALUES ($1, $2, $3);
 `;
@@ -191,7 +191,7 @@ export class Answer {
         console.log("Inserting Answer")
 
         const query = `
-INSERT INTO answers
+INSERT INTO scrape.answers
     (number, question_number, question_exam, text, is_correct)
 VALUES ($1, $2, $3, $4, $5);
 `;
@@ -218,7 +218,7 @@ VALUES ($1, $2, $3, $4, $5);
         console.log("merge Answer")
 
         const oldQuery = `
-MERGE INTO answers
+MERGE INTO scrape.answers
 USING (
 SELECT CAST($1 AS integer) AS number, CAST($2 AS integer) AS question_number, CAST($3 AS text) AS question_exam, CAST($4 AS text) AS text, CAST($5 AS boolean) AS is_correct
 ) AS src
@@ -230,7 +230,7 @@ WHEN NOT MATCHED THEN
         `
 
         const newQuery = `
-MERGE INTO answers AS dst
+MERGE INTO scrape.answers AS dst
 USING (
     SELECT 
         $1::integer AS number, 
@@ -399,7 +399,7 @@ export class Discussion {
         console.log("Inserting Discussion")
 
         const query = `
-INSERT INTO discussions
+INSERT INTO scrape.discussions
     (number, question_number, question_exam, selected_answer, text, upvote)
 VALUES ($1, $2, $3, $4, $5, $6);
 `;
