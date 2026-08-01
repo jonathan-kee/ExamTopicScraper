@@ -4,7 +4,7 @@ WITH relative_path_questions as (
             exam,
             regexp_replace(
         text,
-        '/assets/media/[^ ]+/([^ /]+)',
+        '/assets/media/[^ ]+/([^ /]+\.(?:png|jpg|jpeg|gif))',
         '
 ![](../../images/\1)
 		',
