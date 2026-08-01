@@ -2,9 +2,10 @@ WITH relative_path_questions as (
         SELECT
             number,
             exam,
+            text,
             regexp_replace(
         text,
-        'https?://[^/\s'']+/[^\s'']+/([^\s'']+\.[^\s'']+)',
+        '/assets/media/[^ ]+/([^ /]+)',
         '
 ![](../../images/\1)
 		',
