@@ -42,7 +42,7 @@ the answers to the question but even they may be wrong, please do research caref
 # Browserless Production Pipeline commands
 - tsc --build --clean 
 - tsc --build  
-1) ALTER SEQUENCE seq_questionsLink RESTART WITH 1;
+1) ALTER SEQUENCE scrape.seq_questionsLink RESTART WITH 1;
 2) tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgres.js 'examtopics Scrum PSM I Exam question ' 'PSM I' 258
 3) The below command will download the documents and scrape data into database
 - cd static_page
@@ -163,7 +163,7 @@ select * from relative_path_questions
 
 ```
 
-- ALTER SEQUENCE seq_markdown RESTART WITH 1;
+- ALTER SEQUENCE scrape.seq_markdown RESTART WITH 1;
 - tsc && node ./build/commands/markdown.js '1z0-071' 272
 
 # Browser Pipeline commands
@@ -222,11 +222,24 @@ Data still persist after start & stop:
 
 # Backup Postgres docker data (Incase I lose all data at some point)
 docker exec -t postgres-container pg_dump -U postgres -d postgres > ./backup_sql/backup.sql
+docker exec -i postgres-container psql -U postgres -d postgres < ./backup_sql/backup.sql
+^
+I think my database got corrupted, try to schedule a backup with Airflow
+
 docker exec -t postgres-container pg_dump -U postgres -d postgres --data-only --table=questionslink > ./backup_sql/data_only.sql
 ^
 Change the schema
 
 docker exec -i postgres-container psql -U postgres -d exam_topic < ./backup_sql/data_only.sql
+
+# Recovery effort from database corruption 
+- docker exec -it postgres-container sh
+- cd tmp 
+- pg_dumpall -U postgres -f all_databases.sql
+- docker cp \
+    postgres-container:/tmp/all_databases.sql \
+    ./
+- docker exec -i postgres-container psql -U postgres -d postgres < ./backup_sql/all_databases.sql
 
 # RustFS (Minio Replacement) docker installation
 (Skip, Managed my Docker-managed named volumes) Create data and logs directories:
