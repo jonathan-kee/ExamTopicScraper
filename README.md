@@ -136,6 +136,8 @@ Data still persist after start & stop:
 
 # Backup Postgres docker data (Incase I lose all data at some point)
 docker exec -t postgres-container pg_dump -U postgres -d postgres > ./backup_sql/backup.sql
+docker exec -t postgres-container pg_dump -U postgres -d postgres --data-only --table=questionslink > ./backup_sql/data_only.sql
+docker exec -i postgres-container psql -U postgres -d exam_topic < ./backup_sql/data_only.sql
 
 # RustFS (Minio Replacement) docker installation
 (Skip, Managed my Docker-managed named volumes) Create data and logs directories:
