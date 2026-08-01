@@ -8,19 +8,19 @@ let markdown = async () => {
     let genericExam:string = process.argv[2]; // '1z0-071'
     let genericNumberOfQuestion:number = Number.parseInt(process.argv[3]); // '272'
     
-    const result = await db.DatabaseManager.executeQuery("SELECT last_value FROM seq_markdown;")
+    const result = await db.DatabaseManager.executeQuery('SELECT last_value FROM scrape."seq_markdown";')
     let sequenceLastValue: number = result.rows[0].last_value;
 
     for (let i = sequenceLastValue; i <= genericNumberOfQuestion;) {
         const questionResult = await db.DatabaseManager.executeQuery(`select questions.number , questions.text
-from relative_path_questions as questions
+from scrape."stg_relative_path_questions" as questions
 where questions.number = ${i}
 and questions.exam = '${genericExam}';`);
         const question: string = questionResult.rows[0].text;
 
         const answerResult = await db.DatabaseManager.executeQuery(`select REPLACE(answers.text, 'Most Voted', '') as text, answers.is_correct
-from relative_path_questions as questions
-join relative_path_answers as answers 
+from scrape."stg_relative_path_questions" as questions
+join scrape."stg_relative_path_answers" as answers 
 on answers.question_number = questions.number and
 answers.question_exam = questions.exam
 where questions.number = ${i}
@@ -34,8 +34,8 @@ order by text`);
         }
 
         const discussionResult = await db.DatabaseManager.executeQuery(`select discussions.selected_answer, discussions.text, discussions.upvote
-from relative_path_questions as questions
-join discussions
+from scrape."stg_relative_path_questions" as questions
+join scrape."discussions" as discussions
 on discussions.question_number = questions.number and
 discussions.question_exam = questions.exam
 where questions.number = ${i}
@@ -54,7 +54,7 @@ limit 5;`);
         markdown.toFile();
 
         // Increment 
-        const result = await db.DatabaseManager.executeQuery("SELECT nextval('seq_markdown') as next_value;")
+        const result = await db.DatabaseManager.executeQuery("SELECT nextval('scrape.seq_markdown') as next_value;")
         let sequenceLastValue: number = result.rows[0].next_value;
         i = sequenceLastValue;
     }
