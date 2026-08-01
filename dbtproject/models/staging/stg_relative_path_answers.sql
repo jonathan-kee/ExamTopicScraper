@@ -13,6 +13,7 @@ WITH relative_path_answers as (
     ) as text,
             is_correct
         from {{source('exam_topic sources','answers')}}
+        question_exam = '1z0-071'
 ),
 clean_dirty_relative_path_answers as (
         SELECT
