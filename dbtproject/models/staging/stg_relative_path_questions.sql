@@ -4,7 +4,7 @@ WITH relative_path_questions as (
             exam,
             regexp_replace(
         text,
-        '/assets/media/[^ ]+/([^ /]+\.(?:png|jpg|jpeg|gif))',
+        'https?://[^/\s'']+/[^\s'']+/([^\s'']+\.[^\s'']+)',
         '
 ![](../../images/\1)
 		',
@@ -12,5 +12,19 @@ WITH relative_path_questions as (
     ) as text
         from {{source('exam_topic sources','questions')}}
         where exam = '1z0-071'
+), 
+clean_assets as (
+    SELECT
+            number,
+            exam,
+            regexp_replace(
+        text,
+        '/assets/media/[^ ]+/([^ /]+\.(?:png|jpg|jpeg|gif))',
+        '
+![](../../images/\1)
+		',
+        'g'
+    ) as text
+        from relative_path_questions
 )
-select * from relative_path_questions
+select * from clean_assets
