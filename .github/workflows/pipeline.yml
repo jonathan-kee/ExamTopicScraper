@@ -36,17 +36,9 @@ jobs:
           cd static_page    
           java -jar /Users/jonathankee/examTopicScraper/static_page/Document/build/libs/Document-all.jar
 
-  Pipeline2:
-    name: Setup Pipeline2
-    if: ${{ github.event.inputs.target_pipeline == 'Pipeline 2' || github.event.inputs.target_pipeline == 'Both' }}
-    runs-on: [self-hosted, macOS, ARM64]
-    defaults:
-      run:
-        working-directory: /Users/jonathankee/examTopicScraper
-    steps:
-      - name: Print working directory
-        run: |
-          pwd
+      # Make sure to have the browser to automate open
+      - name: Rescape missing daata
+        run: tsc && node ./build/commands/rescrapeDataMissingAnswers.js '1z0-071'
 
       - name: Clear existing images
         run: rm -rf /Users/jonathankee/examTopicScraper/static_page/src/main/resources/images/*
