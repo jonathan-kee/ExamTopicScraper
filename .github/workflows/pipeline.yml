@@ -6,7 +6,6 @@ on:
 jobs:
   Pipeline:
     name: Setup Pipeline
-    if: ${{ github.event.inputs.target_pipeline == 'Pipeline 1' || github.event.inputs.target_pipeline == 'Both' }}
     runs-on: [self-hosted, macOS, ARM64]
     defaults:
       run:
