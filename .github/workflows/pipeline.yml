@@ -10,18 +10,6 @@ jobs:
 
     # https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers#configuring-the-steps-for-jobs-directly-on-the-runner-machine
     steps:
-        # Downloads a copy of the code in your repository before running CI tests
-      - name: Check out repository code
-        uses: actions/checkout@v6
-
-      - name: Setup database, schema, tables
-        run: docker exec -i postgres-container psql -U postgres -d postgres < ./sql/setupDBT.sql
-      
-      - name: Setup dbt models
-        run: |
-          cd dbtproject
-          dbt run
-      
       # Assume below are code
       # ALTER SEQUENCE scrape.seq_questionsLink RESTART WITH 1;
       # tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgres.js 'examtopics Scrum PSM I Exam question ' 'PSM I' 258
@@ -50,8 +38,8 @@ jobs:
 
       #- name: Modify DBT relative_path_questions
 
-      # Assume below are code
-      # ALTER SEQUENCE scrape.seq_markdown RESTART WITH 1;
+      - name: Run ALTER SEQUENCE scrape.seq_markdown RESTART WITH 1
+        run: echo "ALTER SEQUENCE scrape.\"seq_questionsLink\" RESTART WITH 1;" | docker exec -i postgres-container psql -U postgres -d exam_topic
       
       - name: Run markdown command
         run: tsc && node ./build/commands/markdown.js '1z0-071' 272
