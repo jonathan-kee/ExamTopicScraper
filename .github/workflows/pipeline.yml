@@ -48,10 +48,18 @@ jobs:
         run: |
           pwd
 
+      - name: Clear existing images
+        run: rm -rf /Users/jonathankee/examTopicScraper/static_page/src/main/resources/images/*
+        
       - name: Run jar for Download images
         run: |
           cd static_page
           java -jar /Users/jonathankee/examTopicScraper/static_page/Image/build/libs/Image-all.jar
+
+      - name: Copy over the files to images
+        run: | 
+          rm -rf images/*
+          cp /Users/jonathankee/examTopicScraper/static_page/src/main/resources/images/* /Users/jonathankee/examTopicScraper/images/
 
       - name: Run ALTER SEQUENCE scrape.seq_markdown RESTART WITH 1
         run: echo "ALTER SEQUENCE scrape.\"seq_questionsLink\" RESTART WITH 1;" | docker exec -i postgres-container psql -U postgres -d exam_topic
