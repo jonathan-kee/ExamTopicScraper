@@ -6,7 +6,7 @@ on:
 jobs:
   Pipeline:
     name: Setup Pipeline
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: [self-hosted, macOS, ARM64]
 
     # https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers#configuring-the-steps-for-jobs-directly-on-the-runner-machine
     steps:

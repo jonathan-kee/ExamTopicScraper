@@ -18,7 +18,7 @@ on:
 jobs:
   unit-testing:
     name: Unit Testing
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: [self-hosted, macOS, ARM64]
     # Service containers to run with `runner-job`
     # These are useful for creating databases or cache services like redis. The runner on the virtual machine will automatically create a network and manage the life cycle of the service containers.
     # https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers#configuring-the-runner-job-for-jobs-directly-on-the-runner-machine
