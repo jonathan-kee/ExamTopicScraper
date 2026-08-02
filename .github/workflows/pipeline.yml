@@ -62,7 +62,7 @@ jobs:
           cp /Users/jonathankee/examTopicScraper/static_page/src/main/resources/images/* /Users/jonathankee/examTopicScraper/images/
 
       - name: Run ALTER SEQUENCE scrape.seq_markdown RESTART WITH 1
-        run: echo "ALTER SEQUENCE scrape.\"seq_questionsLink\" RESTART WITH 1;" | docker exec -i postgres-container psql -U postgres -d exam_topic
+        run: echo "ALTER SEQUENCE scrape.\"seq_questionslink\" RESTART WITH 1;" | docker exec -i postgres-container psql -U postgres -d exam_topic
       
       - name: Run markdown command
         run: tsc && node ./build/commands/markdown.js '1z0-071' 272
