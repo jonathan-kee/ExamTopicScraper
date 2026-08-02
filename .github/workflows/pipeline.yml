@@ -2,18 +2,23 @@ name: Pipeline
 
 on:
   workflow_dispatch:
+    inputs:
+      target_pipeline:
+        description: 'Select which pipeline to run'
+        required: true
+        default: 'Pipeline 1'
+        type: choice
+        options:
+          - 'Pipeline 1'
+          - 'Pipeline 2'
+          - 'Both'
 
 jobs:
   Pipeline:
     name: Setup Pipeline
+    if: ${{ github.event.inputs.target_pipeline == 'Pipeline 1' || github.event.inputs.target_pipeline == 'Both' }}
     runs-on: [self-hosted, macOS, ARM64]
-
-    # https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers#configuring-the-steps-for-jobs-directly-on-the-runner-machine
     steps:
-      # Assume below are code
-      # ALTER SEQUENCE scrape.seq_questionsLink RESTART WITH 1;
-      # tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgres.js 'examtopics Scrum PSM I Exam question ' 'PSM I' 258
-
       - name: Run jar for Download document
         run: | 
           cd static_page
@@ -23,26 +28,19 @@ jobs:
         run: |
           cd static_page    
           java -jar /Users/jonathankee/examTopicScraper/static_page/Document/build/libs/Document-all.jar
-      
-      # How to show exit code when it finished scraping?
-      # tsc && node ./build/commands/rescrapeDataMissingAnswers.js '1z0-071'
 
   Pipeline2:
     name: Setup Pipeline2
+    if: ${{ github.event.inputs.target_pipeline == 'Pipeline 2' || github.event.inputs.target_pipeline == 'Both' }}
     runs-on: [self-hosted, macOS, ARM64]
     steps:
-      # - name: Modify DBT image_url_questions view
       - name: Run jar for Download images
         run: |
           cd static_page
           java -jar /Users/jonathankee/examTopicScraper/static_page/Image/build/libs/Image-all.jar
-      
-      #- name: Modify DBT relative_path_answers
-
-      #- name: Modify DBT relative_path_questions
 
       - name: Run ALTER SEQUENCE scrape.seq_markdown RESTART WITH 1
         run: echo "ALTER SEQUENCE scrape.\"seq_questionsLink\" RESTART WITH 1;" | docker exec -i postgres-container psql -U postgres -d exam_topic
       
       - name: Run markdown command
-        run: tsc && node ./build/commands/markdown.js '1z0-071' 272           
+        run: tsc && node ./build/commands/markdown.js '1z0-071' 272
