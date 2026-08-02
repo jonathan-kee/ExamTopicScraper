@@ -2,16 +2,6 @@ name: Pipeline
 
 on:
   workflow_dispatch:
-    inputs:
-      target_pipeline:
-        description: 'Select which pipeline to run'
-        required: true
-        default: 'Pipeline 1'
-        type: choice
-        options:
-          - 'Pipeline 1'
-          - 'Pipeline 2'
-          - 'Both'
 
 jobs:
   Pipeline:
