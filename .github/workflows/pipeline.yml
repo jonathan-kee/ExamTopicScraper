@@ -1,0 +1,58 @@
+name: Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  Pipeline:
+    name: Setup Pipeline
+    runs-on: [self-hosted, Linux, ARM64]
+
+    # https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers#configuring-the-steps-for-jobs-directly-on-the-runner-machine
+    steps:
+        # Downloads a copy of the code in your repository before running CI tests
+      - name: Check out repository code
+        uses: actions/checkout@v6
+
+      - name: Setup database, schema, tables
+        run: docker exec -i postgres-container psql -U postgres -d postgres < ./sql/setupDBT.sql
+      
+      - name: Setup dbt models
+        run: |
+          cd dbtproject
+          dbt run
+      
+      # Assume below are code
+      # ALTER SEQUENCE scrape.seq_questionsLink RESTART WITH 1;
+      # tsc && node ./build/commands/scrapeWebsiteLinksIntoPostgres.js 'examtopics Scrum PSM I Exam question ' 'PSM I' 258
+
+      - name: Run jar for Download document
+        run: | 
+          cd static_page
+          java -jar /Users/jonathankee/examTopicScraper/static_page/Download/build/libs/Download-all.jar "1z0-071"
+          
+      - name: Run jar for Insert Data into Database from documents
+        run: |
+          cd static_page    
+          java -jar /Users/jonathankee/examTopicScraper/static_page/Document/build/libs/Document-all.jar
+
+      - name: RescrapeDataMissingAnswers
+        run: tsc && node ./build/commands/rescrapeDataMissingAnswers.js '1z0-071'
+
+      # - name: Modify DBT image_url_questions view
+
+      - name: Run jar for Download images
+        run: |
+          cd static_page
+          java -jar /Users/jonathankee/examTopicScraper/static_page/Image/build/libs/Image-all.jar
+      
+      #- name: Modify DBT relative_path_answers
+
+      #- name: Modify DBT relative_path_questions
+
+      # Assume below are code
+      # ALTER SEQUENCE scrape.seq_markdown RESTART WITH 1;
+      
+      - name: Run markdown command
+        run: tsc && node ./build/commands/markdown.js '1z0-071' 272
+            
