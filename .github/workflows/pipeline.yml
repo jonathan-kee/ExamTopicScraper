@@ -20,7 +20,7 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64]
     defaults:
       run:
-        working-directory: /Users/jonathankee/examTopicScrape
+        working-directory: /Users/jonathankee/examTopicScraper
     steps:
       - name: Print working directory
         run: |
