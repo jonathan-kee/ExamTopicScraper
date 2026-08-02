@@ -26,6 +26,9 @@ jobs:
         run: |
           pwd
 
+      - name: Clear existing documents
+        run: rm -rf /Users/jonathankee/examTopicScraper/static_page/src/main/resources/tmp/*
+
       - name: Run jar for Download document
         run: | 
           cd static_page
@@ -37,7 +40,7 @@ jobs:
           java -jar /Users/jonathankee/examTopicScraper/static_page/Document/build/libs/Document-all.jar
 
       # Make sure to have the browser to automate open
-      - name: Rescape missing daata
+      - name: Rescape missing data
         run: tsc && node ./build/commands/rescrapeDataMissingAnswers.js '1z0-071'
 
       - name: Clear existing images
