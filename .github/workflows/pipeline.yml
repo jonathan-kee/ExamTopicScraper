@@ -19,6 +19,9 @@ jobs:
     if: ${{ github.event.inputs.target_pipeline == 'Pipeline 1' || github.event.inputs.target_pipeline == 'Both' }}
     runs-on: [self-hosted, macOS, ARM64]
     steps:
+      - name: Print working directory
+        run: pwd
+
       - name: Run jar for Download document
         run: | 
           cd static_page
