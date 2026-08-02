@@ -55,11 +55,15 @@ let rescrapeDataMissingAnswers = async () => {
     let genericExam = process.argv[2] // '1z0-071'
     const result = await db.DatabaseManager.executeQuery(`select number, link from scrape."stg_findMissingAnswersLink" where exam = '` + genericExam + `';` )
 
+    let browerToClose = null;
     for (let i = 0; i < (result.rowCount ?? 0); i++) {
         const questionsNumber = result.rows[i].number
         const questionsLink = result.rows[i].link
-        await browser.BrowserManager.manageBrowserAndPageOverload('http://127.0.0.1:9222', questionsLink, questionsNumber, scrapeDataLambda);
+        browerToClose = await browser.BrowserManager.manageBrowserAndPageOverload('http://127.0.0.1:9222', questionsLink, questionsNumber, scrapeDataLambda);
     }
+    
+    // @ts-ignore
+    browerToClose.close()
 }
 
 rescrapeDataMissingAnswers()
