@@ -67,3 +67,8 @@ linux/selfhost-runner/.vagrant
 .env
 docker_volume
 chrome-puppeteer-profile
+
+# Python virtual environment
+dbt-demo
+# Github actions
+actions-runner
