@@ -20,7 +20,7 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64]
     defaults:
       run:
-        working-directory: /Users/jonathankee/examTopicScraper/dbtproject
+        working-directory: /Users/jonathankee/examTopicScraper
     steps:
       - name: Print working directory
         run: |
@@ -42,12 +42,12 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64]
     defaults:
       run:
-        working-directory: /Users/jonathankee/examTopicScraper/dbtproject
+        working-directory: /Users/jonathankee/examTopicScraper
     steps:
       - name: Print working directory
         run: |
           pwd
-          
+
       - name: Run jar for Download images
         run: |
           cd static_page
