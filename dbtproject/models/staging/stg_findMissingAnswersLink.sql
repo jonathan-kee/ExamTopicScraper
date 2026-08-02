@@ -11,5 +11,5 @@ missing_answers as (
 	)
 )
 select * from missing_answers
-where exam = '1z0-071'
+where exam = '{{ var("exam") }}'
 order by number

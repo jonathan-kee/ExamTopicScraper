@@ -5,7 +5,7 @@ WITH image_url_questions AS (
 		'g'
 	) AS url
 	FROM {{source('exam_topic sources','questions')}}
-    WHERE exam = '1z0-071'
+    WHERE exam = '{{ var("exam") }}'
 ),
 image_asset_questions AS (
 	SELECT regexp_matches(
@@ -14,7 +14,7 @@ image_asset_questions AS (
 		'g'
 	) AS url
 	FROM {{source('exam_topic sources','questions')}}
-    WHERE exam = '1z0-071'
+    WHERE exam = '{{ var("exam") }}'
 ),
 image_url_answers as (
 	SELECT regexp_matches(
@@ -23,7 +23,7 @@ image_url_answers as (
 		'g'
 	) AS url
 	FROM {{source('exam_topic sources','answers')}}
-    WHERE question_exam = '1z0-071'
+    WHERE question_exam = '{{ var("exam") }}'
 ),
 image_asset_answers AS (
 	SELECT 
@@ -33,7 +33,7 @@ image_asset_answers AS (
 		'g'
 	) AS url
 	FROM {{source('exam_topic sources','answers')}}
-    WHERE question_exam = '1z0-071'
+    WHERE question_exam = '{{ var("exam") }}'
 ),
 all_image_url as (
 	select unnest(url) from image_url_questions

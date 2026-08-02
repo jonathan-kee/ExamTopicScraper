@@ -11,7 +11,7 @@ WITH relative_path_questions as (
         'g'
     ) as text
         from {{source('exam_topic sources','questions')}}
-        where exam = '1z0-071'
+        where exam = '{{ var("exam") }}'
 ), 
 clean_assets as (
     SELECT

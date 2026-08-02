@@ -13,7 +13,7 @@ WITH relative_path_answers as (
     ) as text,
             is_correct
         from {{source('exam_topic sources','answers')}}
-        where question_exam = '1z0-071'
+        where question_exam = '{{ var("exam") }}'
 ),
 clean_assets as (
     SELECT
