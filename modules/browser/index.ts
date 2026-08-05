@@ -61,6 +61,7 @@ export class BrowserManager {
                 // await browser.close();
             }
         }
+        return browser;
     }
 
     static async reusePage(page: Page, lastSequenceNumber: number, genericQuestionNumber:number, scrapeDataLambda: (page: Page, questionNumber: number) => Promise<void>) {
