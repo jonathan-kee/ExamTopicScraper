@@ -55,7 +55,7 @@ let rescrapeDataMissingAnswers = async () => {
     }
 
     let genericExam = process.argv[2] // '1z0-071'
-    const result = await db.DatabaseManager.executeQuery(`select number, link from scrape."stg_file_findMissingAnswersLink" where exam = '` + genericExam + `';` )
+    const result = await db.DatabaseManager.executeQuery(`select number, link from scrape."stg_findMissingAnswersLink" where exam = '` + genericExam + `';` )
 
     let browerToClose = null;
     for (let i = 0; i < (result.rowCount ?? 0); i++) {
