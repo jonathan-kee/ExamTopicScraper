@@ -9,32 +9,34 @@ import { Page } from 'puppeteer';
 // 2) docker_pg_schema.sql
 let rescrapeDataMissingAnswers = async () => {
     const scrapeDataLambda = async (page: Page, questionsnumber: number) => {
+        // 2. Fast popup check (1.5s timeout instead of 30s)
         try {
-            console.log("Page loaded");
-            await page.locator('.popup-overlay.show').wait();
-            console.log("Popup detected");
-
-            // Apparently page.evaluate is like opening up console
-            await page.evaluate(() => {
-                const el = document.querySelector('.popup-overlay.show');
-                if (el) {
-                    el.className = 'popup-overla show';
-                }
-            });
-        } catch (error) {
+            const popup = await page.waitForSelector('.popup-overlay.show', { timeout: 5000 });
+            if (popup) {
+                console.log("Popup detected");
+                await page.evaluate(() => {
+                    const el = document.querySelector('.popup-overlay.show');
+                    if (el) {
+                        el.className = 'popup-overla show';
+                    }
+                });
+            }
+        } catch {
             console.log("Popup not detected");
         }
 
-        try {
-            await page.locator('.load-full-discussion-button').wait();
-            console.log("Load Discussions button detected");
-            await page.locator('.load-full-discussion-button').click();
-            console.log("clicked load Discussions button");
-            // Wait for load discussion to finish
-            await new Promise(resolve => setTimeout(resolve, 5000));
-        } catch (error) {
-            console.log("Load Discussions button not detected");
-        }
+        
+        // Browserless not detected
+        // try {
+        //     await page.locator('.load-full-discussion-button').wait();
+        //     console.log("Load Discussions button detected");
+        //     await page.locator('.load-full-discussion-button').click();
+        //     console.log("clicked load Discussions button");
+        //     // Wait for load discussion to finish
+        //     await new Promise(resolve => setTimeout(resolve, 5000));
+        // } catch (error) {
+        //     console.log("Load Discussions button not detected");
+        // }
 
         let genericExam = process.argv[2]
         
@@ -53,7 +55,7 @@ let rescrapeDataMissingAnswers = async () => {
     }
 
     let genericExam = process.argv[2] // '1z0-071'
-    const result = await db.DatabaseManager.executeQuery(`select number, link from scrape."stg_findMissingAnswersLink" where exam = '` + genericExam + `';` )
+    const result = await db.DatabaseManager.executeQuery(`select number, link from scrape."stg_file_findMissingAnswersLink" where exam = '` + genericExam + `';` )
 
     let browerToClose = null;
     for (let i = 0; i < (result.rowCount ?? 0); i++) {

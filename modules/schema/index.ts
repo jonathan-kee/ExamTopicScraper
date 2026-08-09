@@ -102,7 +102,17 @@ export class Answer {
 
     public static async create(page: Page, questionNumber: number, questionExam: string): Promise<Answer[]> {
         let list: Answer[] = [];
-        const questionsElement = await page.waitForSelector('::-p-xpath(/html/body/div[2]/div/div[4]/div/div[1]/div[2]/div[2]/ul)')
+        let questionsElement;
+        try {
+            // Reduced timeout to 2 seconds (default was 30 seconds)
+            questionsElement = await page.waitForSelector(
+                '::-p-xpath(/html/body/div[2]/div/div[4]/div/div[1]/div[2]/div[2]/ul)',
+                { timeout: 2000 }
+            );
+        } catch (error) {
+            console.log("Answers element not found within 2s");
+            return [];
+        }
         const questionsChildNodesLength = await questionsElement?.evaluate(el => el.childElementCount);
         if (questionsChildNodesLength !== undefined) {
             for (let i = 1; i <= questionsChildNodesLength; i++) {
@@ -129,7 +139,18 @@ export class Answer {
     }
 
     public static async newCreate(page: Page, questionNumber: number, questionExam: string): Promise<Answer[]> {
-        const element = await page.waitForSelector('::-p-xpath(/html/body/div[2]/div/div[4]/div/div[1]/div[2]/p)');
+        let element;
+        try {
+            // Reduced timeout to 2 seconds (default was 30 seconds)
+            element = await page.waitForSelector(
+                '::-p-xpath(/html/body/div[2]/div/div[4]/div/div[1]/div[2]/p)',
+                { timeout: 2000 }
+            );
+        } catch (error) {
+            console.log("Answers element not found within 2s");
+            return [];
+        }
+
         let arrayOfText = await element?.evaluate(el => {
             let answer = [];
             for (let i = 0; i < el.childNodes.length; i++) {

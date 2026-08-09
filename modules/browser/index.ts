@@ -94,72 +94,71 @@ export class BrowserManager {
     static async reusePageOverload(page: Page, questionsLink: string, questionNumber: number, scrapeDataLambda: (page: Page, questionNumber: number) => Promise<void>) {
         await BrowserManager.errorHandlingBoilerPlate(page, questionsLink);
 
-        // now you can try to perform your actions
-        await scrapeDataLambda(page, questionNumber);
-    }
+        console.log(`🚀 [SCRAPE START] Processing Question #${questionNumber}...`);
+        const startTime = Date.now();
 
-
-    static async errorHandlingBoilerPlate(page: Page, questionslink: string) {
-        let response;
         try {
-            // try navigation with a short timeout
-            response = await page.goto(questionslink, {
-                timeout: 5000, // 5 seconds
-                waitUntil: "domcontentloaded",
-            });
-        } catch (error: any) {
-            // handle navigation and timeout errors
-
-            if (error instanceof TimeoutError) {
-                // you might decide to re-try, throw, or move on.
-                // for demonstration, we continue with the partially loaded page.
-            } else if (error.message && error.message.startsWith("net::ERR")) {
-                // networking error (DNS, connection, etc). handle or re-try if needed.
-                // e.g., throw error;
-            } else {
-                // an unexpected navigation error occurred
-                throw error;
-            }
-        }
-
-        // if we did get a response, check HTTP status codes
-        if (response) {
-            const status = response.status();
-            if (status >= 400) {
-                // handle the error
-            }
-        } else {
-            // no initial response object was returned, try waiting for a response
-            try {
-                const waitedResponse = await page.waitForResponse(() => true, {
-                    timeout: 5000,
-                });
-                const waitedStatus = waitedResponse.status();
-                if (waitedStatus >= 400) {
-                    // handle the error
-                }
-            } catch (waitError) {
-                // handle the error
-            }
-        }
-
-        // check if the page fell back to a default browser error page
-        if (page.url().startsWith("chrome-error://")) {
-            // optionally inspect page content for the specific reason
-            const content = await page.content();
-            if (content.includes("ERR_NAME_NOT_RESOLVED")) {
-                // handle the error
-            } else if (content.includes("ERR_INTERNET_DISCONNECTED")) {
-                // handle the error
-            } else {
-                // handle the error
-            }
-
-            // decide how to handle: throw, return, etc.
-            // for demonstration, we will return early.
-            return;
+            await scrapeDataLambda(page, questionNumber);
+            const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+            console.log(`⏱️ [SCRAPE SUCCESS] Question #${questionNumber} finished in ${duration}s`);
+        } catch (error) {
+            const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+            console.error(`💥 [SCRAPE FAILED] Question #${questionNumber} threw an error after ${duration}s:`, error);
+            throw error;
         }
     }
+
+
+    static async errorHandlingBoilerPlate(page: Page, questionslink: string): Promise<boolean> {
+    const startTime = Date.now();
+    const TIMEOUT_MS = 5000;
+
+    console.log(`[START] Navigating to: ${questionslink}`);
+
+    let response;
+    try {
+        response = await page.goto(questionslink, {
+            timeout: TIMEOUT_MS,
+            waitUntil: "domcontentloaded",
+        });
+    } catch (error: any) {
+        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+        // Check if error is specifically a Puppeteer TimeoutError
+        if (error instanceof TimeoutError || error.name === 'TimeoutError') {
+            console.warn(`⚠️ [TIMEOUT] Exceeded ${TIMEOUT_MS / 1000}s threshold (took ${duration}s) on: ${questionslink}`);
+            return false;
+        } 
+        
+        if (error.message && error.message.includes("net::ERR")) {
+            console.error(`❌ [NETWORK ERROR] (${duration}s) - ${error.message} on: ${questionslink}`);
+            return false;
+        }
+
+        console.error(`💥 [UNEXPECTED ERROR] (${duration}s) on: ${questionslink}`, error);
+        throw error;
+    }
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+    // HTTP Status check
+    if (response) {
+        const status = response.status();
+        if (status >= 400) {
+            console.warn(`⚠️ [HTTP ${status}] Loaded in ${duration}s (Error status) for: ${questionslink}`);
+            return false;
+        }
+    }
+
+    // Browser Error Page check
+    if (page.url().startsWith("chrome-error://")) {
+        console.warn(`⚠️ [CHROME ERROR PAGE] Loaded in ${duration}s on: ${questionslink}`);
+        return false;
+    }
+
+    console.log(`✅ [SUCCESS] Loaded in ${duration}s (HTTP ${response?.status() || 200}): ${questionslink}`);
+    return true;
+}
 
     // What is the order of the SQL Files loaded?
     // 1) lambda()'s       result                         uses docker_pg_seq_schema.sql
