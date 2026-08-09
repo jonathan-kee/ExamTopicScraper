@@ -1,3 +1,3 @@
-CREATE OR REPLACE TABLE file_missing_answers_link AS
-select * from stg_findMissingAnswersLink
-order by number; 
+CREATE TABLE scrape.file_missing_answers_link AS
+select * from scrape."stg_findMissingAnswersLink"
+order by number;
